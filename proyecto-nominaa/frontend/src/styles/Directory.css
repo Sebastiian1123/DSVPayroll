@@ -1,0 +1,765 @@
+.directory-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 30px 20px;
+}
+
+/* ============================================
+   LISTA DE EMPLEADOS (solo esta sección)
+   ============================================ */
+
+.table-container {
+  overflow-x: auto;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border-color);
+}
+
+.table-container table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px;
+}
+
+/* Cabecera de la tabla */
+.table-container thead {
+  background-color: var(--bg-light);
+}
+
+.table-container thead th {
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-dark);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.table-container thead th:first-child {
+  padding-left: 20px;
+}
+
+.table-container thead th:last-child {
+  padding-right: 20px;
+  text-align: right;
+}
+
+/* Filas de datos */
+.table-container tbody tr {
+  background-color: #fff;
+  transition: background-color 0.15s ease;
+}
+
+.table-container tbody tr:hover {
+  background-color: var(--bg-light);
+}
+
+.table-container tbody td {
+  padding: 14px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.875rem;
+  color: var(--text-dark);
+  vertical-align: middle;
+}
+
+.table-container tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table-container tbody td:first-child {
+  padding-left: 20px;
+}
+
+.table-container tbody td:last-child {
+  padding-right: 20px;
+  text-align: right;
+}
+
+/* Celda nombre (avatar + nombre + email) */
+.table-container .employee-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.table-container .employee-name-cell .avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.table-container .employee-name-cell .avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.table-container .employee-name-cell .name-block .name {
+  display: block;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 2px;
+}
+
+.table-container .employee-name-cell .name-block .email {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+/* Pills de estado */
+.table-container .status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.table-container .status-pill .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.table-container .status-pill--active {
+  background-color: rgba(16, 185, 129, 0.12);
+  color: var(--success-color);
+}
+
+.table-container .status-pill--active .status-dot {
+  background-color: var(--success-color);
+}
+
+.table-container .status-pill--leave,
+.table-container .status-pill--inactive {
+  background-color: rgba(245, 158, 11, 0.12);
+  color: var(--warning-color);
+}
+
+.table-container .status-pill--leave .status-dot,
+.table-container .status-pill--inactive .status-dot {
+  background-color: var(--warning-color);
+}
+
+/* Botones de acción (compactos, estilo menú) */
+.table-container .action-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.table-container .action-buttons .btn-action {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-light);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.table-container .action-buttons .btn-action:hover {
+  background-color: var(--bg-light);
+  color: var(--primary-color);
+}
+
+.table-container .action-buttons .btn-action.btn-edit:hover {
+  color: var(--primary-color);
+}
+
+.table-container .action-buttons .btn-action.btn-delete:hover {
+  color: var(--danger-color);
+}
+
+/* Botón de tres puntos (menú de opciones) */
+.table-container .action-buttons--menu .btn-action {
+  font-size: 1.1rem;
+  letter-spacing: -0.05em;
+}
+
+.table-container .action-buttons--menu .btn-action i {
+  font-size: 1rem;
+}
+
+/* ============================================
+   PAGINACIÓN
+   ============================================ */
+
+.directory-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 12px 16px;
+  background-color: #fff;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.directory-pagination__rows {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: var(--text-light);
+}
+
+.directory-pagination__select {
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: #fff;
+  font-size: 0.875rem;
+  color: var(--text-dark);
+  cursor: pointer;
+}
+
+.directory-pagination__select:hover,
+.directory-pagination__select:focus {
+  border-color: var(--primary-color);
+  outline: none;
+}
+
+.directory-pagination__info {
+  font-size: 0.875rem;
+  color: var(--text-light);
+}
+
+.directory-pagination__controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.directory-pagination__btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: #fff;
+  color: var(--text-dark);
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.directory-pagination__btn:hover:not(:disabled) {
+  background-color: var(--bg-light);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.directory-pagination__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.directory-pagination__btn--number {
+  font-weight: 500;
+}
+
+.directory-pagination__btn--active {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #fff;
+}
+
+.directory-pagination__btn--active:hover:not(:disabled) {
+  background-color: var(--secondary-color);
+  border-color: var(--secondary-color);
+  color: #fff;
+}
+
+.directory-pagination__numbers {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.directory-pagination__ellipsis {
+  min-width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  color: var(--text-light);
+}
+
+/* ============================================
+   MODAL DE NÓMINA
+   ============================================ */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.payroll-modal {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 750px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header del modal de nómina */
+.payroll-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.payroll-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.employee-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #313131;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.payroll-modal-header h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #313131;
+  margin: 0 0 4px 0;
+}
+
+.employee-subtitle {
+  font-size: 14px;
+  color: var(--text-light);
+  margin: 0;
+}
+
+.employee-name-highlight {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-light);
+  padding: 8px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background-color: var(--bg-light);
+  color: var(--text-dark);
+}
+
+/* Body del modal */
+.payroll-modal-body {
+  padding: 24px;
+  flex: 1;
+}
+
+.payroll-section {
+  margin-bottom: 32px;
+}
+
+.payroll-section:last-child {
+  margin-bottom: 0;
+}
+
+.section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 16px 0;
+}
+
+.section-header-with-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.btn-add-entry {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: color 0.2s;
+}
+
+.btn-add-entry:hover {
+  color: var(--secondary-color);
+}
+
+/* Formulario de período */
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.form-group input,
+.form-group select {
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  background-color: #fff;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.overtime-col-type select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.overtime-col-hours input:focus,
+.overtime-col-rate input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-group input[readonly],
+.form-group select[readonly] {
+  background-color: var(--bg-light);
+  cursor: default;
+  color: var(--text-dark);
+}
+
+.input-with-icon {
+  position: relative;
+}
+
+.input-with-icon input {
+  padding-right: 40px;
+  width: 100%;
+}
+
+.input-with-icon i {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-light);
+  pointer-events: none;
+}
+
+/* Tabla de horas extra */
+.overtime-table {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.overtime-table-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.5fr 60px;
+  gap: 5px;
+  background-color: var(--bg-light);
+  border-bottom: 1px solid var(--border-color);
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.overtime-table-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.5fr 60px;
+  gap: 5px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  align-items: center;
+}
+
+.overtime-table-row:last-child {
+  border-bottom: none;
+}
+
+.overtime-col-type select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: #fff;
+}
+
+.overtime-col-type select[readonly],
+.overtime-col-type select:disabled {
+  background-color: var(--bg-light);
+  cursor: default;
+  opacity: 1;
+}
+
+.overtime-col-hours input,
+.overtime-col-rate input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.overtime-col-hours input[readonly],
+.overtime-col-rate input[readonly] {
+  background-color: var(--bg-light);
+  cursor: default;
+}
+
+.overtime-col-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.btn-delete-entry {
+  background: none;
+  border: none;
+  color: var(--danger-color);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.btn-delete-entry:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+/* Deducciones */
+.deductions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.deduction-box {
+  background-color: var(--bg-light);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+.deduction-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.deduction-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+/* Footer del modal - Resumen */
+.payroll-modal-footer {
+  background-color: #313131;
+  color: white;
+  padding: 24px;
+  border-radius: 0 0 12px 12px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.summary-row:last-child {
+  margin-bottom: 0;
+}
+
+.summary-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.summary-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+}
+
+.summary-deductions {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.summary-net {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.summary-net-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--info-color);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .payroll-modal {
+    max-width: 100%;
+    margin: 10px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .deductions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .overtime-table-header,
+  .overtime-table-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .overtime-col-actions {
+    justify-content: flex-start;
+  }
+}
+
+.payroll-save-message {
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.payroll-save-message--success {
+  background: rgba(34, 197, 94, 0.2);
+  color: #bbf7d0;
+}
+
+.payroll-save-message--error {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fecaca;
+}
+
+.payroll-footer-actions {
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.payroll-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.payroll-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.payroll-btn--secondary {
+  background: #4b5563;
+  color: #fff;
+}
+
+.payroll-btn--primary {
+  background: #22c55e;
+  color: #fff;
+}
