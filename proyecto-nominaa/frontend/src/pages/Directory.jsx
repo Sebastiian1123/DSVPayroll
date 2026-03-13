@@ -3,7 +3,7 @@ import Navbar from '../components/Navbar'
 import api from '../services/api'
 import '../styles/Directory.css'
 
-/** Formatea un número como peso colombiano: $1.000.000 */
+/** Formatea un número como peso colombiano: $1.000.000 ::*/
 const formatPesoColombiano = (value) => {
   const num = Number(value)
   if (isNaN(num)) return '–'
