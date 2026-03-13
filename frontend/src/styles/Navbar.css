@@ -1,0 +1,157 @@
+/* ============================================
+   ESTILOS DEL NAVBAR
+   Archivo: src/styles/Navbar.css
+   ============================================ */
+
+.navbar {
+    background: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.navbar-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 64px;
+}
+
+/* Brand / Logo */
+.navbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: #1f2937;
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.navbar-icon {
+    font-size: 24px;
+    width: 15%;
+}
+
+.navbar-title {
+    display: none;
+}
+
+.img-logo{
+    width: 100%;
+}
+
+@media (min-width: 640px) {
+    .navbar-title {
+        display: inline;
+    }
+}
+
+.navbar-brand:hover {
+    color: #667eea;
+}
+
+/* Menú de navegación */
+.navbar-menu {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+    justify-content: center;
+}
+
+.nav-link {
+    padding: 8px 16px;
+    text-decoration: none;
+    color: #6b7280;
+    font-weight: 500;
+    font-size: 14px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.nav-link:hover {
+    background-color: #f3f4f6;
+    color: #667eea;
+}
+
+.nav-link.active {
+    background-color: #ede9fe;
+    color: #667eea;
+}
+
+/* Usuario y logout */
+.navbar-user {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.user-info {
+    display: none;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+@media (min-width: 768px) {
+    .user-info {
+        display: flex;
+    }
+}
+
+.user-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.user-role {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.logout-btn {
+    padding: 8px 16px;
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.logout-btn:hover {
+    background-color: #dc2626;
+    transform: translateY(-1px);
+}
+
+.logout-btn:active {
+    transform: translateY(0);
+}
+
+/* Responsive - Mobile */
+@media (max-width: 640px) {
+    .navbar-container {
+        padding: 0 15px;
+    }
+
+    .navbar-menu {
+        gap: 4px;
+    }
+
+    .nav-link {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+
+    .logout-btn {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+}

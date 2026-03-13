@@ -1,0 +1,405 @@
+/* ============================================
+   VISTA DE NÓMINA - DASHBOARD
+   ============================================ */
+
+.nomina-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 30px 20px;
+}
+
+/* Header */
+.nomina-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+.nomina-header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin: 0 0 4px 0;
+}
+
+.nomina-header p {
+  font-size: 0.95rem;
+  color: var(--text-light);
+  margin: 0;
+}
+
+.nomina-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.nomina-date-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.nomina-date-range i {
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.btn-generar-nomina {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #313131;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.btn-generar-nomina:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
+}
+
+/* Cards de métricas */
+.nomina-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.nomina-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.nomina-card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nomina-card-icon--blue {
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
+}
+
+.nomina-card-icon--purple {
+  background: rgba(139, 92, 246, 0.12);
+  color: #7c3aed;
+}
+
+.nomina-card-icon--orange {
+  background: rgba(249, 115, 22, 0.12);
+  color: #f97316;
+}
+
+.nomina-card-icon--red {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+
+.nomina-card-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  margin: 0 0 4px 0;
+}
+
+.nomina-card-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin: 0 0 4px 0;
+}
+
+.nomina-card-change {
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.nomina-card-change.positive {
+  color: #10b981;
+}
+
+.nomina-card-tag {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  background: var(--bg-light);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.nomina-card-tag.urgent {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+/* Grid principal: gráfica + próximo pago */
+.nomina-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 900px) {
+  .nomina-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Card del gráfico */
+.nomina-chart-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.nomina-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.nomina-chart-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin: 0;
+}
+
+.nomina-chart-badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-light);
+  background: var(--bg-light);
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+
+.nomina-chart-body {
+  padding: 20px 24px 24px;
+}
+
+/* Card próximo día de pago */
+.nomina-payday-card {
+  background: #313131;
+  border-radius: 12px;
+  padding: 28px;
+  color: white;
+  box-shadow: 0 4px 14px rgba(102, 126, 234, 0.35);
+}
+
+.nomina-payday-card h3 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  opacity: 0.95;
+  margin: 0 0 12px 0;
+}
+
+.nomina-payday-count {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 0 0 8px 0;
+  letter-spacing: 0.02em;
+}
+
+.nomina-payday-date {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin: 0 0 20px 0;
+}
+
+.nomina-payday-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nomina-payday-progress span:first-child {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  opacity: 0.9;
+}
+
+.nomina-progress-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.nomina-progress-fill {
+  height: 100%;
+  background: white;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.nomina-payday-progress span:last-child {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Actividad reciente */
+.nomina-activity-section {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.nomina-activity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.nomina-activity-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin: 0;
+}
+
+.nomina-view-all {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.nomina-view-all:hover {
+  text-decoration: underline;
+}
+
+.nomina-activity-list {
+  padding: 16px;
+}
+
+.nomina-activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+
+.nomina-activity-item:hover {
+  background: var(--bg-light);
+}
+
+.nomina-activity-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nomina-activity-icon.success {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+}
+
+.nomina-activity-icon.info {
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
+}
+
+.nomina-activity-icon.warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+}
+
+.nomina-activity-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.nomina-activity-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin: 0 0 4px 0;
+}
+
+.nomina-activity-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-light);
+  margin: 0;
+}
+
+.nomina-activity-status {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+
+.nomina-activity-status.completed,
+.nomina-activity-status.submitted {
+  background: var(--bg-light);
+  color: var(--text-light);
+}
+
+.nomina-activity-status.in-progress {
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
+}
+
+.nomina-filter-input {
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text-dark);
+  font-size: 0.9rem;
+  min-width: 180px;
+}
