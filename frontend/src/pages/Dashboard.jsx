@@ -61,22 +61,25 @@ const Dashboard = () => {
 
                     {/* Card de Nómina*/}
                     <Link to="/nomina">
-                    <div className="dashboard-card">
-                        <div className="card-icon"><i className="fa-solid fa-money-bill"></i></div>
-                        <h3>Nómina</h3>
-                        <p>Gestión de nómina y pagos</p>
-                        <span className="card-action">Gestionar Nomina →</span>
-                    </div>
+                        <div className="dashboard-card">
+                            <div className="card-icon"><i className="fa-solid fa-money-bill"></i></div>
+                            <h3>Nómina</h3>
+                            <p>Gestión de nómina y pagos</p>
+                            <span className="card-action">Gestionar Nomina →</span>
+                        </div>
                     </Link>
-                    
 
-                    {/* Card de Reportes (próximamente) */}
-                    <div className="dashboard-card disabled">
-                        <div className="card-icon"><i className="fa-solid fa-chart-bar"></i></div>
-                        <h3>Reportes</h3>
-                        <p>Genera reportes y estadísticas</p>
-                        <span className="card-action">Próximamente...</span>
-                    </div>
+
+                    {/* Card de Reportes*/}
+                    <Link to="/reports">
+                        <div className="dashboard-card">
+                            <div className="card-icon"><i className="fa-solid fa-chart-bar"></i></div>
+                            <h3>Reportes</h3>
+                            <p>Genera reportes y estadísticas</p>
+                            <span className="card-action">Consultar reportes</span>
+                        </div>
+                    </Link>
+
                 </div>
 
                 {/* Sección de accesos rápidos */}

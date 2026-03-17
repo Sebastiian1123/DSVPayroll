@@ -8,7 +8,7 @@
     margin: 0 auto;
     padding: 30px 20px;
 }
-.fa-money-bill:before {
+.fa-money-bill:before, .fa-chart-bar:before {
     color: #1f2937;
 }
 

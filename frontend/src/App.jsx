@@ -15,6 +15,7 @@ import Users from './pages/Users';
 import ForgotPassword from './pages/ForgotPassword';
 import { Nomina } from './pages/Nomina';
 import { Directory } from './pages/Directory';
+import {Reports} from'../src/pages/Reports';
 
 
 function App() {
@@ -92,6 +93,16 @@ function App() {
         element={
           <PrivateRoute requiredRole="ADMINISTRADOR">
             <Users />
+          </PrivateRoute>
+        }
+      />
+
+      {/* Reportes*/}
+      <Route
+        path="/reports"
+        element={
+          <PrivateRoute>
+            <Reports />
           </PrivateRoute>
         }
       />
