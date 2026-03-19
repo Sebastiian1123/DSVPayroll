@@ -12,7 +12,7 @@ const EmployeeReportDetail = ({ report, onBack }) => {
                     <div style={{ display: 'flex', gap: '8px', fontSize: '12px', color: 'var(--text-light)', marginBottom: '8px', textTransform: 'uppercase' }}>
                         <span>Mis Nóminas</span>
                         <span>/</span>
-                        <span style={{ color: 'var(--primary-color)', fontWeight: 600 }}>{report.month} 2023</span>
+                        <span style={{ color: 'var(--primary-color)', fontWeight: 600 }}>{report.month} {report.year || 2023}</span>
                     </div>
                     <h1>Detalle de Nómina</h1>
                 </div>
@@ -43,12 +43,12 @@ const EmployeeReportDetail = ({ report, onBack }) => {
                     <div className="period-info">
                         <div className="period-col">
                             <p>PERIODO DE LIQUIDACIÓN</p>
-                            <h4>{report.month} 2023</h4>
-                            <p>01/{report.id.split('-').pop()}/2023 al 31/{report.id.split('-').pop()}/2023</p>
+                            <h4>{report.month} {report.year || 2023}</h4>
+                            <p>01/{report.id.split('-').pop()}/{report.year || 2023} al 31/{report.id.split('-').pop()}/{report.year || 2023}</p>
                         </div>
                         <div className="period-col" style={{ textAlign: 'right' }}>
                             <p>FECHA DE ABONO</p>
-                            <h4>31 {report.month.substring(0,3)} 2023</h4>
+                            <h4>31 {report.month.substring(0,3)} {report.year || 2023}</h4>
                             <span className="badge badge-success badge-sm" style={{ marginTop: '4px' }}>PAGADA</span>
                         </div>
                     </div>
