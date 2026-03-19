@@ -18,7 +18,7 @@ const MONTHS = [
 ];
 
 
-const REPORT_YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030];
+const REPORT_YEARS = Object.freeze([2024, 2025, 2026, 2027, 2028, 2029, 2030]);
 
 const formatCurrency = (value) => {
     const amount = Number(value);
@@ -39,7 +39,7 @@ const EmployeeReportsList = ({ onSelectReport }) => {
     const [error, setError] = useState('');
     const [reportRows, setReportRows] = useState([]);
 
-    const years = useMemo(() => REPORT_YEARS, []);
+    const years = REPORT_YEARS;
 
     useEffect(() => {
         const fetchEmployeeReportsByYear = async () => {
