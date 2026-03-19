@@ -38,7 +38,7 @@ const EmployeeReportsList = ({ onSelectReport }) => {
     const [error, setError] = useState('');
     const [reportRows, setReportRows] = useState([]);
 
-    const years = useMemo(() => Array.from({ length: 10 }, (_, index) => currentYear - index), [currentYear]);
+    const years = useMemo(() => Array.from({ length: 7 }, (_, index) => 2024 + index), []);
 
     useEffect(() => {
         const fetchEmployeeReportsByYear = async () => {
