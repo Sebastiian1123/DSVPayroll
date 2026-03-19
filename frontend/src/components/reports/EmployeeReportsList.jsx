@@ -17,6 +17,9 @@ const MONTHS = [
     { number: 12, name: 'Diciembre' }
 ];
 
+
+const REPORT_YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030];
+
 const formatCurrency = (value) => {
     const amount = Number(value);
     if (Number.isNaN(amount)) return '—';
@@ -31,14 +34,12 @@ const formatCurrency = (value) => {
 
 const EmployeeReportsList = ({ onSelectReport }) => {
     const { user } = useAuth();
-    const currentYear = new Date().getFullYear();
-
-    const [selectedYear, setSelectedYear] = useState(currentYear);
+    const [selectedYear, setSelectedYear] = useState(2026);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [reportRows, setReportRows] = useState([]);
 
-    const years = useMemo(() => Array.from({ length: 7 }, (_, index) => 2024 + index), []);
+    const years = useMemo(() => REPORT_YEARS, []);
 
     useEffect(() => {
         const fetchEmployeeReportsByYear = async () => {
