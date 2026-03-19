@@ -148,18 +148,26 @@ const getPayrollReport = async (req, res) => {
   try {
     const now = new Date();
     const requestedYear = Number(req.query.anio) || now.getUTCFullYear();
-    const requestedMonth = Number(req.query.mes) || (now.getUTCMonth() + 1);
     const requestedEmployeeId = Number(req.query.id_empleado) || null;
 
-    if (requestedMonth < 1 || requestedMonth > 12) {
+    const hasMonthFilter = req.query.mes !== undefined && req.query.mes !== null && req.query.mes !== '';
+    const requestedMonth = hasMonthFilter ? Number(req.query.mes) : null;
+
+    if (hasMonthFilter && (requestedMonth < 1 || requestedMonth > 12)) {
       return res.status(400).json({
         success: false,
         message: 'El parámetro mes debe estar entre 1 y 12'
       });
     }
 
-    const queryParams = [requestedYear, requestedMonth];
+    const queryParams = [requestedYear];
+    let monthFilterSql = '';
     let employeeFilterSql = '';
+
+    if (hasMonthFilter) {
+      monthFilterSql = ' AND MONTH(n.fecha_corte) = ? ';
+      queryParams.push(requestedMonth);
+    }
 
     if (requestedEmployeeId) {
       employeeFilterSql = ' AND n.id_empleado = ? ';
@@ -180,7 +188,7 @@ const getPayrollReport = async (req, res) => {
       FROM nomina n
       INNER JOIN empleados e ON e.id_empleado = n.id_empleado
       WHERE YEAR(n.fecha_corte) = ?
-        AND MONTH(n.fecha_corte) = ?
+        ${monthFilterSql}
         ${employeeFilterSql}
       ORDER BY n.fecha_corte DESC, n.id_nomina DESC`,
       queryParams
@@ -203,7 +211,7 @@ const getPayrollReport = async (req, res) => {
       data: {
         filtros: {
           anio: requestedYear,
-          mes: requestedMonth,
+          mes: hasMonthFilter ? requestedMonth : null,
           id_empleado: requestedEmployeeId
         },
         resumen,
