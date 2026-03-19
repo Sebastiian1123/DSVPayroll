@@ -34,7 +34,10 @@ const formatCurrency = (value) => {
 
 const EmployeeReportsList = ({ onSelectReport }) => {
     const { user } = useAuth();
-    const [selectedYear, setSelectedYear] = useState(2026);
+    const currentYear = new Date().getFullYear();
+    const initialYear = REPORT_YEARS.includes(currentYear) ? currentYear : REPORT_YEARS[0];
+
+    const [selectedYear, setSelectedYear] = useState(initialYear);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [reportRows, setReportRows] = useState([]);
