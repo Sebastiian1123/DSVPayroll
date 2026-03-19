@@ -38,7 +38,18 @@ const EmployeeReportsList = ({ onSelectReport }) => {
     const [error, setError] = useState('');
     const [reportRows, setReportRows] = useState([]);
 
-    const years = useMemo(() => [currentYear, currentYear - 1, currentYear - 2], [currentYear]);
+    const years = useMemo(() => {
+        const maxYear = currentYear + 1;
+        const minYear = currentYear - 5;
+
+        const range = Array.from({ length: maxYear - minYear + 1 }, (_, index) => maxYear - index);
+
+        if (!range.includes(selectedYear)) {
+            range.push(selectedYear);
+        }
+
+        return [...new Set(range)].sort((a, b) => b - a);
+    }, [currentYear, selectedYear]);
 
     useEffect(() => {
         const fetchEmployeeReportsByYear = async () => {
