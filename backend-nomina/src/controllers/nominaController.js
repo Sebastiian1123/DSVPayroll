@@ -227,7 +227,94 @@ const getPayrollReport = async (req, res) => {
   }
 };
 
+const getPayrollReportDetail = async (req, res) => {
+  try {
+    const payrollId = Number(req.params.id_nomina);
+
+    if (!payrollId) {
+      return res.status(400).json({
+        success: false,
+        message: 'El parámetro id_nomina es obligatorio'
+      });
+    }
+
+    const [headerRows] = await pool.query(
+      `SELECT
+        n.id_nomina,
+        n.id_empleado,
+        CONCAT(e.nombres, ' ', e.apellidos) AS empleado,
+        n.fecha_inicio,
+        n.fecha_corte,
+        n.tipo_pago,
+        n.total_devengado,
+        n.total_deducciones,
+        n.total_pagar
+      FROM nomina n
+      INNER JOIN empleados e ON e.id_empleado = n.id_empleado
+      WHERE n.id_nomina = ?
+      LIMIT 1`,
+      [payrollId]
+    );
+
+    if (headerRows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No se encontró la nómina solicitada'
+      });
+    }
+
+    const payroll = headerRows[0];
+    const isEmployeeRole = req.user?.rol === 'EMPLEADO';
+    if (isEmployeeRole && Number(req.user?.id_empleado) !== Number(payroll.id_empleado)) {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permisos para consultar esta nómina'
+      });
+    }
+
+    const [detailRows] = await pool.query(
+      `SELECT id_detalle, id_nomina, concepto, valor
+       FROM detalle_nomina
+       WHERE id_nomina = ?
+       ORDER BY id_detalle ASC`,
+      [payrollId]
+    );
+
+    const [overtimeRows] = await pool.query(
+      `SELECT
+        id_hora_extra,
+        id_nomina,
+        tipo_hora,
+        porcentaje_recargo,
+        horas,
+        valor_hora_base,
+        valor_hora_extra,
+        valor_total
+      FROM horas_extra_nomina
+      WHERE id_nomina = ?
+      ORDER BY id_hora_extra ASC`,
+      [payrollId]
+    );
+
+    return res.json({
+      success: true,
+      data: {
+        nomina: payroll,
+        detalles: detailRows,
+        horas_extras: overtimeRows
+      }
+    });
+  } catch (error) {
+    console.error('Error obteniendo detalle de nómina:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Error obteniendo el detalle de nómina'
+    });
+  }
+};
+
 module.exports = {
   createPayroll,
-  getPayrollReport
+  getPayrollReport,
+  getPayrollReportDetail
 };

@@ -31,6 +31,7 @@ export const Reports = () => {
                     selectedReport ? (
                         <EmployeeReportDetail 
                             report={selectedReport} 
+                            reportId={selectedReport?.dbId}
                             onBack={() => setSelectedReport(null)} 
                         />
                     ) : (
