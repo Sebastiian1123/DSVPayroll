@@ -1,6 +1,122 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import api from '../../services/api';
 
-const EmployeeReportDetail = ({ report, onBack }) => {
+const currency = (value) => {
+    const amount = Number(value);
+    if (Number.isNaN(amount)) return '—';
+
+    return new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(amount);
+};
+
+const formatLongDate = (dateLike) => {
+    if (!dateLike) return '—';
+    const date = new Date(dateLike);
+    if (Number.isNaN(date.getTime())) return '—';
+
+    return new Intl.DateTimeFormat('es-CO', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC'
+    }).format(date);
+};
+
+const toMonthName = (dateLike, fallback = '') => {
+    if (!dateLike) return fallback;
+    const date = new Date(dateLike);
+    if (Number.isNaN(date.getTime())) return fallback;
+
+    return new Intl.DateTimeFormat('es-CO', {
+        month: 'long',
+        timeZone: 'UTC'
+    }).format(date);
+};
+
+const isLikelyDeduction = (concept) => {
+    const normalized = String(concept || '').toLowerCase();
+    return (
+        normalized.includes('retenci') ||
+        normalized.includes('deduc') ||
+        normalized.includes('descuento') ||
+        normalized.includes('prestamo') ||
+        normalized.includes('seguridad social') ||
+        normalized.includes('salud') ||
+        normalized.includes('pension') ||
+        normalized.includes('embargo')
+    );
+};
+
+const EmployeeReportDetail = ({ report, reportId, onBack }) => {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [detail, setDetail] = useState(null);
+
+    useEffect(() => {
+        const fetchPayrollDetail = async () => {
+            if (!reportId) {
+                setDetail(null);
+                setError('No se encontró el identificador del recibo seleccionado.');
+                return;
+            }
+
+            try {
+                setLoading(true);
+                setError('');
+                const response = await api.get(`/nomina/reportes/${reportId}`);
+                setDetail(response.data?.data || null);
+            } catch (fetchError) {
+                console.error('Error cargando detalle de nómina:', fetchError);
+                setDetail(null);
+                setError('No fue posible cargar el detalle de tu nómina. Intenta nuevamente.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchPayrollDetail();
+    }, [reportId]);
+
+    const monthTitle = useMemo(() => {
+        const monthFromApi = toMonthName(detail?.nomina?.fecha_corte, report?.month || '');
+        if (!monthFromApi) return report?.month || 'Recibo';
+        return monthFromApi.charAt(0).toUpperCase() + monthFromApi.slice(1);
+    }, [detail?.nomina?.fecha_corte, report?.month]);
+
+    const yearTitle = useMemo(() => {
+        const date = detail?.nomina?.fecha_corte ? new Date(detail.nomina.fecha_corte) : null;
+        if (date && !Number.isNaN(date.getTime())) return date.getUTCFullYear();
+        return report?.year || new Date().getFullYear();
+    }, [detail?.nomina?.fecha_corte, report?.year]);
+
+    const incomeItems = useMemo(() => {
+        if (!detail?.detalles) return [];
+        return detail.detalles.filter((row) => !isLikelyDeduction(row.concepto));
+    }, [detail?.detalles]);
+
+    const deductionItems = useMemo(() => {
+        if (!detail?.detalles) return [];
+        return detail.detalles.filter((row) => isLikelyDeduction(row.concepto));
+    }, [detail?.detalles]);
+
+    const overtimeTotal = useMemo(() => {
+        if (!detail?.horas_extras?.length) return 0;
+        return detail.horas_extras.reduce((acc, row) => acc + (Number(row.valor_total) || 0), 0);
+    }, [detail?.horas_extras]);
+
+    const overtimeHours = useMemo(() => {
+        if (!detail?.horas_extras?.length) return 0;
+        return detail.horas_extras.reduce((acc, row) => acc + (Number(row.horas) || 0), 0);
+    }, [detail?.horas_extras]);
+
+    const totalDevengado = Number(detail?.nomina?.total_devengado) || Number(report?.totalDevengado) || 0;
+    const totalDeducciones = Number(detail?.nomina?.total_deducciones) || Number(report?.totalDeducciones) || 0;
+    const totalPagar = Number(detail?.nomina?.total_pagar) || Number(report?.totalPagar) || 0;
+
     return (
         <div className="employee-report-detail">
             <div className="back-link" onClick={onBack}>
@@ -12,172 +128,149 @@ const EmployeeReportDetail = ({ report, onBack }) => {
                     <div style={{ display: 'flex', gap: '8px', fontSize: '12px', color: 'var(--text-light)', marginBottom: '8px', textTransform: 'uppercase' }}>
                         <span>Mis Nóminas</span>
                         <span>/</span>
-                        <span style={{ color: 'var(--primary-color)', fontWeight: 600 }}>{report.month} {report.year || 2023}</span>
+                        <span style={{ color: 'var(--primary-color)', fontWeight: 600 }}>{monthTitle} {yearTitle}</span>
                     </div>
                     <h1>Detalle de Nómina</h1>
                 </div>
-                
-                <div style={{ display: 'flex', gap: '12px' }}>
-                    <button className="btn" style={{ background: 'white', color: 'var(--text-dark)', border: '1px solid var(--border-color)'}}>
-                        <i className="fa-regular fa-envelope"></i> Enviar a Email
-                    </button>
-                    <button className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <i className="fa-solid fa-download"></i> Descargar PDF
-                    </button>
-                </div>
             </div>
 
-            <div className="report-detail-card">
-                {/* Header: Company & Period */}
-                <div className="detail-header">
-                    <div className="company-info">
-                        <div className="company-logo">
-                            <i className="fa-solid fa-building"></i>
+            {loading && <p style={{ color: 'var(--text-light)', marginBottom: '16px' }}>Cargando detalle...</p>}
+            {!!error && <p style={{ color: 'var(--danger-color)', marginBottom: '16px' }}>{error}</p>}
+
+            {!loading && !error && detail?.nomina && (
+                <div className="report-detail-card">
+                    <div className="detail-header">
+                        <div className="company-info">
+                            <div className="company-logo">
+                                <i className="fa-solid fa-building"></i>
+                            </div>
+                            <div className="company-details">
+                                <h3>{detail.nomina.empleado}</h3>
+                                <p>ID Nómina: {detail.nomina.id_nomina}</p>
+                            </div>
                         </div>
-                        <div className="company-details">
-                            <h3>Nómina S.A. de C.V.</h3>
-                            <p>RFC: NOM-123456-789 | Dirección Fiscal Empresa, Ciudad</p>
+
+                        <div className="period-info">
+                            <div className="period-col">
+                                <p>PERIODO DE LIQUIDACIÓN</p>
+                                <h4>{monthTitle} {yearTitle}</h4>
+                                <p>{formatLongDate(detail.nomina.fecha_inicio)} al {formatLongDate(detail.nomina.fecha_corte)}</p>
+                            </div>
+                            <div className="period-col" style={{ textAlign: 'right' }}>
+                                <p>FECHA DE ABONO</p>
+                                <h4>{formatLongDate(detail.nomina.fecha_corte)}</h4>
+                                <span className="badge badge-success badge-sm" style={{ marginTop: '4px' }}>PAGADA</span>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div className="period-info">
-                        <div className="period-col">
-                            <p>PERIODO DE LIQUIDACIÓN</p>
-                            <h4>{report.month} {report.year || 2023}</h4>
-                            <p>01/{report.id.split('-').pop()}/{report.year || 2023} al 31/{report.id.split('-').pop()}/{report.year || 2023}</p>
+
+                    <div className="detail-body">
+                        <div className="detail-section inc">
+                            <div className="section-title inc">
+                                <i className="fa-solid fa-circle-plus"></i> Ingresos
+                            </div>
+
+                            <div className="concept-list">
+                                {incomeItems.map((item) => (
+                                    <div className="concept-item" key={`inc-${item.id_detalle}`}>
+                                        <div className="concept-name">
+                                            <h4>{item.concepto}</h4>
+                                            <p>Registro de nómina</p>
+                                        </div>
+                                        <div className="concept-amount">{currency(item.valor)}</div>
+                                    </div>
+                                ))}
+
+                                {overtimeTotal > 0 && (
+                                    <div className="concept-item">
+                                        <div className="concept-name">
+                                            <h4>Horas Extra</h4>
+                                            <p>{overtimeHours} horas acumuladas</p>
+                                        </div>
+                                        <div className="concept-amount">{currency(overtimeTotal)}</div>
+                                    </div>
+                                )}
+
+                                {incomeItems.length === 0 && overtimeTotal === 0 && (
+                                    <div className="concept-item">
+                                        <div className="concept-name">
+                                            <h4>Sin ingresos detallados</h4>
+                                            <p>No hay conceptos disponibles para este periodo.</p>
+                                        </div>
+                                        <div className="concept-amount">—</div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="section-total">
+                                <span>TOTAL BRUTO</span>
+                                <span className="amount">{currency(totalDevengado)}</span>
+                            </div>
                         </div>
-                        <div className="period-col" style={{ textAlign: 'right' }}>
-                            <p>FECHA DE ABONO</p>
-                            <h4>31 {report.month.substring(0,3)} {report.year || 2023}</h4>
-                            <span className="badge badge-success badge-sm" style={{ marginTop: '4px' }}>PAGADA</span>
+
+                        <div className="detail-section deductions ded">
+                            <div className="section-title ded" style={{ color: 'var(--danger-color)' }}>
+                                <i className="fa-solid fa-circle-minus"></i> Deducciones
+                            </div>
+
+                            <div className="concept-list">
+                                {deductionItems.map((item) => (
+                                    <div className="concept-item" key={`ded-${item.id_detalle}`}>
+                                        <div className="concept-name">
+                                            <h4>{item.concepto}</h4>
+                                            <p>Registro de nómina</p>
+                                        </div>
+                                        <div className="concept-amount">-{currency(item.valor)}</div>
+                                    </div>
+                                ))}
+
+                                {deductionItems.length === 0 && totalDeducciones > 0 && (
+                                    <div className="concept-item">
+                                        <div className="concept-name">
+                                            <h4>Deducciones consolidadas</h4>
+                                            <p>No hay desglose por concepto en esta nómina.</p>
+                                        </div>
+                                        <div className="concept-amount">-{currency(totalDeducciones)}</div>
+                                    </div>
+                                )}
+
+                                {deductionItems.length === 0 && totalDeducciones === 0 && (
+                                    <div className="concept-item">
+                                        <div className="concept-name">
+                                            <h4>Sin deducciones</h4>
+                                            <p>Este periodo no tiene deducciones registradas.</p>
+                                        </div>
+                                        <div className="concept-amount">{currency(0)}</div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="section-total">
+                                <span>TOTAL RETENCIONES</span>
+                                <span className="amount">-{currency(totalDeducciones)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="detail-footer">
+                        <div className="accumulated-info">
+                            <div className="acc-box">
+                                <p>TIPO DE PAGO</p>
+                                <h4>{detail.nomina.tipo_pago || '—'}</h4>
+                            </div>
+                            <div className="acc-box">
+                                <p>HORAS EXTRA DEL PERIODO</p>
+                                <h4>{overtimeHours || 0}</h4>
+                            </div>
+                        </div>
+
+                        <div className="net-total">
+                            <p>NETO A RECIBIR</p>
+                            <h2>{currency(totalPagar)}</h2>
                         </div>
                     </div>
                 </div>
-
-                {/* Body: Incomes & Deductions */}
-                <div className="detail-body">
-                    {/* Ingresos */}
-                    <div className="detail-section inc">
-                        <div className="section-title inc">
-                            <i className="fa-solid fa-circle-plus"></i> Ingresos
-                        </div>
-                        
-                        <div className="concept-list">
-                            <div className="concept-item">
-                                <div className="concept-name">
-                                    <h4>Sueldo Base</h4>
-                                    <p>Mensualidad ordinaria</p>
-                                </div>
-                                <div className="concept-amount">$2,850.00</div>
-                            </div>
-                            <div className="concept-item">
-                                <div className="concept-name">
-                                    <h4>Horas Extra</h4>
-                                    <p>8 horas estructurales</p>
-                                </div>
-                                <div className="concept-amount">$185.40</div>
-                            </div>
-                            <div className="concept-item">
-                                <div className="concept-name">
-                                    <h4>Plus de Productividad</h4>
-                                    <p>Objetivos Q3 logrados</p>
-                                </div>
-                                <div className="concept-amount">$450.00</div>
-                            </div>
-                            <div className="concept-item">
-                                <div className="concept-name">
-                                    <h4>Complemento Transporte</h4>
-                                    <p>Gasto mensual compensado</p>
-                                </div>
-                                <div className="concept-amount">$95.00</div>
-                            </div>
-                        </div>
-
-                        <div className="section-total">
-                            <span>TOTAL BRUTO</span>
-                            <span className="amount">$3,580.40</span>
-                        </div>
-                    </div>
-
-                    {/* Deducciones */}
-                    <div className="detail-section deductions ded">
-                        <div className="section-title ded" style={{ color: 'var(--danger-color)'}}>
-                            <i className="fa-solid fa-circle-minus"></i> Deducciones
-                        </div>
-                        
-                        <div className="concept-list">
-                            <div className="concept-item">
-                                <div className="concept-name">
-                                    <h4>Retención ISR</h4>
-                                    <p>Tipo aplicado: 19.5%</p>
-                                </div>
-                                <div className="concept-amount">-$598.18</div>
-                            </div>
-                            <div className="concept-item">
-                                <div className="concept-name">
-                                    <h4>Seguridad Social (IMSS)</h4>
-                                    <p>Contingencias comunes</p>
-                                </div>
-                                <div className="concept-amount">-$168.27</div>
-                            </div>
-                            <div className="concept-item">
-                                <div className="concept-name">
-                                    <h4>Préstamo Empresa</h4>
-                                    <p>Cuota 3 de 12</p>
-                                </div>
-                                <div className="concept-amount">-$53.70</div>
-                            </div>
-                            <div className="concept-item">
-                                <div className="concept-name">
-                                    <h4>Seguro de Salud</h4>
-                                    <p>Cofinanciación empresa</p>
-                                </div>
-                                <div className="concept-amount">-$45.00</div>
-                            </div>
-                        </div>
-
-                        <div className="section-total">
-                            <span>TOTAL RETENCIONES</span>
-                            <span className="amount">-$965.15</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Footer: Totals & Notes */}
-                <div className="detail-footer">
-                    <div className="accumulated-info">
-                        <div className="acc-box">
-                            <p>ACUMULADO BRUTO ANUAL</p>
-                            <h4>$35,804.00</h4>
-                        </div>
-                        <div className="acc-box">
-                            <p>RETENCIÓN YTD</p>
-                            <h4>$6,981.80</h4>
-                        </div>
-                    </div>
-
-                    <div className="net-total">
-                        <p>NETO A RECIBIR</p>
-                        <h2>{report.amount}</h2>
-                        <span style={{ fontSize: '11px', color: 'var(--text-light)', fontStyle: 'italic', display: 'block', marginTop: '4px' }}>
-                            (Dos mil seiscientos quince con veinticinco centavos)
-                        </span>
-                    </div>
-                </div>
-
-                <div className="employer-notes">
-                    <i className="fa-solid fa-note-sticky"></i>
-                    <p>
-                        "Este mes se incluye el abono extraordinario por el cumplimiento de objetivos del tercer trimestre. Asimismo, se ha ajustado la retención de ISR según la nueva normativa fiscal vigente. Recordamos que las solicitudes de vacaciones para el periodo navideño deben realizarse antes del 15 de noviembre."
-                    </p>
-                </div>
-
-                <div className="detail-actions">
-                    <div className="detail-actions-btn"><i className="fa-regular fa-circle-question"></i> Centro de Ayuda</div>
-                    <div className="detail-actions-btn"><i className="fa-solid fa-triangle-exclamation"></i> Notificar un Error</div>
-                    <div className="detail-actions-btn"><i className="fa-solid fa-shield-halved"></i> Política de Nóminas</div>
-                </div>
-            </div>
+            )}
         </div>
     );
 };
