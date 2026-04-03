@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import api from '../services/api';
 import '../styles/Employees.css';
+import {showSuccess, showError, showConfirmDelete} from '../utlis/alerts.js'
 
 const Employees = () => {
     const { isAdminOrRRHH } = useAuth();
@@ -162,17 +163,17 @@ const Employees = () => {
             if (editingEmployee) {
                 // Actualizar
                 await api.put(`/employees/${editingEmployee.id_empleado}`, formData);
-                alert('Empleado actualizado exitosamente');
+                showSuccess('Empleado actualizado', 'El empleado fue actualizado exitosamente')
             } else {
                 // Crear
                 await api.post('/employees', formData);
-                alert('Empleado creado exitosamente');
+                showSuccess('Empleado creado', 'El empleado fue creado exitosamente')
             }
 
             closeModal();
             fetchEmployees();
         } catch (err) {
-            alert(err.response?.data?.message || 'Error al guardar empleado');
+            showError(err.response?.data?.message || 'Error al guardar empleado');
         }
     };
 
@@ -180,16 +181,17 @@ const Employees = () => {
     // ELIMINAR EMPLEADO
     // ========================================
     const handleDelete = async (id) => {
-        if (!window.confirm('¿Estás seguro de eliminar este empleado?')) {
+        const result = await showConfirmDelete()
+
+        if (!result.isConfirmed) {
             return;
         }
-
         try {
             await api.delete(`/employees/${id}`);
-            alert('Empleado eliminado exitosamente');
+            showSuccess('Empleado Eliminado', 'EL empleado fue eliminado exitosamente');
             fetchEmployees();
         } catch (err) {
-            alert(err.response?.data?.message || 'Error al eliminar empleado');
+            showError(err.response?.data?.message || 'Error al eliminar empleado');
         }
     };
     // Función para validar fecha de nacimiento (mayor de 18 años)

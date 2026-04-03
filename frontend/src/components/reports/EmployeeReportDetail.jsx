@@ -1,6 +1,38 @@
 import React from 'react';
+import api from '../../services/api';
+import { showError } from '../../utlis/alerts.js';
 
 const EmployeeReportDetail = ({ report, onBack }) => {
+    const handleDownloadPdf = async () => {
+        try {
+            if (!report?.dbId) {
+                showError('Error', 'No se encontro el id de la nomina');
+                return;
+            }
+
+            const response = await api.get(`/nomina/${report.dbId}/pdf`, {
+                responseType: 'blob',
+                timeout: 30000
+            });
+
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `nomina-${report.dbId}.pdf`;
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Error descargando PDF:', error);
+            showError('Error', 'No se pudo descargar el PDF');
+        }
+    };
+
     return (
         <div className="employee-report-detail">
             <div className="back-link" onClick={onBack}>
@@ -16,19 +48,21 @@ const EmployeeReportDetail = ({ report, onBack }) => {
                     </div>
                     <h1>Detalle de Nómina</h1>
                 </div>
-                
                 <div style={{ display: 'flex', gap: '12px' }}>
-                    <button className="btn" style={{ background: 'white', color: 'var(--text-dark)', border: '1px solid var(--border-color)'}}>
+                    <button className="btn" style={{ background: 'white', color: 'var(--text-dark)', border: '1px solid var(--border-color)' }}>
                         <i className="fa-regular fa-envelope"></i> Enviar a Email
                     </button>
-                    <button className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button
+                        className="btn btn-primary"
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                        onClick={handleDownloadPdf}
+                    >
                         <i className="fa-solid fa-download"></i> Descargar PDF
                     </button>
                 </div>
             </div>
 
             <div className="report-detail-card">
-                {/* Header: Company & Period */}
                 <div className="detail-header">
                     <div className="company-info">
                         <div className="company-logo">
@@ -39,7 +73,7 @@ const EmployeeReportDetail = ({ report, onBack }) => {
                             <p>RFC: NOM-123456-789 | Dirección Fiscal Empresa, Ciudad</p>
                         </div>
                     </div>
-                    
+
                     <div className="period-info">
                         <div className="period-col">
                             <p>PERIODO DE LIQUIDACIÓN</p>
@@ -48,20 +82,18 @@ const EmployeeReportDetail = ({ report, onBack }) => {
                         </div>
                         <div className="period-col" style={{ textAlign: 'right' }}>
                             <p>FECHA DE ABONO</p>
-                            <h4>31 {report.month.substring(0,3)} {report.year || 2023}</h4>
+                            <h4>31 {report.month.substring(0, 3)} {report.year || 2023}</h4>
                             <span className="badge badge-success badge-sm" style={{ marginTop: '4px' }}>PAGADA</span>
                         </div>
                     </div>
                 </div>
 
-                {/* Body: Incomes & Deductions */}
                 <div className="detail-body">
-                    {/* Ingresos */}
                     <div className="detail-section inc">
                         <div className="section-title inc">
                             <i className="fa-solid fa-circle-plus"></i> Ingresos
                         </div>
-                        
+
                         <div className="concept-list">
                             <div className="concept-item">
                                 <div className="concept-name">
@@ -99,12 +131,11 @@ const EmployeeReportDetail = ({ report, onBack }) => {
                         </div>
                     </div>
 
-                    {/* Deducciones */}
                     <div className="detail-section deductions ded">
-                        <div className="section-title ded" style={{ color: 'var(--danger-color)'}}>
+                        <div className="section-title ded" style={{ color: 'var(--danger-color)' }}>
                             <i className="fa-solid fa-circle-minus"></i> Deducciones
                         </div>
-                        
+
                         <div className="concept-list">
                             <div className="concept-item">
                                 <div className="concept-name">
@@ -143,7 +174,6 @@ const EmployeeReportDetail = ({ report, onBack }) => {
                     </div>
                 </div>
 
-                {/* Footer: Totals & Notes */}
                 <div className="detail-footer">
                     <div className="accumulated-info">
                         <div className="acc-box">

@@ -9,7 +9,7 @@ import Navbar from '../components/Navbar';
 import '../styles/Dashboard.css';
 
 const Dashboard = () => {
-    const { user, isAdmin } = useAuth();
+    const { user, isAdmin, isAdminOrRRHH } = useAuth();
 
     return (
         <>
@@ -60,7 +60,8 @@ const Dashboard = () => {
                     )}
 
                     {/* Card de Nómina*/}
-                    <Link to="/nomina">
+                    {isAdminOrRRHH() && (
+                        <Link to="/nomina">
                         <div className="dashboard-card">
                             <div className="card-icon"><i className="fa-solid fa-money-bill"></i></div>
                             <h3>Nómina</h3>
@@ -68,6 +69,8 @@ const Dashboard = () => {
                             <span className="card-action">Gestionar Nomina →</span>
                         </div>
                     </Link>
+                    )}
+                    
 
 
                     {/* Card de Reportes*/}

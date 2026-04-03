@@ -7,17 +7,32 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import '../styles/Navbar.css';
 import logo from '../assets/dsv.png';
+import Swal from 'sweetalert2';
 
 
 const Navbar = () => {
     const { user, logout, isAdmin } = useAuth();
     const navigate = useNavigate();
 
-    const handleLogout = () => {
-        if (window.confirm('¿Estás seguro de cerrar sesión?')) {
-            logout();
-            navigate('/login');
-        }
+    const handleLogout = async () => {
+        const result = await Swal.fire({
+            title: '¿Cerrar sesión?',
+            text: 'Tu sesión actual se cerrará.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#111827',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Sí, cerrar sesión',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true
+        })
+
+        
+    if (result.isConfirmed) {
+        logout();
+        navigate('/login');
+    }
+
     };
 
     return (

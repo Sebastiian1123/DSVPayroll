@@ -8,6 +8,7 @@ import Navbar from '../components/Navbar';
 import authService from '../services/authService';
 import api from '../services/api';
 import '../styles/Employees.css';
+import {showConfirmDelete, showError, showSuccess} from '../utlis/alerts.js'
 
 const Users = () => {
     const [users, setUsers] = useState([]);
@@ -80,12 +81,13 @@ const Users = () => {
 
         try {
             await authService.register(formData);
-            alert('Usuario registrado exitosamente');
+            showSuccess('Usuario registrado', 'El usuario fue creado exitosamente')
             closeModal();
             fetchUsers();
             fetchEmployees();
         } catch (err) {
-            alert(err.message || 'Error al registrar usuario');
+            showError('Error al registrar', 'Error al registar usuario')
+
         }
     };
 
@@ -114,12 +116,12 @@ const Users = () => {
 
         try {
             await api.put(`/users/${editingUser.id_usuario}`, editFormData);
-            alert('Usuario actualizado exitosamente');
+            showSuccess('Usuario actualizado', 'El usuario fue actualizado exitosamente')
             closeEditModal();
             fetchUsers();
             fetchEmployees();
         } catch (err) {
-            alert(err.response?.data?.message || 'Error al actualizar usuario');
+            showError('Error al actualizar', 'Error al actualizar usuario')
         }
     };
 
@@ -127,17 +129,19 @@ const Users = () => {
     // ELIMINAR USUARIO
     // ========================================
     const handleDelete = async (userId) => {
-        if (!window.confirm('¿Estás seguro de eliminar este usuario? Esta acción no se puede deshacer.')) {
+        const result = await showConfirmDelete()
+
+        if (!result.isConfirmed) {
             return;
         }
 
         try {
             await api.delete(`/users/${userId}`);
-            alert('Usuario eliminado exitosamente');
+            showSuccess('Usuario Eliminado', 'El usuario fue eliminado exitosamente')
             fetchUsers();
             fetchEmployees();
         } catch (err) {
-            alert(err.response?.data?.message || 'Error al eliminar usuario');
+            showError('Error al eliminar', 'Error al eliminar usuario');
         }
     };
 
@@ -147,10 +151,11 @@ const Users = () => {
     const handleToggleStatus = async (userId) => {
         try {
             const response = await api.patch(`/users/${userId}/toggle-status`);
-            alert(response.data.message);
+            showSuccess(response.data.message)
             fetchUsers();
         } catch (err) {
-            alert(err.response?.data?.message || 'Error al cambiar estado del usuario');
+            showError(err.response?.data?.message || 'Error al cambiar estado del usuario')
+            ;
         }
     };
 
