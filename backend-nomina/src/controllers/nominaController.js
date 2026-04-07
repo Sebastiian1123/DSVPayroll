@@ -188,15 +188,46 @@ const getPayrollReport = async (req, res) => {
       `SELECT
         n.id_nomina,
         n.id_empleado,
+        e.nombres,
+        e.apellidos,
         CONCAT(e.nombres, ' ', e.apellidos) AS empleado,
+        e.sueldo AS salario_base,
+        c.nombre_cargo,
+        d.nombre_departamento,
         n.fecha_inicio,
         n.fecha_corte,
         n.tipo_pago,
         n.total_devengado,
         n.total_deducciones,
-        n.total_pagar
+        n.total_pagar,
+        COALESCE((
+          SELECT SUM(hen.horas)
+          FROM horas_extra_nomina hen
+          WHERE hen.id_nomina = n.id_nomina
+            AND hen.tipo_hora = 'EXTRA_DIURNA'
+        ), 0) AS horas_extra_diurna,
+        COALESCE((
+          SELECT SUM(hen.horas)
+          FROM horas_extra_nomina hen
+          WHERE hen.id_nomina = n.id_nomina
+            AND hen.tipo_hora = 'EXTRA_DIURNA_DOMINICAL_FESTIVO'
+        ), 0) AS horas_extra_diurna_festiva,
+        COALESCE((
+          SELECT SUM(hen.horas)
+          FROM horas_extra_nomina hen
+          WHERE hen.id_nomina = n.id_nomina
+            AND hen.tipo_hora = 'EXTRA_NOCTURNA'
+        ), 0) AS horas_extra_nocturna,
+        COALESCE((
+          SELECT SUM(hen.horas)
+          FROM horas_extra_nomina hen
+          WHERE hen.id_nomina = n.id_nomina
+            AND hen.tipo_hora = 'EXTRA_NOCTURNA_DOMINICAL_FESTIVO'
+        ), 0) AS horas_extra_nocturna_festiva
       FROM nomina n
       INNER JOIN empleados e ON e.id_empleado = n.id_empleado
+      LEFT JOIN cargos c ON c.id_cargo = e.id_cargo
+      LEFT JOIN departamentos d ON d.id_departamento = e.id_departamento
       WHERE YEAR(n.fecha_corte) = ?
         ${monthFilterSql}
         ${employeeFilterSql}
