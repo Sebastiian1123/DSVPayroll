@@ -265,6 +265,50 @@ CREATE TABLE `usuarios` (
   `id_rol` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+CREATE TABLE `solicitudes_laborales` (
+  `id_solicitud` int(11) NOT NULL AUTO_INCREMENT,
+  `id_empleado` int(11) NOT NULL,
+  `tipo` enum('VACACIONES','PERMISO','INCAPACIDAD','LICENCIA') NOT NULL,
+  `sub_tipo` varchar(50) DEFAULT NULL,
+  `fecha_inicio` date NOT NULL,
+  `fecha_fin` date NOT NULL,
+  `dias_solicitados` decimal(5,2) NOT NULL DEFAULT 0.00,
+  `horas_solicitadas` decimal(5,2) DEFAULT NULL,
+  `es_remunerado` tinyint(1) NOT NULL DEFAULT 1,
+  `porcentaje_pago` decimal(5,2) NOT NULL DEFAULT 100.00,
+  `origen_novedad` enum('COMUN','LABORAL') DEFAULT NULL,
+  `estado` enum('PENDIENTE','APROBADA','RECHAZADA','CANCELADA') NOT NULL DEFAULT 'PENDIENTE',
+  `comentario_empleado` text DEFAULT NULL,
+  `comentario_aprobador` text DEFAULT NULL,
+  `documento_soporte` varchar(255) DEFAULT NULL,
+  `fecha_solicitud` timestamp NOT NULL DEFAULT current_timestamp(),
+  `fecha_respuesta` timestamp NULL DEFAULT NULL,
+  `aprobado_por` int(11) DEFAULT NULL,
+  `creado_en` timestamp NOT NULL DEFAULT current_timestamp(),
+  `actualizado_en` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id_solicitud`),
+  KEY `idx_solicitud_empleado` (`id_empleado`),
+  KEY `idx_solicitud_estado` (`estado`),
+  KEY `idx_solicitud_tipo` (`tipo`),
+  KEY `idx_solicitud_aprobador` (`aprobado_por`),
+  CONSTRAINT `fk_solicitud_empleado` FOREIGN KEY (`id_empleado`) REFERENCES `empleados` (`id_empleado`),
+  CONSTRAINT `fk_solicitud_aprobador` FOREIGN KEY (`aprobado_por`) REFERENCES `usuarios` (`id_usuario`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `vacaciones_saldos` (
+  `id_saldo` int(11) NOT NULL AUTO_INCREMENT,
+  `id_empleado` int(11) NOT NULL,
+  `periodo_anio` int(11) NOT NULL,
+  `dias_ganados` decimal(5,2) NOT NULL DEFAULT 0.00,
+  `dias_disfrutados` decimal(5,2) NOT NULL DEFAULT 0.00,
+  `dias_pendientes` decimal(5,2) NOT NULL DEFAULT 0.00,
+  `actualizado_en` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id_saldo`),
+  UNIQUE KEY `uk_vacaciones_saldo_empleado_periodo` (`id_empleado`,`periodo_anio`),
+  CONSTRAINT `fk_vacaciones_saldo_empleado` FOREIGN KEY (`id_empleado`) REFERENCES `empleados` (`id_empleado`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+
 --
 -- Volcado de datos para la tabla `usuarios`
 --

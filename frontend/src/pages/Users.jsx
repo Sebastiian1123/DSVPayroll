@@ -1,14 +1,15 @@
-// ============================================
-// PÁGINA DE GESTIÓN DE USUARIOS
-// Archivo: src/pages/Users.jsx
-// ============================================
-
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Navbar from '../components/Navbar';
 import authService from '../services/authService';
 import api from '../services/api';
 import '../styles/Employees.css';
-import {showConfirmDelete, showError, showSuccess} from '../utlis/alerts.js'
+import { showConfirmDelete, showError, showSuccess } from '../utlis/alerts.js';
+import {
+    buildEditUserFormData,
+    getDefaultEditUserFormData,
+    getDefaultUserFormData,
+    getRoleBadge
+} from '../utils/users/userFormUtils';
 
 const Users = () => {
     const [users, setUsers] = useState([]);
@@ -17,26 +18,9 @@ const Users = () => {
     const [showModal, setShowModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
+    const [formData, setFormData] = useState(getDefaultUserFormData());
+    const [editFormData, setEditFormData] = useState(getDefaultEditUserFormData());
 
-    // Formulario para crear usuario
-    const [formData, setFormData] = useState({
-        username: '',
-        password: '',
-        email: '',
-        rol: 'EMPLEADO',
-        id_empleado: ''
-    });
-
-    // Formulario para editar usuario
-    const [editFormData, setEditFormData] = useState({
-        email: '',
-        rol: '',
-        id_empleado: ''
-    });
-
-    // ========================================
-    // CARGAR USUARIOS Y EMPLEADOS
-    // ========================================
     useEffect(() => {
         fetchUsers();
         fetchEmployees();
@@ -58,20 +42,23 @@ const Users = () => {
     const fetchEmployees = async () => {
         try {
             const response = await api.get('/employees');
-            // Filtrar solo empleados sin usuario
-            const employeesWithoutUser = response.data.data.filter(emp => !emp.username);
+            const employeesWithoutUser = response.data.data.filter((emp) => !emp.username);
             setEmployees(employeesWithoutUser);
         } catch (err) {
             console.error('Error al cargar empleados:', err);
         }
     };
 
-    // ========================================
-    // MANEJAR FORMULARIO DE CREAR
-    // ========================================
     const handleChange = (e) => {
         setFormData({
             ...formData,
+            [e.target.name]: e.target.value
+        });
+    };
+
+    const handleEditChange = (e) => {
+        setEditFormData({
+            ...editFormData,
             [e.target.name]: e.target.value
         });
     };
@@ -81,33 +68,18 @@ const Users = () => {
 
         try {
             await authService.register(formData);
-            showSuccess('Usuario registrado', 'El usuario fue creado exitosamente')
+            showSuccess('Usuario registrado', 'El usuario fue creado exitosamente');
             closeModal();
             fetchUsers();
             fetchEmployees();
         } catch (err) {
-            showError('Error al registrar', 'Error al registar usuario')
-
+            showError('Error al registrar', 'Error al registrar usuario');
         }
-    };
-
-    // ========================================
-    // MANEJAR FORMULARIO DE EDITAR
-    // ========================================
-    const handleEditChange = (e) => {
-        setEditFormData({
-            ...editFormData,
-            [e.target.name]: e.target.value
-        });
     };
 
     const openEditModal = (user) => {
         setEditingUser(user);
-        setEditFormData({
-            email: user.email || '',
-            rol: user.rol || '',
-            id_empleado: user.id_empleado || ''
-        });
+        setEditFormData(buildEditUserFormData(user));
         setShowEditModal(true);
     };
 
@@ -116,20 +88,17 @@ const Users = () => {
 
         try {
             await api.put(`/users/${editingUser.id_usuario}`, editFormData);
-            showSuccess('Usuario actualizado', 'El usuario fue actualizado exitosamente')
+            showSuccess('Usuario actualizado', 'El usuario fue actualizado exitosamente');
             closeEditModal();
             fetchUsers();
             fetchEmployees();
         } catch (err) {
-            showError('Error al actualizar', 'Error al actualizar usuario')
+            showError('Error al actualizar', 'Error al actualizar usuario');
         }
     };
 
-    // ========================================
-    // ELIMINAR USUARIO
-    // ========================================
     const handleDelete = async (userId) => {
-        const result = await showConfirmDelete()
+        const result = await showConfirmDelete();
 
         if (!result.isConfirmed) {
             return;
@@ -137,7 +106,7 @@ const Users = () => {
 
         try {
             await api.delete(`/users/${userId}`);
-            showSuccess('Usuario Eliminado', 'El usuario fue eliminado exitosamente')
+            showSuccess('Usuario eliminado', 'El usuario fue eliminado exitosamente');
             fetchUsers();
             fetchEmployees();
         } catch (err) {
@@ -145,44 +114,30 @@ const Users = () => {
         }
     };
 
-    // ========================================
-    // ACTIVAR/DESACTIVAR USUARIO
-    // ========================================
     const handleToggleStatus = async (userId) => {
         try {
             const response = await api.patch(`/users/${userId}/toggle-status`);
-            showSuccess(response.data.message)
+            showSuccess('Estado actualizado', response.data.message);
             fetchUsers();
         } catch (err) {
-            showError(err.response?.data?.message || 'Error al cambiar estado del usuario')
-            ;
+            showError('Error', err.response?.data?.message || 'Error al cambiar estado del usuario');
         }
     };
 
-    // ========================================
-    // MODAL - CREAR
-    // ========================================
     const openModal = () => {
-        setFormData({
-            username: '',
-            password: '',
-            email: '',
-            rol: 'EMPLEADO',
-            id_empleado: ''
-        });
+        setFormData(getDefaultUserFormData());
         setShowModal(true);
     };
 
     const closeModal = () => {
         setShowModal(false);
+        setFormData(getDefaultUserFormData());
     };
 
-    // ========================================
-    // MODAL - EDITAR
-    // ========================================
     const closeEditModal = () => {
         setShowEditModal(false);
         setEditingUser(null);
+        setEditFormData(getDefaultEditUserFormData());
     };
 
     return (
@@ -269,7 +224,6 @@ const Users = () => {
                     </div>
                 )}
 
-                {/* Modal para crear usuario */}
                 {showModal && (
                     <div className="modal-overlay" onClick={closeModal}>
                         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -365,8 +319,7 @@ const Users = () => {
                     </div>
                 )}
 
-                {/* Modal para editar usuario */}
-                {showEditModal && (
+                {showEditModal && editingUser && (
                     <div className="modal-overlay" onClick={closeEditModal}>
                         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                             <div className="modal-header">
@@ -450,20 +403,6 @@ const Users = () => {
             </div>
         </>
     );
-};
-
-// Función auxiliar para badge de roles
-const getRoleBadge = (rol) => {
-    switch (rol) {
-        case 'ADMINISTRADOR':
-            return 'danger';
-        case 'RRHH':
-            return 'warning';
-        case 'EMPLEADO':
-            return 'info';
-        default:
-            return 'info';
-    }
 };
 
 export default Users;

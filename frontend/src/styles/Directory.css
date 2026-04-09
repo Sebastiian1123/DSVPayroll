@@ -314,6 +314,85 @@
   color: var(--text-light);
 }
 
+.payroll-novelties-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--primary-color);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.payroll-inline-message {
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: #f8fafc;
+  color: var(--text-light);
+  font-size: 0.9rem;
+}
+
+.payroll-inline-message--error {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.payroll-novelties-list {
+  display: grid;
+  gap: 12px;
+}
+
+.payroll-novelty-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.payroll-novelty-card strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text-dark);
+  font-size: 0.95rem;
+}
+
+.payroll-novelty-card p {
+  margin: 0;
+  color: var(--text-light);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.payroll-novelty-value {
+  font-size: 0.92rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.payroll-novelty-value--devengado {
+  color: var(--success-color);
+}
+
+.payroll-novelty-value--deduccion {
+  color: var(--danger-color);
+}
+
+.payroll-novelty-value--informativa {
+  color: var(--text-light);
+}
+
+.payroll-novelties-summary-grid {
+  margin-top: 16px;
+}
+
 /* ============================================
    MODAL DE NÓMINA
    ============================================ */

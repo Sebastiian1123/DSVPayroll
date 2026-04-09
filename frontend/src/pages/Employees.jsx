@@ -1,19 +1,19 @@
-// ============================================
-// PÁGINA DE GESTIÓN DE EMPLEADOS
-// Archivo: src/pages/Employees.jsx
-// ============================================
-
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import api from '../services/api';
 import '../styles/Employees.css';
-import {showSuccess, showError, showConfirmDelete} from '../utlis/alerts.js'
+import { showSuccess, showError, showConfirmDelete } from '../utlis/alerts.js';
+import {
+    buildEmployeeFormData,
+    getDefaultEmployeeFormData,
+    getMaxBirthDate,
+    getTodayDate
+} from '../utils/employees/employeeFormUtils';
 
 const Employees = () => {
     const { isAdminOrRRHH } = useAuth();
 
-    // Estados
     const [employees, setEmployees] = useState([]);
     const [departamentos, setDepartamentos] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -21,23 +21,8 @@ const Employees = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState(null);
+    const [formData, setFormData] = useState(getDefaultEmployeeFormData());
 
-    // Formulario
-    const [formData, setFormData] = useState({
-        nombres: '',
-        apellidos: '',
-        tipo_identificacion: 'CC',
-        numero_identificacion: '',
-        sueldo: '',
-        fecha_nacimiento: '',
-        fecha_ingreso: '',
-        nombre_cargo: '',
-        id_departamento: ''
-    });
-
-    // ========================================
-    // CARGAR EMPLEADOS Y CATÁLOGOS AL INICIAR
-    // ========================================
     useEffect(() => {
         fetchEmployees();
         fetchDepartments();
@@ -57,9 +42,6 @@ const Employees = () => {
         }
     };
 
-    // ========================================
-    // CARGAR CATÁLOGOS (SOLO DEPARTAMENTOS)
-    // ========================================
     const fetchDepartments = async () => {
         try {
             const deptosRes = await api.get('/catalogs/departamentos');
@@ -69,9 +51,6 @@ const Employees = () => {
         }
     };
 
-    // ========================================
-    // BUSCAR EMPLEADOS
-    // ========================================
     const handleSearch = async () => {
         if (!searchTerm.trim()) {
             fetchEmployees();
@@ -84,68 +63,31 @@ const Employees = () => {
             setEmployees(response.data.data);
             setError('');
         } catch (err) {
-            setError('Error al buscar empleados', err);
+            setError('Error al buscar empleados');
+            console.error(err);
         } finally {
             setLoading(false);
         }
     };
 
-    // ========================================
-    // ABRIR MODAL PARA CREAR/EDITAR
-    // ========================================
     const openModal = (employee = null) => {
         if (employee) {
             setEditingEmployee(employee);
-            setFormData({
-                nombres: employee.nombres || '',
-                apellidos: employee.apellidos || '',
-                tipo_identificacion: employee.tipo_identificacion || 'CC',
-                numero_identificacion: employee.numero_identificacion || '',
-                sueldo: employee.sueldo || '',
-                fecha_nacimiento: employee.fecha_nacimiento?.split('T')[0] || '',
-                fecha_ingreso: employee.fecha_ingreso?.split('T')[0] || '',
-                nombre_cargo: employee.nombre_cargo || '',
-                id_departamento: employee.id_departamento || ''
-            });
+            setFormData(buildEmployeeFormData(employee));
         } else {
             setEditingEmployee(null);
-            setFormData({
-                nombres: '',
-                apellidos: '',
-                tipo_identificacion: 'CC',
-                numero_identificacion: '',
-                sueldo: '',
-                fecha_nacimiento: '',
-                fecha_ingreso: '',
-                nombre_cargo: '',
-                id_departamento: ''
-            });
+            setFormData(getDefaultEmployeeFormData());
         }
+
         setShowModal(true);
     };
 
-    // ========================================
-    // CERRAR MODAL
-    // ========================================
     const closeModal = () => {
         setShowModal(false);
         setEditingEmployee(null);
-        setFormData({
-            nombres: '',
-            apellidos: '',
-            tipo_identificacion: 'CC',
-            numero_identificacion: '',
-            sueldo: '',
-            fecha_nacimiento: '',
-            fecha_ingreso: '',
-            nombre_cargo: '',
-            id_departamento: ''
-        });
+        setFormData(getDefaultEmployeeFormData());
     };
 
-    // ========================================
-    // MANEJAR CAMBIOS EN EL FORMULARIO
-    // ========================================
     const handleChange = (e) => {
         setFormData({
             ...formData,
@@ -153,61 +95,39 @@ const Employees = () => {
         });
     };
 
-    // ========================================
-    // GUARDAR EMPLEADO (CREAR O ACTUALIZAR)
-    // ========================================
     const handleSubmit = async (e) => {
         e.preventDefault();
 
         try {
             if (editingEmployee) {
-                // Actualizar
                 await api.put(`/employees/${editingEmployee.id_empleado}`, formData);
-                showSuccess('Empleado actualizado', 'El empleado fue actualizado exitosamente')
+                showSuccess('Empleado actualizado', 'El empleado fue actualizado exitosamente');
             } else {
-                // Crear
                 await api.post('/employees', formData);
-                showSuccess('Empleado creado', 'El empleado fue creado exitosamente')
+                showSuccess('Empleado creado', 'El empleado fue creado exitosamente');
             }
 
             closeModal();
             fetchEmployees();
         } catch (err) {
-            showError(err.response?.data?.message || 'Error al guardar empleado');
+            showError('Error', err.response?.data?.message || 'Error al guardar empleado');
         }
     };
 
-    // ========================================
-    // ELIMINAR EMPLEADO
-    // ========================================
     const handleDelete = async (id) => {
-        const result = await showConfirmDelete()
+        const result = await showConfirmDelete();
 
         if (!result.isConfirmed) {
             return;
         }
+
         try {
             await api.delete(`/employees/${id}`);
-            showSuccess('Empleado Eliminado', 'EL empleado fue eliminado exitosamente');
+            showSuccess('Empleado eliminado', 'El empleado fue eliminado exitosamente');
             fetchEmployees();
         } catch (err) {
-            showError(err.response?.data?.message || 'Error al eliminar empleado');
+            showError('Error', err.response?.data?.message || 'Error al eliminar empleado');
         }
-    };
-    // Función para validar fecha de nacimiento (mayor de 18 años)
-    const getMaxBirthDate = () => {
-        const today = new Date();
-        const eighteenYearsAgo = new Date(
-            today.getFullYear() - 18,
-            today.getMonth(),
-            today.getDate()
-        );
-        return eighteenYearsAgo.toISOString().split('T')[0];
-    };
-    // Función para validar fecha de ingreso (no permitir fechas futuras)
-    const getTodayDate = () => {
-        const today = new Date();
-        return today.toISOString().split('T')[0];
     };
 
     return (
@@ -223,7 +143,6 @@ const Employees = () => {
                     )}
                 </div>
 
-                {/* Buscador */}
                 <div className="search-box">
                     <input
                         type="text"
@@ -242,16 +161,13 @@ const Employees = () => {
                     )}
                 </div>
 
-                {/* Mensajes */}
                 {error && <div className="alert alert-error">{error}</div>}
 
-                {/* Loading */}
                 {loading ? (
                     <div className="loading">
                         <div className="spinner"></div>
                     </div>
                 ) : (
-                    /* Tabla de empleados */
                     <div className="table-container">
                         <table>
                             <thead>
@@ -309,7 +225,6 @@ const Employees = () => {
                     </div>
                 )}
 
-                {/* Modal para crear/editar */}
                 {showModal && (
                     <div className="modal-overlay" onClick={closeModal}>
                         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -409,7 +324,6 @@ const Employees = () => {
                                     </div>
                                 </div>
 
-                                {/* 👇 CARGO MANUAL Y DEPARTAMENTO */}
                                 <div className="form-row">
                                     <div className="form-group">
                                         <label>Cargo *</label>

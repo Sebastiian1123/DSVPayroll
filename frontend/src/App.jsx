@@ -15,7 +15,8 @@ import Users from './pages/Users';
 import ForgotPassword from './pages/ForgotPassword';
 import { Nomina } from './pages/Nomina';
 import { Directory } from './pages/Directory';
-import {Reports} from'../src/pages/Reports';
+import PermisosPage from './features/permisos';
+import ReportsPage from './features/reports';
 
 
 function App() {
@@ -101,8 +102,26 @@ function App() {
       <Route
         path="/reports"
         element={
+            <PrivateRoute>
+            <ReportsPage />
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/permisos"
+        element={
           <PrivateRoute>
-            <Reports />
+            <PermisosPage />
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/solicitudes-laborales"
+        element={
+          <PrivateRoute>
+            <Navigate to="/permisos" replace />
           </PrivateRoute>
         }
       />

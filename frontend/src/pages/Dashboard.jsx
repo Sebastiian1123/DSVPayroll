@@ -83,6 +83,13 @@ const Dashboard = () => {
                         </div>
                     </Link>
 
+                    <Link to="/permisos" className="dashboard-card">
+                        <div className="card-icon"><i className="fa-solid fa-clipboard-check"></i></div>
+                        <h3>Permisos</h3>
+                        <p>Gestiona vacaciones, permisos, incapacidades y licencias.</p>
+                        <span className="card-action">Abrir modulo</span>
+                    </Link>
+
                 </div>
 
                 {/* Sección de accesos rápidos */}

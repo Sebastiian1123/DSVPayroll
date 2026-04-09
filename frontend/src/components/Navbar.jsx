@@ -52,6 +52,9 @@ const Navbar = () => {
                     <Link to="/employees" className="nav-link">
                         <i className="fa-solid fa-users"></i> Empleados
                     </Link>
+                    <Link to="/permisos" className="nav-link">
+                        <i className="fa-solid fa-clipboard-check"></i> Permisos
+                    </Link>
                     {isAdmin() && (
                         <Link to="/users" className="nav-link">
                             <i className="fa-solid fa-user-shield"></i> Usuarios

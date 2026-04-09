@@ -1,56 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Navbar from '../components/Navbar'
 import api from '../services/api'
+import { OVERTIME_TYPES, ROWS_PER_PAGE } from '../utils/payroll/constants'
+import {
+  buildOvertimeRow,
+  buildPayrollPayload,
+  calculatePayrollSummary
+} from '../utils/payroll/calculations'
+import {
+  formatPesoColombiano,
+  getDefaultPayrollPeriod
+} from '../utils/payroll/formatters'
 import '../styles/Directory.css'
-
-/** Formatea un número como peso colombiano: $1.000.000 */
-const formatPesoColombiano = (value) => {
-  const num = Number(value)
-  if (isNaN(num)) return '–'
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(num)
-}
-
-const ROWS_PER_PAGE = 10
-const SUBSIDIO_TRANSPORTE = 249095
-const DIAS_NOMINA_MENSUAL = 30
-const HORAS_MENSUALES_REFERENCIA = 240
-
-const OVERTIME_TYPES = [
-  { key: 'extra_diurna', label: 'Extra diurna', surcharge: 0.25, dbType: 'EXTRA_DIURNA' },
-  { key: 'extra_nocturna', label: 'Extra nocturna', surcharge: 0.75, dbType: 'EXTRA_NOCTURNA' },
-  { key: 'extra_diurna_dominical', label: 'Extra diurna en domingo/festivo', surcharge: 1.05, dbType: 'EXTRA_DIURNA_DOMINICAL_FESTIVO' },
-  { key: 'extra_nocturna_dominical', label: 'Extra nocturna en domingo/festivo', surcharge: 1.55, dbType: 'EXTRA_NOCTURNA_DOMINICAL_FESTIVO' }
-]
-
-const getDefaultPayrollPeriod = () => {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth()
-
-  const firstDay = new Date(year, month, 1)
-  const lastDay = new Date(year, month + 1, 0)
-
-  return {
-    startDate: firstDay.toISOString().split('T')[0],
-    endDate: lastDay.toISOString().split('T')[0]
-  }
-}
-
-const calculateWorkedDays = (startDate, endDate) => {
-  if (!startDate || !endDate) return 0
-
-  const start = new Date(startDate)
-  const end = new Date(endDate)
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return 0
-
-  const diffMs = end.getTime() - start.getTime()
-  return Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1
-}
 
 export const Directory = () => {
   const [employees, setEmployees] = useState([])
@@ -63,13 +24,16 @@ export const Directory = () => {
   const [savingPayroll, setSavingPayroll] = useState(false)
   const [modalMessage, setModalMessage] = useState({ type: '', text: '' })
   const [payrollDates, setPayrollDates] = useState(getDefaultPayrollPeriod())
-  const [overtimeRows, setOvertimeRows] = useState([
-    {
-      id: 1,
-      typeKey: OVERTIME_TYPES[0].key,
-      hours: 0
-    }
-  ])
+  const [overtimeRows, setOvertimeRows] = useState([buildOvertimeRow()])
+  const [payrollNovelties, setPayrollNovelties] = useState([])
+  const [payrollNoveltiesSummary, setPayrollNoveltiesSummary] = useState({
+    totalNovedades: 0,
+    totalDevengado: 0,
+    totalDeducciones: 0,
+    totalImpactoNeto: 0
+  })
+  const [loadingPayrollNovelties, setLoadingPayrollNovelties] = useState(false)
+  const [payrollNoveltiesError, setPayrollNoveltiesError] = useState('')
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -123,6 +87,18 @@ export const Directory = () => {
     [filteredEmployees, startIndex, endIndex]
   )
 
+  const payrollSummary = useMemo(() => (
+    calculatePayrollSummary({
+      selectedEmployee,
+      payrollDates,
+      overtimeRows
+    })
+  ), [selectedEmployee, payrollDates, overtimeRows])
+
+  const estimatedGross = payrollSummary.subtotalBruto + (Number(payrollNoveltiesSummary.totalDevengado) || 0)
+  const estimatedDeductions = payrollSummary.totalDeducciones + (Number(payrollNoveltiesSummary.totalDeducciones) || 0)
+  const estimatedNet = estimatedGross - estimatedDeductions
+
   const goToPage = (p) => setPage(Math.max(1, Math.min(p, totalPages)))
 
   const paginationNumbers = useMemo(() => {
@@ -138,10 +114,17 @@ export const Directory = () => {
   }, [safePage, totalPages])
 
   const openEmployeeModal = (emp) => {
-    const defaultPeriod = getDefaultPayrollPeriod()
     setSelectedEmployee(emp)
-    setPayrollDates(defaultPeriod)
-    setOvertimeRows([{ id: Date.now(), typeKey: OVERTIME_TYPES[0].key, hours: 0 }])
+    setPayrollDates(getDefaultPayrollPeriod())
+    setOvertimeRows([buildOvertimeRow()])
+    setPayrollNovelties([])
+    setPayrollNoveltiesSummary({
+      totalNovedades: 0,
+      totalDevengado: 0,
+      totalDeducciones: 0,
+      totalImpactoNeto: 0
+    })
+    setPayrollNoveltiesError('')
     setModalMessage({ type: '', text: '' })
     setShowModal(true)
   }
@@ -149,6 +132,8 @@ export const Directory = () => {
   const closeEmployeeModal = () => {
     setSelectedEmployee(null)
     setModalMessage({ type: '', text: '' })
+    setPayrollNovelties([])
+    setPayrollNoveltiesError('')
     setShowModal(false)
   }
 
@@ -157,14 +142,7 @@ export const Directory = () => {
   }
 
   const addOvertimeRow = () => {
-    setOvertimeRows((prev) => ([
-      ...prev,
-      {
-        id: Date.now() + Math.random(),
-        typeKey: OVERTIME_TYPES[0].key,
-        hours: 0
-      }
-    ]))
+    setOvertimeRows((prev) => [...prev, buildOvertimeRow()])
   }
 
   const removeOvertimeRow = (rowId) => {
@@ -182,48 +160,49 @@ export const Directory = () => {
     )))
   }
 
-  const payrollSummary = useMemo(() => {
-    const salarioBase = Number(selectedEmployee?.sueldo) || 0
-    const diasTrabajados = calculateWorkedDays(payrollDates.startDate, payrollDates.endDate)
-    const valorDia = salarioBase / DIAS_NOMINA_MENSUAL
-    const valorHoraOrdinaria = salarioBase / HORAS_MENSUALES_REFERENCIA
-
-    const detallesHorasExtra = overtimeRows.map((row) => {
-      const overtimeType = OVERTIME_TYPES.find((item) => item.key === row.typeKey) || OVERTIME_TYPES[0]
-      const valorHoraExtra = valorHoraOrdinaria * (1 + overtimeType.surcharge)
-      const totalFila = (Number(row.hours) || 0) * valorHoraExtra
-
-      return {
-        ...row,
-        overtimeType,
-        valorHoraExtra,
-        totalFila
+  // Consulta las solicitudes aprobadas que impactan el periodo seleccionado.
+  // Esto permite mostrar al usuario el efecto antes de guardar la nomina.
+  useEffect(() => {
+    const fetchPayrollNovelties = async () => {
+      if (!showModal || !selectedEmployee?.id_empleado || !payrollDates.startDate || !payrollDates.endDate) {
+        return
       }
-    })
 
-    const totalHorasExtra = detallesHorasExtra.reduce((acc, row) => acc + row.totalFila, 0)
-    const pagoBasicoPeriodo = valorDia * diasTrabajados
-    const baseDeducciones = pagoBasicoPeriodo + totalHorasExtra
-    const pension = baseDeducciones * 0.04
-    const salud = baseDeducciones * 0.04
-    const totalDeducciones = pension + salud
-    const subtotalBruto = pagoBasicoPeriodo + totalHorasExtra + SUBSIDIO_TRANSPORTE
-    const neto = subtotalBruto - totalDeducciones
+      try {
+        setLoadingPayrollNovelties(true)
+        setPayrollNoveltiesError('')
 
-    return {
-      diasTrabajados,
-      pagoBasicoPeriodo,
-      valorHoraOrdinaria,
-      detallesHorasExtra,
-      totalHorasExtra,
-      subsidioTransporte: SUBSIDIO_TRANSPORTE,
-      pension,
-      salud,
-      totalDeducciones,
-      subtotalBruto,
-      neto
+        const response = await api.get('/nomina/novedades', {
+          params: {
+            id_empleado: selectedEmployee.id_empleado,
+            fecha_inicio: payrollDates.startDate,
+            fecha_corte: payrollDates.endDate
+          }
+        })
+
+        setPayrollNovelties(response.data?.data?.novedades || [])
+        setPayrollNoveltiesSummary(response.data?.data?.resumen || {
+          totalNovedades: 0,
+          totalDevengado: 0,
+          totalDeducciones: 0,
+          totalImpactoNeto: 0
+        })
+      } catch (requestError) {
+        setPayrollNovelties([])
+        setPayrollNoveltiesSummary({
+          totalNovedades: 0,
+          totalDevengado: 0,
+          totalDeducciones: 0,
+          totalImpactoNeto: 0
+        })
+        setPayrollNoveltiesError(requestError.response?.data?.message || 'No se pudieron cargar las novedades del periodo.')
+      } finally {
+        setLoadingPayrollNovelties(false)
+      }
     }
-  }, [selectedEmployee, payrollDates.startDate, payrollDates.endDate, overtimeRows])
+
+    fetchPayrollNovelties()
+  }, [showModal, selectedEmployee?.id_empleado, payrollDates.startDate, payrollDates.endDate])
 
   const savePayroll = async () => {
     if (!selectedEmployee) return
@@ -237,50 +216,22 @@ export const Directory = () => {
       setSavingPayroll(true)
       setModalMessage({ type: '', text: '' })
 
-      const overtimeRowsToSave = payrollSummary.detallesHorasExtra
-        .filter((row) => Number(row.hours) > 0)
-
-      const overtimeDetails = overtimeRowsToSave.map((row) => ({
-        concepto: `${row.overtimeType.label} (${row.hours}h)`,
-        valor: row.totalFila
-      }))
-
-      const horas_extras = overtimeRowsToSave.map((row) => ({
-        tipo_hora: row.overtimeType.dbType,
-        porcentaje_recargo: row.overtimeType.surcharge * 100,
-        horas: Number(row.hours),
-        valor_hora_base: payrollSummary.valorHoraOrdinaria,
-        valor_hora_extra: row.valorHoraExtra,
-        valor_total: row.totalFila
-      }))
-
-      const detalles = [
-        { concepto: `Pago base (${payrollSummary.diasTrabajados} días)`, valor: payrollSummary.pagoBasicoPeriodo },
-        ...overtimeDetails,
-        { concepto: 'Subsidio de transporte', valor: payrollSummary.subsidioTransporte },
-        { concepto: 'Salud 4%', valor: payrollSummary.salud },
-        { concepto: 'Pensión 4%', valor: payrollSummary.pension }
-      ]
-
-      await api.post('/nomina', {
-        id_empleado: selectedEmployee.id_empleado,
-        fecha_inicio: payrollDates.startDate,
-        fecha_corte: payrollDates.endDate,
-        tipo_pago: 'MENSUAL',
-        total_devengado: payrollSummary.subtotalBruto,
-        total_deducciones: payrollSummary.totalDeducciones,
-        detalles,
-        horas_extras
+      const payload = buildPayrollPayload({
+        selectedEmployee,
+        payrollDates,
+        payrollSummary
       })
+
+      await api.post('/nomina', payload)
 
       setModalMessage({ type: 'success', text: 'Nómina guardada exitosamente.' })
       setTimeout(() => {
         closeEmployeeModal()
       }, 700)
-    } catch (error) {
+    } catch (requestError) {
       setModalMessage({
         type: 'error',
-        text: error.response?.data?.message || 'No se pudo guardar la nómina.'
+        text: requestError.response?.data?.message || 'No se pudo guardar la nómina.'
       })
     } finally {
       setSavingPayroll(false)
@@ -560,6 +511,69 @@ export const Directory = () => {
                   </div>
                 </div>
               </div>
+
+              <div className="payroll-section">
+                <div className="section-header-with-action">
+                  <h3 className="section-title">NOVEDADES DEL PERIODO</h3>
+                  <span className="payroll-novelties-badge">
+                    {loadingPayrollNovelties ? 'Cargando...' : `${payrollNoveltiesSummary.totalNovedades || 0} registradas`}
+                  </span>
+                </div>
+
+                {payrollNoveltiesError && (
+                  <div className="payroll-inline-message payroll-inline-message--error">
+                    {payrollNoveltiesError}
+                  </div>
+                )}
+
+                {!payrollNoveltiesError && loadingPayrollNovelties && (
+                  <div className="payroll-inline-message">
+                    Consultando permisos, incapacidades, licencias y vacaciones aprobadas...
+                  </div>
+                )}
+
+                {!payrollNoveltiesError && !loadingPayrollNovelties && payrollNovelties.length === 0 && (
+                  <div className="payroll-inline-message">
+                    No hay novedades aprobadas que afecten este periodo.
+                  </div>
+                )}
+
+                {!payrollNoveltiesError && payrollNovelties.length > 0 && (
+                  <>
+                    <div className="payroll-novelties-list">
+                      {payrollNovelties.map((novelty) => (
+                        <div className="payroll-novelty-card" key={novelty.id_solicitud}>
+                          <div>
+                            <strong>{novelty.concepto}</strong>
+                            <p>
+                              {novelty.tipo} {novelty.sub_tipo ? `· ${novelty.sub_tipo}` : ''} · {novelty.cantidad} {novelty.unidad.toLowerCase()}
+                            </p>
+                          </div>
+                          <span className={`payroll-novelty-value payroll-novelty-value--${novelty.categoria.toLowerCase()}`}>
+                            {novelty.categoria === 'DEDUCCION' ? '- ' : novelty.categoria === 'DEVENGADO' ? '+ ' : ''}
+                            {formatPesoColombiano(novelty.valor)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="deductions-grid payroll-novelties-summary-grid">
+                      <div className="deduction-box">
+                        <div className="deduction-label">Devengado por novedades</div>
+                        <div className="deduction-value">{formatPesoColombiano(payrollNoveltiesSummary.totalDevengado)}</div>
+                      </div>
+                      <div className="deduction-box">
+                        <div className="deduction-label">Deduccion por novedades</div>
+                        <div className="deduction-value">- {formatPesoColombiano(payrollNoveltiesSummary.totalDeducciones)}</div>
+                      </div>
+                      <div className="deduction-box">
+                        <div className="deduction-label">Impacto neto</div>
+                        <div className="deduction-value">{formatPesoColombiano(payrollNoveltiesSummary.totalImpactoNeto)}</div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
             <div className="payroll-modal-footer">
@@ -585,12 +599,20 @@ export const Directory = () => {
                 <span className="summary-value">{formatPesoColombiano(payrollSummary.subtotalBruto)}</span>
               </div>
               <div className="summary-row">
+                <span className="summary-label">Devengado por novedades:</span>
+                <span className="summary-value">{formatPesoColombiano(payrollNoveltiesSummary.totalDevengado)}</span>
+              </div>
+              <div className="summary-row">
                 <span className="summary-label">Total Deducciones:</span>
                 <span className="summary-value summary-deductions">- {formatPesoColombiano(payrollSummary.totalDeducciones)}</span>
               </div>
+              <div className="summary-row">
+                <span className="summary-label">Deducciones por novedades:</span>
+                <span className="summary-value summary-deductions">- {formatPesoColombiano(payrollNoveltiesSummary.totalDeducciones)}</span>
+              </div>
               <div className="summary-row summary-net">
-                <span className="summary-label">Pago Neto:</span>
-                <span className="summary-value summary-net-value">{formatPesoColombiano(payrollSummary.neto)}</span>
+                <span className="summary-label">Pago Neto Estimado:</span>
+                <span className="summary-value summary-net-value">{formatPesoColombiano(estimatedNet)}</span>
               </div>
 
               <div className="payroll-footer-actions">
