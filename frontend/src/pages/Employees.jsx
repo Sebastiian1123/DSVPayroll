@@ -3,13 +3,14 @@ import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import api from '../services/api';
 import '../styles/Employees.css';
-import { showSuccess, showError, showConfirmDelete } from '../utlis/alerts.js';
+import { showSuccess, showError, showConfirmDelete } from '../utils/alerts.js';
 import {
     buildEmployeeFormData,
     getDefaultEmployeeFormData,
     getMaxBirthDate,
     getTodayDate
 } from '../utils/employees/employeeFormUtils';
+
 
 const Employees = () => {
     const { isAdminOrRRHH } = useAuth();
@@ -22,6 +23,8 @@ const Employees = () => {
     const [showModal, setShowModal] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState(null);
     const [formData, setFormData] = useState(getDefaultEmployeeFormData());
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 10;
 
     useEffect(() => {
         fetchEmployees();
@@ -52,6 +55,7 @@ const Employees = () => {
     };
 
     const handleSearch = async () => {
+        setCurrentPage(1);
         if (!searchTerm.trim()) {
             fetchEmployees();
             return;
@@ -69,6 +73,7 @@ const Employees = () => {
             setLoading(false);
         }
     };
+
 
     const openModal = (employee = null) => {
         if (employee) {
@@ -130,6 +135,11 @@ const Employees = () => {
         }
     };
 
+    const totalPages = Math.ceil(employees.length / ITEMS_PER_PAGE);
+    const paginatedEmployees = employees.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
     return (
         <>
             <Navbar />
@@ -155,7 +165,7 @@ const Employees = () => {
                         <i className="fa-solid fa-magnifying-glass"></i> Buscar
                     </button>
                     {searchTerm && (
-                        <button onClick={() => { setSearchTerm(''); fetchEmployees(); }} className="btn btn-secondary">
+                        <button onClick={() => { setSearchTerm(''); setCurrentPage(1); fetchEmployees(); }} className="btn btn-secondary">
                             <i className="fa-solid fa-trash"></i> Limpiar
                         </button>
                     )}
@@ -182,14 +192,14 @@ const Employees = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {employees.length === 0 ? (
+                                {paginatedEmployees.length === 0 ? (
                                     <tr>
                                         <td colSpan={isAdminOrRRHH() ? 7 : 6} style={{ textAlign: 'center' }}>
                                             No hay empleados registrados
                                         </td>
                                     </tr>
                                 ) : (
-                                    employees.map((employee) => (
+                                    paginatedEmployees.map((employee) => (
                                         <tr key={employee.id_empleado}>
                                             <td>{employee.id_empleado}</td>
                                             <td>{employee.nombres} {employee.apellidos}</td>
@@ -222,6 +232,53 @@ const Employees = () => {
                                 )}
                             </tbody>
                         </table>
+                        {totalPages > 1 && (
+                            <div className="pagination">
+                                <button
+                                    onClick={() => setCurrentPage(p => p - 1)}
+                                    disabled={currentPage === 1}
+                                    className="btn btn-gray-light"
+                                >
+                                    <i className="fa-solid fa-chevron-left"></i> Anterior
+                                </button>
+
+                                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                                    .filter(page =>
+                                        page === 1 ||
+                                        page === totalPages ||
+                                        Math.abs(page - currentPage) <= 1
+                                    )
+                                    .reduce((acc, page, idx, arr) => {
+                                        if (idx > 0 && page - arr[idx - 1] > 1) {
+                                            acc.push('...');
+                                        }
+                                        acc.push(page);
+                                        return acc;
+                                    }, [])
+                                    .map((item, idx) =>
+                                        item === '...' ? (
+                                            <span key={`dots-${idx}`} className="pagination-dots">...</span>
+                                        ) : (
+                                            <button
+                                                key={item}
+                                                onClick={() => setCurrentPage(item)}
+                                                className={`btn ${currentPage === item ? 'btn-dark' : 'btn-gray-light'}`}
+                                            >
+                                                {item}
+                                            </button>
+                                        )
+                                    )
+                                }
+
+                                <button
+                                    onClick={() => setCurrentPage(p => p + 1)}
+                                    disabled={currentPage === totalPages}
+                                    className="btn btn-gray-light"
+                                >
+                                    Siguiente <i className="fa-solid fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 

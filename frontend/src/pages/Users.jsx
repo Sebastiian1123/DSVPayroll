@@ -3,7 +3,7 @@ import Navbar from '../components/Navbar';
 import authService from '../services/authService';
 import api from '../services/api';
 import '../styles/Employees.css';
-import { showConfirmDelete, showError, showSuccess } from '../utlis/alerts.js';
+import { showConfirmDelete, showError, showSuccess } from '../utils/alerts';
 import {
     buildEditUserFormData,
     getDefaultEditUserFormData,
@@ -20,6 +20,8 @@ const Users = () => {
     const [editingUser, setEditingUser] = useState(null);
     const [formData, setFormData] = useState(getDefaultUserFormData());
     const [editFormData, setEditFormData] = useState(getDefaultEditUserFormData());
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 10;
 
     useEffect(() => {
         fetchUsers();
@@ -28,7 +30,7 @@ const Users = () => {
 
     const fetchUsers = async () => {
         try {
-            setLoading(true);
+            setLoading(true); 
             const response = await api.get('/users');
             setUsers(response.data.data || []);
         } catch (err) {
@@ -139,6 +141,11 @@ const Users = () => {
         setEditingUser(null);
         setEditFormData(getDefaultEditUserFormData());
     };
+    const totalPages = Math.ceil(users.length / ITEMS_PER_PAGE);
+    const paginatedUsers = users.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
 
     return (
         <>
@@ -177,7 +184,7 @@ const Users = () => {
                                         </td>
                                     </tr>
                                 ) : (
-                                    users.map((user) => (
+                                    paginatedUsers.map((user) => (
                                         <tr key={user.id_usuario}>
                                             <td>{user.id_usuario}</td>
                                             <td>{user.username}</td>
@@ -221,6 +228,51 @@ const Users = () => {
                                 )}
                             </tbody>
                         </table>
+                        {totalPages > 1 && (
+                            <div className="pagination">
+                                <button
+                                    onClick={() => setCurrentPage(p => p - 1)}
+                                    disabled={currentPage === 1}
+                                    className="btn btn-gray-light"
+                                >
+                                    <i className="fa-solid fa-chevron-left"></i> Anterior
+                                </button>
+
+                                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                                    .filter(page =>
+                                        page === 1 ||
+                                        page === totalPages ||
+                                        Math.abs(page - currentPage) <= 1
+                                    )
+                                    .reduce((acc, page, idx, arr) => {
+                                        if (idx > 0 && page - arr[idx - 1] > 1) acc.push('...');
+                                        acc.push(page);
+                                        return acc;
+                                    }, [])
+                                    .map((item, idx) =>
+                                        item === '...' ? (
+                                            <span key={`dots-${idx}`} className="pagination-dots">...</span>
+                                        ) : (
+                                            <button
+                                                key={item}
+                                                onClick={() => setCurrentPage(item)}
+                                                className={`btn ${currentPage === item ? 'btn-dark' : 'btn-gray-light'}`}
+                                            >
+                                                {item}
+                                            </button>
+                                        )
+                                    )
+                                }
+
+                                <button
+                                    onClick={() => setCurrentPage(p => p + 1)}
+                                    disabled={currentPage === totalPages}
+                                    className="btn btn-gray-light"
+                                >
+                                    Siguiente <i className="fa-solid fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 

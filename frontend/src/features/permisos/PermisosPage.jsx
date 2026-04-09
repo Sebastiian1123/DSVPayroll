@@ -4,7 +4,7 @@ import Navbar from '../../components/Navbar';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import './Permisos.css';
-import { showError, showSuccess } from '../../utlis/alerts.js';
+import { showError, showSuccess } from '../../utils/alerts';
 import RequestTypeSwitch from './components/RequestTypeSwitch';
 import RequestSummaryCards from './components/RequestSummaryCards';
 import RequestFormSection from './components/RequestFormSection';

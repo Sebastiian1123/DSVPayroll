@@ -205,6 +205,19 @@
 .btn-gray-light:hover {
     background-color: #d1d5db;
 }
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.pagination-dots {
+    padding: 0 4px;
+    color: #888;
+}
 
 /* Responsive */
 @media (max-width: 768px) {

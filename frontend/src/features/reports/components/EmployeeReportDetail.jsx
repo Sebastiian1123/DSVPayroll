@@ -1,5 +1,5 @@
 import React from 'react';
-import { showError } from '../../../utlis/alerts.js';
+import { showError } from '../../../utils/alerts';
 import payrollService from '../../../services/payrollService';
 import {
     EMPLOYEE_REPORT_ACTIONS,
