@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import api from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { buildEmployeeReportsByMonth } from '../utils/employeeReportsUtils';
+import reportsService from '../services/reportsService';
 
 const EmployeeReportsList = ({ onSelectReport }) => {
     const { user } = useAuth();
@@ -26,14 +26,12 @@ const EmployeeReportsList = ({ onSelectReport }) => {
                 setLoading(true);
                 setError('');
 
-                const response = await api.get('/nomina/reportes', {
-                    params: {
-                        anio: selectedYear,
-                        id_empleado: Number(user.id_empleado)
-                    }
+                const data = await reportsService.getPayrollReports({
+                    anio: selectedYear,
+                    idEmpleado: Number(user.id_empleado)
                 });
 
-                setReportRows(response.data?.data?.nominas || []);
+                setReportRows(data?.nominas || []);
             } catch (fetchError) {
                 console.error('Error cargando reportes de empleado:', fetchError);
                 setReportRows([]);

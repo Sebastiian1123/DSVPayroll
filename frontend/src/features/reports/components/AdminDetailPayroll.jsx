@@ -1,19 +1,56 @@
-import React, { useMemo, useState } from 'react';
-import { ADMIN_PAYROLL_DEPARTMENTS, ADMIN_PAYROLL_ROWS } from '../data/adminDetailPayrollData';
+import React, { useEffect, useMemo, useState } from 'react';
 import { calculateAdminPayrollTotals, filterAdminPayrollRows } from '../utils/adminDetailPayrollUtils';
 import { formatReportCurrency } from '../utils/reportFormatters';
+import reportsService from '../services/reportsService';
+import { mapAdminPayrollRows } from '../utils/adminReportsUtils';
 
 const AdminDetailPayroll = ({ period, onBack }) => {
     const [search, setSearch] = useState('');
     const [department, setDepartment] = useState('Todos');
+    const [rows, setRows] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        const fetchDetailRows = async () => {
+            if (!period?.year || !period?.monthNumber) {
+                setRows([]);
+                return;
+            }
+
+            try {
+                setLoading(true);
+                setError('');
+
+                const data = await reportsService.getAdminPayrollDetailByPeriod({
+                    anio: period.year,
+                    mes: period.monthNumber
+                });
+
+                setRows(mapAdminPayrollRows(data?.nominas || []));
+            } catch (fetchError) {
+                console.error('Error cargando detalle administrativo de nómina:', fetchError);
+                setRows([]);
+                setError('No fue posible cargar el detalle del periodo seleccionado.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchDetailRows();
+    }, [period?.monthNumber, period?.year]);
+
+    const departments = useMemo(() => (
+        ['Todos', ...new Set(rows.map((item) => item.departamento).filter(Boolean))]
+    ), [rows]);
 
     const filteredRows = useMemo(() => (
         filterAdminPayrollRows({
-            rows: ADMIN_PAYROLL_ROWS,
+            rows,
             search,
             department
         })
-    ), [search, department]);
+    ), [rows, search, department]);
 
     const totals = useMemo(() => calculateAdminPayrollTotals(filteredRows), [filteredRows]);
 
@@ -77,7 +114,7 @@ const AdminDetailPayroll = ({ period, onBack }) => {
 
                 <div className="admin-payroll-departments">
                     <span>Departamento:</span>
-                    {ADMIN_PAYROLL_DEPARTMENTS.map((item) => (
+                    {departments.map((item) => (
                         <button
                             key={item}
                             type="button"
@@ -89,6 +126,8 @@ const AdminDetailPayroll = ({ period, onBack }) => {
                     ))}
                 </div>
             </div>
+            {loading && <p style={{ color: 'var(--text-light)', marginBottom: '16px' }}>Cargando detalle del periodo...</p>}
+            {!!error && <p style={{ color: 'var(--danger-color)', marginBottom: '16px' }}>{error}</p>}
 
             <div className="admin-payroll-table-card">
                 <div className="admin-payroll-table-wrapper">
@@ -101,16 +140,14 @@ const AdminDetailPayroll = ({ period, onBack }) => {
                                 <th>HEF</th>
                                 <th>HEN</th>
                                 <th>HEFN</th>
-                                <th className="is-danger">Deduc. salud</th>
-                                <th className="is-danger">Deduc. ARL</th>
-                                <th className="is-danger">Deduc. pensión</th>
+                                <th className="is-danger">Deducciones</th>
                                 <th className="is-primary">Neto a pagar</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredRows.length === 0 ? (
                                 <tr>
-                                    <td colSpan={10} style={{ textAlign: 'center', padding: '28px 24px', color: 'var(--text-light)' }}>
+                                    <td colSpan={8} style={{ textAlign: 'center', padding: '28px 24px', color: 'var(--text-light)' }}>
                                         No hay empleados para el filtro seleccionado.
                                     </td>
                                 </tr>
@@ -131,9 +168,7 @@ const AdminDetailPayroll = ({ period, onBack }) => {
                                         <td>{row.hef}</td>
                                         <td>{row.hen}</td>
                                         <td>{row.hefn}</td>
-                                        <td className="is-danger">{formatReportCurrency(row.salud)}</td>
-                                        <td className="is-danger">{formatReportCurrency(row.arl)}</td>
-                                        <td className="is-danger">{formatReportCurrency(row.pension)}</td>
+                                        <td className="is-danger">{formatReportCurrency(row.deducciones)}</td>
                                         <td className="is-primary is-strong">{formatReportCurrency(row.neto)}</td>
                                     </tr>
                                 ))
@@ -147,9 +182,7 @@ const AdminDetailPayroll = ({ period, onBack }) => {
                                 <td>{totals.hef}</td>
                                 <td>{totals.hen}</td>
                                 <td>{totals.hefn}</td>
-                                <td className="is-danger">{formatReportCurrency(totals.salud)}</td>
-                                <td className="is-danger">{formatReportCurrency(totals.arl)}</td>
-                                <td className="is-danger">{formatReportCurrency(totals.pension)}</td>
+                                <td className="is-danger">{formatReportCurrency(totals.deducciones)}</td>
                                 <td className="is-primary is-strong">{formatReportCurrency(totals.neto)}</td>
                             </tr>
                         </tfoot>
