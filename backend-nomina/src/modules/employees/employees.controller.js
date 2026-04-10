@@ -46,11 +46,16 @@ const getAllEmployees = async (req, res) => {
         c.nombre_cargo,
         d.nombre_departamento,
         u.username,
-        u.email
+        u.email,
+        vs.dias_ganados,
+        vs.dias_disfrutados,
+        vs.dias_pendientes,
+        vs.periodo_anio
       FROM empleados e
       LEFT JOIN cargos c ON e.id_cargo = c.id_cargo
       LEFT JOIN departamentos d ON e.id_departamento = d.id_departamento
       LEFT JOIN usuarios u ON u.id_empleado = e.id_empleado
+      LEFT JOIN vacaciones_saldos vs ON e.id_empleado = vs.id_empleado AND vs.periodo_anio = YEAR(CURDATE())
       ${isEmployeeRole ? "WHERE e.id_empleado = ?" : ""}
       ORDER BY e.apellidos, e.nombres
       LIMIT ? OFFSET ?`;
@@ -109,11 +114,16 @@ const getEmployeeById = async (req, res) => {
         d.nombre_departamento,
         u.username,
         u.email,
-        u.id_usuario
+        u.id_usuario,
+        vs.dias_ganados,
+        vs.dias_disfrutados,
+        vs.dias_pendientes,
+        vs.periodo_anio
       FROM empleados e
       LEFT JOIN cargos c ON e.id_cargo = c.id_cargo
       LEFT JOIN departamentos d ON e.id_departamento = d.id_departamento
       LEFT JOIN usuarios u ON u.id_empleado = e.id_empleado
+      LEFT JOIN vacaciones_saldos vs ON e.id_empleado = vs.id_empleado AND vs.periodo_anio = YEAR(CURDATE())
       WHERE e.id_empleado = ?`,
       [id]
     );
@@ -219,10 +229,15 @@ const createEmployee = async (req, res) => {
       `SELECT 
         e.*,
         c.nombre_cargo,
-        d.nombre_departamento
+        d.nombre_departamento,
+        vs.dias_ganados,
+        vs.dias_disfrutados,
+        vs.dias_pendientes,
+        vs.periodo_anio
       FROM empleados e
       LEFT JOIN cargos c ON e.id_cargo = c.id_cargo
       LEFT JOIN departamentos d ON e.id_departamento = d.id_departamento
+      LEFT JOIN vacaciones_saldos vs ON e.id_empleado = vs.id_empleado AND vs.periodo_anio = YEAR(CURDATE())
       WHERE e.id_empleado = ?`,
       [result.insertId]
     );
@@ -321,10 +336,15 @@ const updateEmployee = async (req, res) => {
       `SELECT 
         e.*,
         c.nombre_cargo,
-        d.nombre_departamento
+        d.nombre_departamento,
+        vs.dias_ganados,
+        vs.dias_disfrutados,
+        vs.dias_pendientes,
+        vs.periodo_anio
       FROM empleados e
       LEFT JOIN cargos c ON e.id_cargo = c.id_cargo
       LEFT JOIN departamentos d ON e.id_departamento = d.id_departamento
+      LEFT JOIN vacaciones_saldos vs ON e.id_empleado = vs.id_empleado AND vs.periodo_anio = YEAR(CURDATE())
       WHERE e.id_empleado = ?`,
       [id]
     );
@@ -430,10 +450,15 @@ const searchEmployees = async (req, res) => {
         e.numero_identificacion,
         e.sueldo,
         c.nombre_cargo,
-        d.nombre_departamento
+        d.nombre_departamento,
+        vs.dias_ganados,
+        vs.dias_disfrutados,
+        vs.dias_pendientes,
+        vs.periodo_anio
       FROM empleados e
       LEFT JOIN cargos c ON e.id_cargo = c.id_cargo
       LEFT JOIN departamentos d ON e.id_departamento = d.id_departamento
+      LEFT JOIN vacaciones_saldos vs ON e.id_empleado = vs.id_empleado AND vs.periodo_anio = YEAR(CURDATE())
       WHERE (e.nombres LIKE ? OR e.apellidos LIKE ? OR e.numero_identificacion LIKE ?)
         ${isEmployeeRole ? "AND e.id_empleado = ?" : ""}
       ORDER BY e.apellidos, e.nombres
