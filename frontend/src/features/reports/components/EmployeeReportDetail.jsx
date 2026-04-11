@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { showError } from '../../../utils/alerts';
 import payrollService from '../../../services/payrollService';
 import {
@@ -10,6 +10,26 @@ import {
 
 const EmployeeReportDetail = ({ report, onBack }) => {
     const periodMeta = getEmployeeReportPeriodMeta(report);
+    const [payrollDetail, setPayrollDetail] = useState(null);
+    const [loadingDetail, setLoadingDetail] = useState(false);
+
+    useEffect(() => {
+        const fetchPayrollDetail = async () => {
+            if (!report?.dbId) return;
+
+            try {
+                setLoadingDetail(true);
+                const detail = await payrollService.getPayrollDetail(report.dbId);
+                setPayrollDetail(detail);
+            } catch (error) {
+                console.error('Error cargando detalle de nómina:', error);
+            } finally {
+                setLoadingDetail(false);
+            }
+        };
+
+        fetchPayrollDetail();
+    }, [report?.dbId]);
 
     const handleDownloadPdf = async () => {
         try {
@@ -67,6 +87,12 @@ const EmployeeReportDetail = ({ report, onBack }) => {
             </div>
 
             <div className="report-detail-card">
+                {loadingDetail && (
+                    <div style={{ padding: '12px 16px', color: 'var(--text-light)' }}>
+                        Cargando novedades aplicadas...
+                    </div>
+                )}
+
                 <div className="detail-header">
                     <div className="company-info">
                         <div className="company-logo">
@@ -112,7 +138,11 @@ const EmployeeReportDetail = ({ report, onBack }) => {
 
                         <div className="section-total">
                             <span>TOTAL BRUTO</span>
-                            <span className="amount">$3,580.40</span>
+                            <span className="amount">
+                                {payrollDetail?.nomina?.total_devengado
+                                    ? `$${Number(payrollDetail.nomina.total_devengado).toLocaleString('es-CO')}`
+                                    : '$3,580.40'}
+                            </span>
                         </div>
                     </div>
 
@@ -135,10 +165,40 @@ const EmployeeReportDetail = ({ report, onBack }) => {
 
                         <div className="section-total">
                             <span>TOTAL RETENCIONES</span>
-                            <span className="amount">-$965.15</span>
+                            <span className="amount">
+                                {payrollDetail?.nomina?.total_deducciones
+                                    ? `-$${Number(payrollDetail.nomina.total_deducciones).toLocaleString('es-CO')}`
+                                    : '-$965.15'}
+                            </span>
                         </div>
                     </div>
                 </div>
+
+                {payrollDetail?.novedades_aplicadas?.length > 0 && (
+                    <div className="detail-body" style={{ paddingTop: 0 }}>
+                        <div className="detail-section">
+                            <div className="section-title inc">
+                                <i className="fa-solid fa-list-check"></i> Novedades aprobadas aplicadas
+                            </div>
+                            <div className="concept-list">
+                                {payrollDetail.novedades_aplicadas.map((novelty) => (
+                                    <div className="concept-item" key={`${novelty.id_solicitud}-${novelty.concepto}`}>
+                                        <div className="concept-name">
+                                            <h4>{novelty.concepto}</h4>
+                                            <p>
+                                                {novelty.tipo} · {Number(novelty.cantidad || 0)} {novelty.unidad?.toLowerCase()}
+                                            </p>
+                                        </div>
+                                        <div className="concept-amount">
+                                            {novelty.categoria === 'DEDUCCION' ? '-' : '+'}
+                                            ${Number(novelty.valor_aplicado || 0).toLocaleString('es-CO')}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="detail-footer">
                     <div className="accumulated-info">
@@ -154,7 +214,11 @@ const EmployeeReportDetail = ({ report, onBack }) => {
 
                     <div className="net-total">
                         <p>NETO A RECIBIR</p>
-                        <h2>{report.amount}</h2>
+                        <h2>
+                            {payrollDetail?.nomina?.total_pagar
+                                ? `$${Number(payrollDetail.nomina.total_pagar).toLocaleString('es-CO')}`
+                                : report.amount}
+                        </h2>
                         <span style={{ fontSize: '11px', color: 'var(--text-light)', fontStyle: 'italic', display: 'block', marginTop: '4px' }}>
                             (Dos mil seiscientos quince con veinticinco centavos)
                         </span>
