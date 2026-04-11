@@ -1,19 +1,54 @@
-import React, { useMemo, useState } from 'react';
-import { ADMIN_PAYROLL_DEPARTMENTS, ADMIN_PAYROLL_ROWS } from '../data/adminDetailPayrollData';
+import React, { useEffect, useMemo, useState } from 'react';
+import reportsService from '../../../services/reportsService';
 import { calculateAdminPayrollTotals, filterAdminPayrollRows } from '../utils/adminDetailPayrollUtils';
 import { formatReportCurrency } from '../utils/reportFormatters';
 
 const AdminDetailPayroll = ({ period, onBack }) => {
     const [search, setSearch] = useState('');
     const [department, setDepartment] = useState('Todos');
+    const [rows, setRows] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        const fetchAdminPayrollByPeriod = async () => {
+            if (!period?.year || !period?.monthNumber) {
+                setRows([]);
+                return;
+            }
+
+            try {
+                setLoading(true);
+                setError('');
+                const data = await reportsService.getPayrollReports({
+                    anio: period.year,
+                    mes: period.monthNumber
+                });
+                setRows(Array.isArray(data?.nominas) ? data.nominas : []);
+            } catch (fetchError) {
+                console.error('Error cargando detalle administrativo de nómina:', fetchError);
+                setRows([]);
+                setError('No fue posible cargar el reporte detallado para el periodo seleccionado.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchAdminPayrollByPeriod();
+    }, [period?.year, period?.monthNumber]);
+
+    const availableDepartments = useMemo(() => ([
+        'Todos',
+        ...Array.from(new Set(rows.map((row) => row.departamento).filter(Boolean)))
+    ]), [rows]);
 
     const filteredRows = useMemo(() => (
         filterAdminPayrollRows({
-            rows: ADMIN_PAYROLL_ROWS,
+            rows,
             search,
             department
         })
-    ), [search, department]);
+    ), [rows, search, department]);
 
     const totals = useMemo(() => calculateAdminPayrollTotals(filteredRows), [filteredRows]);
 
@@ -41,14 +76,16 @@ const AdminDetailPayroll = ({ period, onBack }) => {
                 <div className="admin-payroll-report__actions">
                     <button className="admin-report-btn admin-report-btn--primary" type="button">
                         <i className="fa-solid fa-download"></i>
-                        Exportar Excel
+                        Exportar Excel (Próximamente)
                     </button>
                     <button className="admin-report-btn admin-report-btn--secondary" type="button">
                         <i className="fa-regular fa-file-pdf"></i>
-                        PDF
+                        PDF (Próximamente)
                     </button>
                 </div>
             </div>
+            {!!error && <p style={{ color: 'var(--danger-color)', marginBottom: '16px' }}>{error}</p>}
+            {loading && <p style={{ color: 'var(--text-light)', marginBottom: '16px' }}>Cargando nómina del periodo...</p>}
 
             <div className="admin-payroll-filters">
                 <div className="admin-payroll-search">
@@ -77,7 +114,7 @@ const AdminDetailPayroll = ({ period, onBack }) => {
 
                 <div className="admin-payroll-departments">
                     <span>Departamento:</span>
-                    {ADMIN_PAYROLL_DEPARTMENTS.map((item) => (
+                    {availableDepartments.map((item) => (
                         <button
                             key={item}
                             type="button"
@@ -116,25 +153,25 @@ const AdminDetailPayroll = ({ period, onBack }) => {
                                 </tr>
                             ) : (
                                 filteredRows.map((row) => (
-                                    <tr key={row.id}>
+                                    <tr key={row.id_nomina}>
                                         <td className="admin-payroll-table__employee-cell">
                                             <div className="admin-payroll-employee">
-                                                <div className="admin-payroll-employee__avatar">{row.avatar}</div>
+                                                <div className="admin-payroll-employee__avatar">{String(row.empleado || '').charAt(0).toUpperCase()}</div>
                                                 <div>
-                                                    <div className="admin-payroll-employee__name">{row.nombre}</div>
-                                                    <div className="admin-payroll-employee__role">{row.cargo}</div>
+                                                    <div className="admin-payroll-employee__name">{row.empleado}</div>
+                                                    <div className="admin-payroll-employee__role">{row.cargo || 'Sin cargo'}</div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td>{formatReportCurrency(row.salario)}</td>
+                                        <td>{formatReportCurrency(row.salario_basico)}</td>
                                         <td>{row.heo}</td>
                                         <td>{row.hef}</td>
                                         <td>{row.hen}</td>
                                         <td>{row.hefn}</td>
-                                        <td className="is-danger">{formatReportCurrency(row.salud)}</td>
-                                        <td className="is-danger">{formatReportCurrency(row.arl)}</td>
-                                        <td className="is-danger">{formatReportCurrency(row.pension)}</td>
-                                        <td className="is-primary is-strong">{formatReportCurrency(row.neto)}</td>
+                                        <td className="is-danger">{formatReportCurrency(row.deduccion_salud)}</td>
+                                        <td className="is-danger">{formatReportCurrency(row.deduccion_arl)}</td>
+                                        <td className="is-danger">{formatReportCurrency(row.deduccion_pension)}</td>
+                                        <td className="is-primary is-strong">{formatReportCurrency(row.total_pagar)}</td>
                                     </tr>
                                 ))
                             )}
@@ -150,7 +187,7 @@ const AdminDetailPayroll = ({ period, onBack }) => {
                                 <td className="is-danger">{formatReportCurrency(totals.salud)}</td>
                                 <td className="is-danger">{formatReportCurrency(totals.arl)}</td>
                                 <td className="is-danger">{formatReportCurrency(totals.pension)}</td>
-                                <td className="is-primary is-strong">{formatReportCurrency(totals.neto)}</td>
+                                <td className="is-primary is-strong">{formatReportCurrency(totals.totalPagar)}</td>
                             </tr>
                         </tfoot>
                     </table>

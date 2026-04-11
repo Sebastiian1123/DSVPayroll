@@ -1,140 +1,221 @@
-# Plan de trabajo: Integración de `Reports.jsx` con base de datos y módulos relacionados
+# Plan de implementación: Reportes con datos reales (Administrador)
 
-## 1) Estado actual del módulo de reportes
+## 1) Objetivo
+Implementar el módulo de **Reportes** para que, desde el usuario **Administrador** (y opcionalmente RRHH), se visualice información **real** de:
+- Nómina por empleado y por periodo.
+- Totales consolidados por mes/año.
+- Datos maestros de empleados (nombre, cargo, departamento, identificación).
 
-### Flujo UI actual
-- `Reports.jsx` hace *role-gating* con `useAuth()`:
-  - Si `isAdmin()` es `true`, renderiza `AdminReportsDashboard`.
-  - Si no, renderiza flujo empleado (`EmployeeReportsList` -> `EmployeeReportDetail` usando estado local `selectedReport`).
-- El flujo de detalle en empleado es 100% cliente (sin router interno ni query params), basado en objetos en memoria.
+El objetivo funcional es eliminar datos mock en la experiencia administrativa y conectar todas las vistas de reportes a la base de datos existente.
 
-### Hallazgos clave
-- Los tres componentes de reportes usan datos *mock* embebidos en arreglos o texto fijo.
-- No hay llamadas a `api` dentro de `Reports.jsx`, `AdminReportsDashboard.jsx`, `EmployeeReportsList.jsx` ni `EmployeeReportDetail.jsx`.
-- Los botones de acciones clave (descarga PDF, envío email, historial auditoría, procesamiento de nómina) todavía no disparan operaciones reales.
-- El `Navbar` no expone un link directo a `/reports` (la ruta existe en `App.jsx`, pero no aparece en navegación principal).
+---
 
-## 2) Conexiones ya existentes que sí pueden reutilizarse
+## 2) Diagnóstico técnico actual (frontend + backend)
 
-### Frontend
-- Existe cliente HTTP central (`frontend/src/services/api.js`) con:
-  - `baseURL` unificado.
-  - inyección automática de token.
-  - manejo centralizado de `401/403`.
-- Módulo `Nomina.jsx` ya consume endpoint real `GET /api/nomina/reportes` con filtros (`anio`, `mes`, `id_empleado`) y procesa resumen + tabla.
-- Módulo `Directory.jsx` ya persiste nómina real con `POST /api/nomina`.
+## 2.1 Frontend de reportes
+- La ruta `/reports` existe y hace role-gating: admin ve flujo administrativo, el resto ve flujo de empleado.【F:frontend/src/features/reports/ReportsPage.jsx†L12-L41】
+- `AdminReportsDashboard` y `AdminDetailPayroll` todavía usan datos estáticos/mock (`ADMIN_REPORT_*`, `ADMIN_PAYROLL_*`).【F:frontend/src/features/reports/components/AdminReportsDashboard.jsx†L2-L178】【F:frontend/src/features/reports/components/AdminDetailPayroll.jsx†L2-L167】【F:frontend/src/features/reports/data/adminReportsData.js†L1-L20】【F:frontend/src/features/reports/data/adminDetailPayrollData.js†L1-L86】
+- El flujo de empleado **sí** consume backend con `GET /nomina/reportes` filtrando por `id_empleado` y año.【F:frontend/src/features/reports/components/EmployeeReportsList.jsx†L27-L47】
+- El detalle de empleado descarga PDF real (`GET /nomina/:id_nomina/pdf`), pero el contenido visual del detalle en pantalla sigue mayormente hardcodeado en arreglos/labels locales.【F:frontend/src/features/reports/components/EmployeeReportDetail.jsx†L13-L192】
+
+## 2.2 Backend de nómina/reportes
+- Existe endpoint `GET /api/nomina/reportes` con filtros: `anio`, `mes`, `id_empleado`; devuelve `resumen` y `nominas`.
+  Este endpoint ya soporta la base para dashboard admin y listado por empleado.【F:backend-nomina/src/modules/payroll/payroll.controller.js†L244-L317】
+- Existe endpoint `GET /api/nomina/:id_nomina/pdf` para desprendible PDF real por nómina.【F:backend-nomina/src/modules/payroll/payroll.routes.js†L14-L17】【F:backend-nomina/src/modules/payroll/payroll.controller.js†L324-L380】
+- Las rutas de nómina están protegidas con token, pero `/reportes` y `/:id_nomina/pdf` no exigen rol administrativo explícito en rutas (solo autenticación).【F:backend-nomina/src/modules/payroll/payroll.routes.js†L11-L17】
+- El middleware de roles existe (`verifyAdmin`, `verifyAdminORRRHH`) y puede aplicarse para endurecer autorización de reportes administrativos.【F:backend-nomina/src/middleware/authMiddleware.js†L80-L116】
+
+## 2.3 Modelo de datos disponible
+Tablas clave ya listas para reportes reales:
+- `empleados` (nombres, apellidos, sueldo, cargo, departamento, identificación).【F:backend-nomina/src/config/db/sistema_nomina.sql†L27-L40】
+- `usuarios` vinculado a `empleados` y `roles`.
+- `nomina` (periodo, totales devengado/deducciones/pagar).【F:backend-nomina/src/config/db/sistema_nomina.sql†L64-L74】
+- `detalle_nomina` (conceptos).【F:backend-nomina/src/config/db/sistema_nomina.sql†L76-L82】
+- `horas_extra_nomina` (tipos de hora, recargos, valores).【F:backend-nomina/src/config/db/sistema_nomina.sql†L84-L98】
+- `reporte_nomina_mensual` (agregados mensuales por año/mes).【F:backend-nomina/src/config/db/sistema_nomina.sql†L149-L161】
+
+---
+
+## 3) Brechas para “reportes admin con datos reales”
+
+1. **UI administrativa desacoplada del backend**
+   - Actualmente muestra años/meses/empleados simulados.
+
+2. **Sin endpoint de detalle administrativo completo**
+   - `GET /nomina/reportes` trae cabecera de nómina, pero no desglose de conceptos/horas extra por cada registro.
+
+3. **Autorización insuficiente para vistas sensibles**
+   - Si no se controla en backend, un empleado podría consultar datos fuera de su alcance manipulando query params.
+
+4. **Contratos de datos frontend heterogéneos**
+   - El flujo empleado mapea un formato; el admin usa otro mock. Falta contrato unificado (`ReportSummary`, `PayrollRow`, `PayrollDetail`).
+
+5. **Acciones de exportación en admin sin integración real**
+   - Botones “Excel/PDF” en admin no ejecutan procesos reales.
+
+---
+
+## 4) Plan de implementación por fases
+
+## Fase 1 (alta prioridad): API real para dashboard y tabla admin
 
 ### Backend
-- Ya existen rutas:
-  - `GET /api/nomina/reportes` (consulta reportes mensuales con filtros).
-  - `POST /api/nomina` (crea una nómina y actualiza agregados mensuales).
-- El reporte retorna `resumen` y `nominas`, suficiente para iniciar vista administrativa y listado de empleado en fase 1.
+1. Crear/ajustar endpoint para panel admin:
+   - **Opción A (recomendada):** extender `GET /api/nomina/reportes` para retornar metadatos del periodo y agregados útiles para admin.
+   - **Opción B:** crear `GET /api/nomina/reportes/admin`.
 
-## 3) Brechas para enlazar `Reports` a DB
+2. Forzar reglas de acceso:
+   - `ADMINISTRADOR` y `RRHH` pueden consultar global.
+   - `EMPLEADO` solo su `id_empleado` del token (ignorar o validar query).
 
-1. **Modelo de datos UI vs DB no alineado**
-   - UI empleado usa `{ id: 'RN-2023-01', month, amount, status }`.
-   - DB retorna campos como `id_nomina`, `fecha_corte`, `total_pagar`, `empleado`, etc.
-   - Se requiere capa de mapeo (adapter/selector).
+3. Incluir en cada fila admin:
+   - `id_nomina`, `id_empleado`, `empleado`, `cargo`, `departamento`, `fecha_inicio`, `fecha_corte`, `tipo_pago`,
+   - `total_devengado`, `total_deducciones`, `total_pagar`,
+   - agregados de horas extra por tipo (`heo`, `hef`, `hen`, `hefn`) derivados de `horas_extra_nomina`.
 
-2. **Detalle de nómina en reportes**
-   - `EmployeeReportDetail` muestra conceptos de ingresos/deducciones fijos.
-   - No hay endpoint actual para traer detalle por `id_nomina` (incluyendo `detalle_nomina` y `horas_extra_nomina`).
+### Frontend
+1. Crear `reportsService` para consultas de reportes admin/empleado.
+2. Sustituir `adminReportsData.js` y `adminDetailPayrollData.js` por consumo real.
+3. Mantener filtros actuales (año, mes, búsqueda, departamento) pero basados en respuesta API.
+4. Implementar estados `loading`, `empty`, `error`, `retry` en componentes admin.
 
-3. **Control de acceso funcional incompleto**
-   - `Reports.jsx` usa `isAdmin()` únicamente. El comentario habla de Admin y RRHH, pero RRHH hoy caería en flujo empleado.
-   - Debe migrarse a `isAdminOrRRHH()` para consistencia con negocio.
+**Criterio de salida Fase 1:**
+- Admin entra a `/reports` y ve periodos/totales/tabla con datos reales de DB.
 
-4. **Navegación/Deep linking**
-   - El detalle depende de estado local; al refrescar se pierde.
-   - Conviene migrar a rutas `/reports/:idNomina` para persistencia de contexto y compartibilidad.
+---
 
-5. **Acciones de negocio sin backend**
-   - PDF, email, auditoría y “procesar nómina” aún sin endpoints conectados.
+## Fase 2 (alta prioridad): detalle real por nómina en reportes
 
-## 4) Plan de trabajo recomendado (incremental)
+### Backend
+1. Crear `GET /api/nomina/:id_nomina` (JSON) con:
+   - cabecera de nómina + datos de empleado,
+   - `detalle_nomina`,
+   - `horas_extra_nomina`,
+   - resumen calculado (bruto/deducciones/neto).
 
-## Fase 0 — Hardening técnico (rápida)
-- Crear carpeta `frontend/src/services/reportsService.js`.
-- Crear utilidades de transformación en `frontend/src/utils/reportsMappers.js`.
-- Definir tipos de estado (aunque sea con JSDoc) para evitar “shape drift”.
+2. Regla de acceso:
+   - Admin/RRHH: cualquier nómina.
+   - Empleado: solo nóminas de su propio `id_empleado`.
 
-**Entregable:** infraestructura de consumo/mapeo sin cambiar UX.
+### Frontend
+1. `EmployeeReportDetail` y futuro `AdminPayrollDetail` deben consumir este endpoint.
+2. Eliminar textos hardcodeados de ingresos/deducciones y renderizar conceptos reales.
 
-## Fase 1 — Datos reales en lista de empleado y dashboard admin
-- Reemplazar mocks en `EmployeeReportsList` y `AdminReportsDashboard` por consumo de `GET /api/nomina/reportes`.
-- Parametrizar por año/mes/empleado según rol:
-  - Empleado: forzar `id_empleado` del usuario autenticado (seguro por backend idealmente).
-  - Admin/RRHH: permitir filtros abiertos.
-- Incorporar estados `loading`, `empty`, `error` y `retry`.
+**Criterio de salida Fase 2:**
+- El detalle presentado en pantalla coincide con PDF y con base de datos.
 
-**Entregable:** reportes visibles desde DB con filtros básicos.
+---
 
-## Fase 2 — Detalle real de nómina
-- Backend: agregar endpoint sugerido `GET /api/nomina/:id_nomina` que incluya:
-  - cabecera nómina,
-  - `detalle_nomina`,
-  - `horas_extra_nomina`.
-- Frontend: `EmployeeReportDetail` consume endpoint por id y deja de depender del objeto mock.
-- Estandarizar fechas/moneda (COP o moneda configurada), evitando valores hardcodeados.
+## Fase 3 (media): exportaciones administrativas reales
 
-**Entregable:** vista detalle 100% persistida y auditable.
+1. **PDF consolidado admin** (`GET /api/nomina/reportes/export/pdf?anio=&mes=`).
+2. **Excel admin** (`GET /api/nomina/reportes/export/xlsx?anio=&mes=`).
+3. Registrar auditoría de exportaciones (usuario, fecha, filtros aplicados).
 
-## Fase 3 — Acciones (PDF, email, auditoría)
-- PDF:
-  - opción A: backend genera PDF y entrega URL/stream.
-  - opción B: frontend imprime plantilla, backend solo registra evento.
-- Email: endpoint `POST /api/nomina/:id/email`.
-- Auditoría: endpoint de eventos `GET /api/auditoria?modulo=nomina`.
+**Criterio de salida Fase 3:**
+- Botones “Exportar Excel” y “PDF” del admin operativos con archivo real.
 
-**Entregable:** botones del módulo con funcionalidad real y trazabilidad.
+---
 
-## Fase 4 — Integración entre módulos
-- Desde `Directory` (cuando guarda nómina) invalidar/refresh de datos en Reports.
-- Desde `Nomina` reutilizar los mismos mappers de reportes para evitar duplicidad.
-- Agregar navegación cruzada:
-  - `Nomina -> Ver detalle en Reports`
-  - `Reports Admin -> Abrir Directory` para reprocesos.
+## Fase 4 (media): hardening, performance y calidad
 
-**Entregable:** ecosistema de nómina coherente entre pantallas.
+1. Índices sugeridos:
+   - `nomina(id_empleado, fecha_corte)`,
+   - `nomina(fecha_corte)`,
+   - `horas_extra_nomina(id_nomina)`.
+2. Paginación server-side para tablas administrativas.
+3. Pruebas:
+   - Unitarias (mappers/formatters),
+   - Integración API (roles y filtros),
+   - E2E rol admin y rol empleado.
 
-## 5) Backlog técnico priorizado
+---
 
-### Prioridad alta (semana 1)
-1. Ajustar rol en `Reports.jsx` a Admin/RRHH.
-2. Introducir `reportsService` + mappers.
-3. Cargar lista de reportes de empleado desde `GET /nomina/reportes`.
-4. Cargar resumen admin desde `GET /nomina/reportes`.
+## 5) Contratos de datos recomendados
 
-### Prioridad media (semana 2)
-5. Endpoint `GET /nomina/:id` + detalle real.
-6. Migrar a rutas con parámetro (`/reports/:idNomina`).
-7. Manejo UX de errores/estados vacíos y skeletons.
+## 5.1 `GET /api/nomina/reportes` (admin)
+```json
+{
+  "success": true,
+  "data": {
+    "filtros": { "anio": 2026, "mes": 3, "id_empleado": null },
+    "resumen": {
+      "totalNominas": 125,
+      "totalDevengado": 430000000,
+      "totalDeducciones": 71000000,
+      "totalPagado": 359000000
+    },
+    "nominas": [
+      {
+        "id_nomina": 901,
+        "id_empleado": 45,
+        "empleado": "Nombre Apellido",
+        "cargo": "Analista",
+        "departamento": "Finanzas",
+        "fecha_inicio": "2026-03-01",
+        "fecha_corte": "2026-03-31",
+        "tipo_pago": "MENSUAL",
+        "total_devengado": 4200000,
+        "total_deducciones": 420000,
+        "total_pagar": 3780000,
+        "heo": 4,
+        "hef": 2,
+        "hen": 0,
+        "hefn": 0
+      }
+    ]
+  }
+}
+```
 
-### Prioridad media-baja (semana 3)
-8. PDF y email.
-9. Auditoría de acciones de usuario.
-10. Pruebas E2E de flujo completo (Directory -> Nomina -> Reports).
+## 5.2 `GET /api/nomina/:id_nomina` (detalle)
+```json
+{
+  "success": true,
+  "data": {
+    "nomina": { "id_nomina": 901, "id_empleado": 45, "total_pagar": 3780000 },
+    "empleado": { "nombres": "Nombre", "apellidos": "Apellido", "cargo": "Analista", "departamento": "Finanzas" },
+    "detalle_nomina": [
+      { "concepto": "Pago base (30 días)", "valor": 4000000 },
+      { "concepto": "Salud 4%", "valor": 160000 }
+    ],
+    "horas_extra": [
+      { "tipo_hora": "EXTRA_DIURNA", "horas": 4, "valor_total": 98000 }
+    ],
+    "resumen": { "total_devengado": 4200000, "total_deducciones": 420000, "total_pagar": 3780000 }
+  }
+}
+```
 
-## 6) Riesgos y mitigaciones
-- **Riesgo:** desalineación de roles frontend/backend.
-  - **Mitigación:** validación de permisos también en backend para cada endpoint.
-- **Riesgo:** inconsistencias de moneda/fechas entre módulos.
-  - **Mitigación:** helper único de formateo y timezone explícito.
-- **Riesgo:** doble lógica de negocio (Nomina vs Reports).
-  - **Mitigación:** centralizar transformaciones en mappers compartidos.
+---
 
-## 7) Definición de listo (DoR) para iniciar implementación
-- Confirmar si `Reports` será vista de “recibos personales” o “reportería global” (o ambas, por rol).
-- Acordar formato final de detalle de nómina (campos obligatorios).
-- Acordar estrategia de PDF (servidor vs cliente).
-- Confirmar reglas de acceso RRHH y si puede ver detalle de cualquier empleado.
+## 6) Plan operativo (2 semanas)
 
-## 8) Definición de hecho (DoD) sugerida
-- Sin mocks en componentes de reportes.
-- Todas las acciones principales conectadas a backend o deshabilitadas explícitamente.
-- Cobertura mínima:
-  - tests unitarios de mappers,
-  - test de integración de servicio,
-  - test E2E del flujo empleado.
-- Telemetría básica de errores de carga para soporte.
+### Semana 1
+1. Backend: autorización por rol + endpoint admin reportes enriquecido.
+2. Frontend: `reportsService`, mappers y reemplazo de mocks en panel admin.
+3. QA: pruebas manuales por rol (admin, rrhh, empleado).
+
+### Semana 2
+1. Backend: endpoint detalle `GET /nomina/:id_nomina`.
+2. Frontend: detalle real (sin hardcode), integración exportaciones iniciales.
+3. QA: casos de seguridad (filtros indebidos), regresión y performance base.
+
+---
+
+## 7) Riesgos y mitigación
+- **Riesgo:** fuga de información por filtros manipulados desde frontend.
+  - **Mitigación:** enforcement en backend con `req.user` y validación de rol.
+- **Riesgo:** diferencias entre totales UI y PDF.
+  - **Mitigación:** una sola fuente de cálculo en backend + pruebas de consistencia.
+- **Riesgo:** respuesta pesada en admin con nómina histórica.
+  - **Mitigación:** paginación + filtros obligatorios por año/mes.
+
+---
+
+## 8) Definition of Done (DoD)
+- Reportes admin sin datos mock.
+- Consultas protegidas por rol y propiedad de datos.
+- Detalle en pantalla con datos reales (`detalle_nomina` + `horas_extra_nomina`).
+- Exportación administrativa funcional (al menos PDF o Excel en primera entrega).
+- Evidencia de pruebas por rol y por filtros críticos.
