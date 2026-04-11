@@ -323,95 +323,6 @@ const getPayrollReport = async (req, res) => {
   }
 };
 
-const getAdminPayrollReportByPeriod = async (req, res) => {
-  try {
-    const now = new Date();
-    const requestedYear = Number(req.query.anio) || now.getUTCFullYear();
-    const requestedMonth = Number(req.query.mes);
-
-    if (!requestedMonth || requestedMonth < 1 || requestedMonth > 12) {
-      return res.status(400).json({
-        success: false,
-        message: 'El parametro mes es obligatorio y debe estar entre 1 y 12'
-      });
-    }
-
-    const [rows] = await pool.query(
-      `SELECT
-        n.id_nomina,
-        n.id_empleado,
-        CONCAT(e.nombres, ' ', e.apellidos) AS empleado,
-        c.nombre_cargo AS cargo,
-        d.nombre_departamento AS departamento,
-        n.fecha_inicio,
-        n.fecha_corte,
-        n.total_devengado,
-        n.total_deducciones,
-        n.total_pagar,
-        COALESCE(SUM(CASE WHEN h.tipo_hora = 'HEO' THEN h.horas ELSE 0 END), 0) AS heo,
-        COALESCE(SUM(CASE WHEN h.tipo_hora = 'HEF' THEN h.horas ELSE 0 END), 0) AS hef,
-        COALESCE(SUM(CASE WHEN h.tipo_hora = 'HEN' THEN h.horas ELSE 0 END), 0) AS hen,
-        COALESCE(SUM(CASE WHEN h.tipo_hora = 'HEFN' THEN h.horas ELSE 0 END), 0) AS hefn
-      FROM nomina n
-      INNER JOIN empleados e ON e.id_empleado = n.id_empleado
-      INNER JOIN cargos c ON c.id_cargo = e.id_cargo
-      INNER JOIN departamentos d ON d.id_departamento = e.id_departamento
-      LEFT JOIN horas_extra_nomina h ON h.id_nomina = n.id_nomina
-      WHERE YEAR(n.fecha_corte) = ?
-        AND MONTH(n.fecha_corte) = ?
-      GROUP BY
-        n.id_nomina,
-        n.id_empleado,
-        empleado,
-        cargo,
-        departamento,
-        n.fecha_inicio,
-        n.fecha_corte,
-        n.total_devengado,
-        n.total_deducciones,
-        n.total_pagar
-      ORDER BY empleado ASC, n.fecha_corte DESC`,
-      [requestedYear, requestedMonth]
-    );
-
-    const resumen = rows.reduce((acc, row) => ({
-      totalNominas: acc.totalNominas + 1,
-      totalDevengado: acc.totalDevengado + (Number(row.total_devengado) || 0),
-      totalDeducciones: acc.totalDeducciones + (Number(row.total_deducciones) || 0),
-      totalPagado: acc.totalPagado + (Number(row.total_pagar) || 0),
-      totalHorasExtra: acc.totalHorasExtra
-        + (Number(row.heo) || 0)
-        + (Number(row.hef) || 0)
-        + (Number(row.hen) || 0)
-        + (Number(row.hefn) || 0)
-    }), {
-      totalNominas: 0,
-      totalDevengado: 0,
-      totalDeducciones: 0,
-      totalPagado: 0,
-      totalHorasExtra: 0
-    });
-
-    return res.json({
-      success: true,
-      data: {
-        filtros: {
-          anio: requestedYear,
-          mes: requestedMonth
-        },
-        resumen,
-        nominas: rows
-      }
-    });
-  } catch (error) {
-    console.error('Error obteniendo reporte administrador por periodo:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: 'Error obteniendo el detalle administrativo de nomina'
-    });
-  }
-};
-
 const downloadPayrollPdf = async (req, res) => {
   console.log("1. Inicio descarga PDF");
   try {
@@ -506,7 +417,6 @@ const downloadPayrollPdf = async (req, res) => {
 module.exports = {
   createPayroll,
   getPayrollReport,
-  getAdminPayrollReportByPeriod,
   downloadPayrollPdf,
   getPayrollNoveltiesPreview,
   getPayrollNoveltiesForPeriod
