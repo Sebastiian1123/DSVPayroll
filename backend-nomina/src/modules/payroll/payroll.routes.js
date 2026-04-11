@@ -4,7 +4,6 @@ const router = express.Router();
 const {
   createPayroll,
   getPayrollReport,
-  getAdminPayrollReportByPeriod,
   downloadPayrollPdf,
   getPayrollNoveltiesPreview
 } = require('./payroll.controller');
@@ -13,7 +12,6 @@ const { verifyToken, verifyAdminORRRHH } = require('../../middleware/authMiddlew
 router.use(verifyToken);
 
 router.get('/reportes', getPayrollReport);
-router.get('/reportes/admin-detalle', verifyAdminORRRHH, getAdminPayrollReportByPeriod);
 router.get('/novedades', verifyAdminORRRHH, getPayrollNoveltiesPreview);
 router.post('/', verifyAdminORRRHH, createPayroll);
 router.get('/:id_nomina/pdf', downloadPayrollPdf);
