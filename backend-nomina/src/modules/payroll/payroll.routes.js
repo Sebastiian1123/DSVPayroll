@@ -5,7 +5,8 @@ const {
   createPayroll,
   getPayrollReport,
   downloadPayrollPdf,
-  getPayrollNoveltiesPreview
+  getPayrollNoveltiesPreview,
+  getPayrollById
 } = require('./payroll.controller');
 const { verifyToken, verifyAdminORRRHH } = require('../../middleware/authMiddleware');
 
@@ -13,7 +14,8 @@ router.use(verifyToken);
 
 router.get('/reportes', getPayrollReport);
 router.get('/novedades', verifyAdminORRRHH, getPayrollNoveltiesPreview);
-router.post('/', verifyAdminORRRHH, createPayroll);
 router.get('/:id_nomina/pdf', downloadPayrollPdf);
+router.get('/:id_nomina', getPayrollById);
+router.post('/', verifyAdminORRRHH, createPayroll);
 
 module.exports = router;

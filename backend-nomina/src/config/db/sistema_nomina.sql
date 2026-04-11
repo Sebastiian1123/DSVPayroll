@@ -135,11 +135,40 @@ CREATE TABLE solicitudes_laborales (
   comentario_empleado TEXT,
   comentario_aprobador TEXT,
   documento_soporte VARCHAR(255),
+  impacto_nomina_calculado JSON NULL,
+  pendiente_liquidacion TINYINT(1) NOT NULL DEFAULT 0,
+  liquidada_en_nomina TINYINT(1) NOT NULL DEFAULT 0,
+  fecha_liquidacion TIMESTAMP NULL,
   fecha_solicitud TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   fecha_respuesta TIMESTAMP NULL,
   aprobado_por INT,
   FOREIGN KEY (id_empleado) REFERENCES empleados(id_empleado),
   FOREIGN KEY (aprobado_por) REFERENCES usuarios(id_usuario)
+);
+
+CREATE INDEX idx_solicitudes_estado_empleado_fechas
+  ON solicitudes_laborales (id_empleado, estado, fecha_inicio, fecha_fin);
+
+CREATE INDEX idx_solicitudes_pendiente_liquidacion
+  ON solicitudes_laborales (pendiente_liquidacion, id_empleado);
+
+CREATE INDEX idx_solicitudes_tipo_estado_fecha
+  ON solicitudes_laborales (tipo, estado, fecha_solicitud);
+
+CREATE TABLE nomina_novedades_aplicadas (
+  id_nomina_novedad INT AUTO_INCREMENT PRIMARY KEY,
+  id_nomina INT NOT NULL,
+  id_solicitud INT NOT NULL,
+  categoria ENUM('DEVENGADO','DEDUCCION','INFORMATIVA') NOT NULL DEFAULT 'INFORMATIVA',
+  concepto VARCHAR(120) NOT NULL,
+  cantidad DECIMAL(10,2) DEFAULT 0.00,
+  unidad ENUM('DIAS','HORAS') NOT NULL DEFAULT 'DIAS',
+  porcentaje_aplicado DECIMAL(5,2) DEFAULT 0.00,
+  valor_aplicado DECIMAL(14,2) DEFAULT 0.00,
+  creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_nomina_solicitud (id_nomina, id_solicitud),
+  FOREIGN KEY (id_nomina) REFERENCES nomina(id_nomina) ON DELETE CASCADE,
+  FOREIGN KEY (id_solicitud) REFERENCES solicitudes_laborales(id_solicitud) ON DELETE CASCADE
 );
 
 -- =====================
