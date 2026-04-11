@@ -1,69 +1,119 @@
-import React from 'react';
-import { ADMIN_REPORT_MONTHS, ADMIN_REPORT_YEARS } from '../data/adminReportsData';
+import React, { useEffect, useMemo, useState } from 'react';
+import reportsService from '../../../services/reportsService';
+import { buildAdminMonthCards, buildAdminYearOptions } from '../utils/adminReportsUtils';
+import { formatReportCurrency } from '../utils/reportFormatters';
 
 const AdminReportsDashboard = ({ onSelectPeriod }) => {
+    const currentYear = new Date().getFullYear();
+    const [selectedYear, setSelectedYear] = useState(currentYear);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [summary, setSummary] = useState({
+        totalNominas: 0,
+        totalDevengado: 0,
+        totalDeducciones: 0,
+        totalPagado: 0
+    });
+    const [yearRows, setYearRows] = useState([]);
+
+    const years = useMemo(() => buildAdminYearOptions(currentYear), [currentYear]);
+    const monthCards = useMemo(() => (
+        buildAdminMonthCards({
+            selectedYear,
+            rows: yearRows
+        })
+    ), [selectedYear, yearRows]);
+
+    useEffect(() => {
+        const fetchYearOverview = async () => {
+            try {
+                setLoading(true);
+                setError('');
+                const data = await reportsService.getPayrollReports({ anio: selectedYear });
+                setSummary({
+                    totalNominas: Number(data?.resumen?.totalNominas) || 0,
+                    totalDevengado: Number(data?.resumen?.totalDevengado) || 0,
+                    totalDeducciones: Number(data?.resumen?.totalDeducciones) || 0,
+                    totalPagado: Number(data?.resumen?.totalPagado) || 0
+                });
+                setYearRows(Array.isArray(data?.nominas) ? data.nominas : []);
+            } catch (fetchError) {
+                console.error('Error cargando dashboard administrativo:', fetchError);
+                setSummary({
+                    totalNominas: 0,
+                    totalDevengado: 0,
+                    totalDeducciones: 0,
+                    totalPagado: 0
+                });
+                setYearRows([]);
+                setError('No fue posible cargar la información de reportes administrativos.');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchYearOverview();
+    }, [selectedYear]);
+
     return (
         <div className="admin-reports-dashboard">
             <div className="reports-header" style={{ marginBottom: '32px' }}>
                 <div>
                     <h1>Seleccionar Periodo de Nómina</h1>
-                    <p>Seleccione un año fiscal y mes para gestionar desembolsos o revisar ciclos financieros.</p>
+                    <p>Seleccione un año y mes para consultar la nómina real de los empleados.</p>
                 </div>
-                <button
-                    className="btn btn-secondary"
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'white', color: 'var(--text-dark)', border: '1px solid var(--border-color)' }}
-                >
-                    <i className="fa-solid fa-clock-rotate-left"></i> Ver Registros de Auditoría
-                </button>
             </div>
+            {!!error && <p style={{ color: 'var(--danger-color)', marginBottom: '16px' }}>{error}</p>}
+            {loading && <p style={{ color: 'var(--text-light)', marginBottom: '16px' }}>Cargando datos administrativos...</p>}
 
             <div className="admin-reports-layout">
                 <div className="main-panel">
                     <div className="year-selector-container">
-                        <div className="year-selector-title" style={{ justifyContent: 'space-between', marginBottom: '16px' }}>
+                        <div className="year-selector-title" style={{ marginBottom: '16px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <i className="fa-regular fa-calendar" style={{ color: 'var(--primary-color)' }}></i>
                                 Navegador de Años
                             </div>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                                <button style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px 8px' }}><i className="fa-solid fa-chevron-left"></i></button>
-                                <button style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px 8px' }}><i className="fa-solid fa-chevron-right"></i></button>
-                            </div>
                         </div>
                         <div className="years-row">
-                            {ADMIN_REPORT_YEARS.map((y) => (
-                                <div key={y.year} className={`year-btn ${y.isCurrent ? 'active' : ''}`}>
+                            {years.map((year) => (
+                                <button
+                                    type="button"
+                                    key={year}
+                                    className={`year-btn ${selectedYear === year ? 'active' : ''}`}
+                                    onClick={() => setSelectedYear(year)}
+                                >
                                     <span className="year-btn-label">Año Fiscal</span>
-                                    <span className="year-btn-number">{y.year}</span>
+                                    <span className="year-btn-number">{year}</span>
                                     <div className="year-btn-status">
-                                        <div className={`status-dot ${y.statusType}`}></div>
-                                        {y.status}
+                                        <div className={`status-dot ${selectedYear === year ? 'primary' : 'gray'}`}></div>
+                                        {selectedYear === year ? 'ACTIVO' : 'CONSULTAR'}
                                     </div>
-                                    {y.isCurrent && (
+                                    {selectedYear === year && (
                                         <span className="badge badge-info" style={{ position: 'absolute', top: '-10px', right: '10px', fontSize: '9px' }}>ACTUAL</span>
                                     )}
-                                </div>
+                                </button>
                             ))}
                         </div>
                     </div>
 
                     <div className="cycles-container">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                            <h3 style={{ fontSize: '16px', color: 'var(--text-dark)' }}>Ciclos del Año Fiscal 2024</h3>
+                            <h3 style={{ fontSize: '16px', color: 'var(--text-dark)' }}>Ciclos del Año Fiscal {selectedYear}</h3>
                             <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: 'var(--text-light)' }}>
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div className="status-dot success"></div> Cerrado</span>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div className="status-dot primary"></div> En Progreso</span>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div className="status-dot gray"></div> Pendiente</span>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div className="status-dot gray"></div> Sin datos</span>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div className="status-dot warning"></div> Pendiente</span>
                             </div>
                         </div>
 
                         <div className="months-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-                            {ADMIN_REPORT_MONTHS.map((m) => (
+                            {monthCards.map((m) => (
                                 <div
                                     key={m.id}
                                     className={`month-card ${m.isActive ? 'active' : ''} ${m.disabled ? 'disabled' : ''}`}
                                     style={{ minHeight: '130px', padding: '16px' }}
-                                    onClick={() => !m.disabled && onSelectPeriod?.({ month: m.name, year: 2024, status: m.status })}
+                                    onClick={() => !m.disabled && onSelectPeriod?.({ month: m.name, monthNumber: m.id, year: selectedYear, status: m.status })}
                                 >
                                     <div className="month-header">
                                         <div className="month-icon">
@@ -86,30 +136,31 @@ const AdminReportsDashboard = ({ onSelectPeriod }) => {
                         <h3 className="info-card-title">Información del Periodo</h3>
 
                         <div className="info-stat">
-                            <div className="info-stat-label">Empleados Activos</div>
+                            <div className="info-stat-label">Nóminas del año</div>
                             <div className="info-stat-value">
-                                2,482
-                                <span className="info-stat-badge">+12 este mes</span>
+                                {summary.totalNominas}
                             </div>
                         </div>
 
                         <div className="info-stat">
                             <div className="info-stat-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                Total Mes Anterior
+                                Total devengado
                                 <i className="fa-solid fa-arrow-trend-up"></i>
                             </div>
                             <div className="info-stat-value">
-                                $1.24M
+                                {formatReportCurrency(summary.totalDevengado)}
                             </div>
                         </div>
 
-                        <p style={{ fontSize: '11px', marginTop: '24px', opacity: 0.8, fontStyle: 'italic', lineHeight: 1.5 }}>
-                            "La nómina de marzo está actualmente en etapa de validación. 450 hojas de tiempo pendientes de aprobación."
-                        </p>
+                        <div className="info-stat">
+                            <div className="info-stat-label">Total deducciones</div>
+                            <div className="info-stat-value">{formatReportCurrency(summary.totalDeducciones)}</div>
+                        </div>
 
-                        <button className="btn" style={{ width: '100%', marginTop: '24px', background: 'white', color: 'var(--primary-color)', fontWeight: 'bold' }}>
-                            Procesar Nómina de Marzo
-                        </button>
+                        <div className="info-stat">
+                            <div className="info-stat-label">Total pagado</div>
+                            <div className="info-stat-value">{formatReportCurrency(summary.totalPagado)}</div>
+                        </div>
                     </div>
 
                     <div className="compliance-card">
@@ -126,14 +177,14 @@ const AdminReportsDashboard = ({ onSelectPeriod }) => {
                                 <div className="compliance-icon warning"><i className="fa-solid fa-triangle-exclamation"></i></div>
                                 <div className="compliance-text">
                                     <h4>Leyes Laborales</h4>
-                                    <p>Nuevas regulaciones desde 01 Abr</p>
+                                    <p>Validar cambios legales del periodo seleccionado</p>
                                 </div>
                             </div>
                             <div className="compliance-item">
                                 <div className="compliance-icon info"><i className="fa-solid fa-circle-info"></i></div>
                                 <div className="compliance-text">
                                     <h4>Prep. de Auditoría</h4>
-                                    <p>Auditoría trimestral en 12 días</p>
+                                    <p>Descargue consolidado mensual para auditoría</p>
                                 </div>
                             </div>
                         </div>

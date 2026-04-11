@@ -3,7 +3,8 @@ const { generatePayrollPdfBuffer } = require('./payroll-pdf.service');
 const { VALID_PAYMENT_TYPES, VALID_OVERTIME_TYPES } = require('./payroll.constants');
 const {
   getPayrollNoveltiesForPeriod,
-  buildPayrollNoveltyDetailRows
+  buildPayrollNoveltyDetailRows,
+  buildAppliedNoveltyRows
 } = require('./payroll.helpers');
 
 const createPayroll = async (req, res) => {
@@ -63,7 +64,7 @@ const createPayroll = async (req, res) => {
     // Busca novedades aprobadas del periodo antes de guardar la nómina.
     // Su impacto se suma automaticamente al devengado o a las deducciones.
     const payrollNovelties = await getPayrollNoveltiesForPeriod({
-      pool,
+      db: connection,
       idEmpleado: id_empleado,
       fechaInicio: fecha_inicio,
       fechaCorte: fecha_corte
@@ -112,6 +113,7 @@ const createPayroll = async (req, res) => {
           .map((item) => [idNomina, String(item.concepto).slice(0, 100), Number(item.valor)])
       : [];
     const noveltyDetailRows = buildPayrollNoveltyDetailRows(idNomina, novelties);
+    const appliedNoveltyRows = buildAppliedNoveltyRows(idNomina, novelties);
     const mergedDetailRows = [...manualDetailRows, ...noveltyDetailRows];
 
     if (mergedDetailRows.length > 0) {
@@ -138,6 +140,27 @@ const createPayroll = async (req, res) => {
          VALUES ?`,
         [overtimeInsertRows]
       );
+    }
+
+    if (appliedNoveltyRows.length > 0) {
+      await connection.query(
+        `INSERT INTO nomina_novedades_aplicadas
+          (id_nomina, id_solicitud, categoria, concepto, cantidad, unidad, porcentaje_aplicado, valor_aplicado)
+         VALUES ?`,
+        [appliedNoveltyRows]
+      );
+
+      const settledRequestIds = [...new Set(appliedNoveltyRows.map((row) => Number(row[1])).filter(Boolean))];
+      if (settledRequestIds.length > 0) {
+        await connection.query(
+          `UPDATE solicitudes_laborales
+           SET pendiente_liquidacion = 0,
+               liquidada_en_nomina = 1,
+               fecha_liquidacion = CURRENT_TIMESTAMP
+           WHERE id_solicitud IN (?)`,
+          [settledRequestIds]
+        );
+      }
     }
 
     const corteDate = new Date(fecha_corte);
@@ -214,7 +237,7 @@ const getPayrollNoveltiesPreview = async (req, res) => {
     }
 
     const payrollNovelties = await getPayrollNoveltiesForPeriod({
-      pool,
+      db: pool,
       idEmpleado,
       fechaInicio,
       fechaCorte
@@ -245,6 +268,9 @@ const getPayrollReport = async (req, res) => {
     const now = new Date();
     const requestedYear = Number(req.query.anio) || now.getUTCFullYear();
     const requestedEmployeeId = Number(req.query.id_empleado) || null;
+    const isAdminOrRRHH = req.user?.rol === 'ADMINISTRADOR' || req.user?.rol === 'RRHH';
+    const isEmployee = req.user?.rol === 'EMPLEADO';
+    const authenticatedEmployeeId = Number(req.user?.id_empleado) || null;
 
     const hasMonthFilter = req.query.mes !== undefined && req.query.mes !== null && req.query.mes !== '';
     const requestedMonth = hasMonthFilter ? Number(req.query.mes) : null;
@@ -256,6 +282,29 @@ const getPayrollReport = async (req, res) => {
       });
     }
 
+    if (requestedYear < 2000 || requestedYear > 2100) {
+      return res.status(400).json({
+        success: false,
+        message: 'El parametro anio debe estar entre 2000 y 2100'
+      });
+    }
+
+    if (!isAdminOrRRHH && !isEmployee) {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permisos para consultar reportes de nomina'
+      });
+    }
+
+    if (isEmployee && !authenticatedEmployeeId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Tu usuario no tiene un empleado asociado para consultar reportes'
+      });
+    }
+
+    const finalEmployeeId = isAdminOrRRHH ? requestedEmployeeId : authenticatedEmployeeId;
+
     const queryParams = [requestedYear];
     let monthFilterSql = '';
     let employeeFilterSql = '';
@@ -265,9 +314,9 @@ const getPayrollReport = async (req, res) => {
       queryParams.push(requestedMonth);
     }
 
-    if (requestedEmployeeId) {
+    if (finalEmployeeId) {
       employeeFilterSql = ' AND n.id_empleado = ? ';
-      queryParams.push(requestedEmployeeId);
+      queryParams.push(finalEmployeeId);
     }
 
     const [rows] = await pool.query(
@@ -275,14 +324,45 @@ const getPayrollReport = async (req, res) => {
         n.id_nomina,
         n.id_empleado,
         CONCAT(e.nombres, ' ', e.apellidos) AS empleado,
+        e.sueldo AS salario_basico,
+        c.nombre_cargo AS cargo,
+        d.nombre_departamento AS departamento,
         n.fecha_inicio,
         n.fecha_corte,
         n.tipo_pago,
         n.total_devengado,
         n.total_deducciones,
-        n.total_pagar
+        n.total_pagar,
+        COALESCE(he.heo, 0) AS heo,
+        COALESCE(he.hef, 0) AS hef,
+        COALESCE(he.hen, 0) AS hen,
+        COALESCE(he.hefn, 0) AS hefn,
+        COALESCE(dd.salud, 0) AS deduccion_salud,
+        COALESCE(dd.arl, 0) AS deduccion_arl,
+        COALESCE(dd.pension, 0) AS deduccion_pension
       FROM nomina n
       INNER JOIN empleados e ON e.id_empleado = n.id_empleado
+      LEFT JOIN cargos c ON c.id_cargo = e.id_cargo
+      LEFT JOIN departamentos d ON d.id_departamento = e.id_departamento
+      LEFT JOIN (
+        SELECT
+          id_nomina,
+          SUM(CASE WHEN tipo_hora = 'EXTRA_DIURNA' THEN horas ELSE 0 END) AS heo,
+          SUM(CASE WHEN tipo_hora = 'EXTRA_DIURNA_DOMINICAL_FESTIVO' THEN horas ELSE 0 END) AS hef,
+          SUM(CASE WHEN tipo_hora = 'EXTRA_NOCTURNA' THEN horas ELSE 0 END) AS hen,
+          SUM(CASE WHEN tipo_hora = 'EXTRA_NOCTURNA_DOMINICAL_FESTIVO' THEN horas ELSE 0 END) AS hefn
+        FROM horas_extra_nomina
+        GROUP BY id_nomina
+      ) he ON he.id_nomina = n.id_nomina
+      LEFT JOIN (
+        SELECT
+          id_nomina,
+          SUM(CASE WHEN LOWER(concepto) LIKE '%salud%' THEN valor ELSE 0 END) AS salud,
+          SUM(CASE WHEN LOWER(concepto) LIKE '%arl%' THEN valor ELSE 0 END) AS arl,
+          SUM(CASE WHEN LOWER(concepto) LIKE '%pensi%' THEN valor ELSE 0 END) AS pension
+        FROM detalle_nomina
+        GROUP BY id_nomina
+      ) dd ON dd.id_nomina = n.id_nomina
       WHERE YEAR(n.fecha_corte) = ?
         ${monthFilterSql}
         ${employeeFilterSql}
@@ -308,7 +388,7 @@ const getPayrollReport = async (req, res) => {
         filtros: {
           anio: requestedYear,
           mes: hasMonthFilter ? requestedMonth : null,
-          id_empleado: requestedEmployeeId
+          id_empleado: finalEmployeeId
         },
         resumen,
         nominas: rows
@@ -319,6 +399,111 @@ const getPayrollReport = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Error obteniendo el reporte de nomina'
+    });
+  }
+};
+
+const getPayrollById = async (req, res) => {
+  try {
+    const idNomina = Number(req.params.id_nomina);
+
+    if (!idNomina) {
+      return res.status(400).json({
+        success: false,
+        message: 'Debes indicar un id_nomina valido'
+      });
+    }
+
+    const [payrollRows] = await pool.query(
+      `SELECT
+        n.id_nomina,
+        n.id_empleado,
+        CONCAT(e.nombres, ' ', e.apellidos) AS empleado,
+        c.nombre_cargo AS cargo,
+        d.nombre_departamento AS departamento,
+        n.fecha_inicio,
+        n.fecha_corte,
+        n.tipo_pago,
+        n.total_devengado,
+        n.total_deducciones,
+        n.total_pagar
+      FROM nomina n
+      INNER JOIN empleados e ON e.id_empleado = n.id_empleado
+      LEFT JOIN cargos c ON c.id_cargo = e.id_cargo
+      LEFT JOIN departamentos d ON d.id_departamento = e.id_departamento
+      WHERE n.id_nomina = ?
+      LIMIT 1`,
+      [idNomina]
+    );
+
+    if (payrollRows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Nomina no encontrada'
+      });
+    }
+
+    const payroll = payrollRows[0];
+    const isAdminOrRRHH = req.user?.rol === 'ADMINISTRADOR' || req.user?.rol === 'RRHH';
+    const authenticatedEmployeeId = Number(req.user?.id_empleado) || null;
+
+    if (!isAdminOrRRHH && authenticatedEmployeeId !== Number(payroll.id_empleado)) {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permisos para consultar esta nomina'
+      });
+    }
+
+    const [detailRows] = await pool.query(
+      `SELECT concepto, valor
+       FROM detalle_nomina
+       WHERE id_nomina = ?
+       ORDER BY id_detalle ASC`,
+      [idNomina]
+    );
+
+    const [overtimeRows] = await pool.query(
+      `SELECT tipo_hora, horas, valor_total
+       FROM horas_extra_nomina
+       WHERE id_nomina = ?
+       ORDER BY id_hora_extra ASC`,
+      [idNomina]
+    );
+
+    const [noveltyRows] = await pool.query(
+      `SELECT
+        nna.id_solicitud,
+        nna.categoria,
+        nna.concepto,
+        nna.cantidad,
+        nna.unidad,
+        nna.porcentaje_aplicado,
+        nna.valor_aplicado,
+        s.tipo,
+        s.sub_tipo,
+        s.fecha_inicio,
+        s.fecha_fin
+      FROM nomina_novedades_aplicadas nna
+      INNER JOIN solicitudes_laborales s ON s.id_solicitud = nna.id_solicitud
+      WHERE nna.id_nomina = ?
+      ORDER BY nna.id_nomina_novedad ASC`,
+      [idNomina]
+    );
+
+    return res.json({
+      success: true,
+      data: {
+        nomina: payroll,
+        detalle_nomina: detailRows,
+        horas_extra: overtimeRows,
+        novedades_aplicadas: noveltyRows
+      }
+    });
+  } catch (error) {
+    console.error('Error obteniendo detalle de nomina:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Error obteniendo detalle de nomina'
     });
   }
 };
@@ -370,6 +555,17 @@ const downloadPayrollPdf = async (req, res) => {
 
     const payroll = payrollRows[0];
 
+    const isAdminOrRRHH = req.user?.rol === 'ADMINISTRADOR' || req.user?.rol === 'RRHH';
+    const authenticatedEmployeeId = Number(req.user?.id_empleado) || null;
+    const payrollEmployeeId = Number(payroll.id_empleado);
+
+    if (!isAdminOrRRHH && authenticatedEmployeeId !== payrollEmployeeId) {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permisos para descargar esta nomina'
+      });
+    }
+
     const [detailRows] = await pool.query(
       `SELECT concepto, valor
       FROM detalle_nomina
@@ -417,6 +613,7 @@ const downloadPayrollPdf = async (req, res) => {
 module.exports = {
   createPayroll,
   getPayrollReport,
+  getPayrollById,
   downloadPayrollPdf,
   getPayrollNoveltiesPreview,
   getPayrollNoveltiesForPeriod
