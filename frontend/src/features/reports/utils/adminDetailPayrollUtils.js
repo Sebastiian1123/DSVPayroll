@@ -4,11 +4,11 @@ export const filterAdminPayrollRows = ({ rows, search, department }) => {
   return rows.filter((employee) => {
     const matchesSearch =
       !normalizedSearch ||
-      employee.nombre.toLowerCase().includes(normalizedSearch) ||
-      employee.cargo.toLowerCase().includes(normalizedSearch)
+      String(employee.empleado || '').toLowerCase().includes(normalizedSearch) ||
+      String(employee.cargo || '').toLowerCase().includes(normalizedSearch)
 
     const matchesDepartment =
-      department === 'Todos' || employee.departamento === department
+      department === 'Todos' || String(employee.departamento || '') === department
 
     return matchesSearch && matchesDepartment
   })
@@ -17,15 +17,15 @@ export const filterAdminPayrollRows = ({ rows, search, department }) => {
 export const calculateAdminPayrollTotals = (rows) => (
   rows.reduce(
     (acc, row) => {
-      acc.salario += row.salario
-      acc.heo += row.heo
-      acc.hef += row.hef
-      acc.hen += row.hen
-      acc.hefn += row.hefn
-      acc.salud += row.salud
-      acc.arl += row.arl
-      acc.pension += row.pension
-      acc.neto += row.neto
+      acc.salario += Number(row.salario_basico) || 0
+      acc.heo += Number(row.heo) || 0
+      acc.hef += Number(row.hef) || 0
+      acc.hen += Number(row.hen) || 0
+      acc.hefn += Number(row.hefn) || 0
+      acc.salud += Number(row.deduccion_salud) || 0
+      acc.arl += Number(row.deduccion_arl) || 0
+      acc.pension += Number(row.deduccion_pension) || 0
+      acc.totalPagar += Number(row.total_pagar) || 0
       return acc
     },
     {
@@ -37,7 +37,7 @@ export const calculateAdminPayrollTotals = (rows) => (
       salud: 0,
       arl: 0,
       pension: 0,
-      neto: 0
+      totalPagar: 0
     }
   )
 )

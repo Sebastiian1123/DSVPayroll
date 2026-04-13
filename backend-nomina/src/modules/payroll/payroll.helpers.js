@@ -97,9 +97,16 @@ const mapRequestToPayrollNovelty = (requestRow, monthlySalary) => {
   const unpaidFactor = 1 - paidFactor;
 
   if (requestRow.tipo === 'VACACIONES') {
-    concept = `Vacaciones pagadas (${overlappingDays} dias)`;
-    category = 'INFORMATIVA';
-    amount = 0;
+    if (paidFactor >= 1) {
+      concept = `Adicion vacaciones remuneradas (${overlappingDays} dias)`;
+      category = 'DEVENGADO';
+      amount = Number(fullDaysValue.toFixed(2));
+    } else {
+      const deductionAmount = fullDaysValue * unpaidFactor;
+      concept = `Deduccion vacaciones (${overlappingDays} dias)`;
+      category = deductionAmount > 0 ? 'DEDUCCION' : 'INFORMATIVA';
+      amount = Number(deductionAmount.toFixed(2));
+    }
   } else if (requestRow.tipo === 'PERMISO') {
     if (requestedHours > 0) {
       quantity = requestedHours;
@@ -125,9 +132,10 @@ const mapRequestToPayrollNovelty = (requestRow, monthlySalary) => {
     }
   } else if (requestRow.tipo === 'INCAPACIDAD') {
     if (String(requestRow.origen_novedad || 'COMUN').toUpperCase() === 'LABORAL') {
-      concept = `Incapacidad laboral pagada (${overlappingDays} dias)`;
-      category = 'INFORMATIVA';
-      amount = 0;
+      const deductionAmount = fullDaysValue * unpaidFactor;
+      concept = `Ajuste incapacidad laboral (${overlappingDays} dias)`;
+      category = deductionAmount > 0 ? 'DEDUCCION' : 'INFORMATIVA';
+      amount = Number(deductionAmount.toFixed(2));
     } else {
       const segments = getCommonDisabilitySegments(requestRow);
       const deductionAmount =
@@ -140,9 +148,9 @@ const mapRequestToPayrollNovelty = (requestRow, monthlySalary) => {
     }
   } else if (requestRow.tipo === 'LICENCIA') {
     if (normalizedSubtype === 'MATERNIDAD' || normalizedSubtype === 'PATERNIDAD') {
-      concept = `Licencia ${normalizedSubtype.toLowerCase()} pagada (${overlappingDays} dias)`;
-      category = 'INFORMATIVA';
-      amount = 0;
+      concept = `Adicion licencia ${normalizedSubtype.toLowerCase()} (${overlappingDays} dias)`;
+      category = 'DEVENGADO';
+      amount = Number(fullDaysValue.toFixed(2));
     } else if (Number(requestRow.es_remunerado) === 1) {
       const deductionAmount = fullDaysValue * unpaidFactor;
       concept = `Ajuste licencia remunerada (${overlappingDays} dias)`;
@@ -178,8 +186,23 @@ const buildPayrollNoveltyDetailRows = (idNomina, novelties) => (
     .map((novelty) => [idNomina, String(novelty.concepto).slice(0, 100), Number(novelty.valor)])
 );
 
-const getPayrollNoveltiesForPeriod = async ({ pool, idEmpleado, fechaInicio, fechaCorte }) => {
-  const [employeeRows] = await pool.query(
+const buildAppliedNoveltyRows = (idNomina, novelties) => (
+  novelties
+    .filter((novelty) => novelty && novelty.id_solicitud && novelty.concepto)
+    .map((novelty) => [
+      idNomina,
+      novelty.id_solicitud,
+      novelty.categoria || 'INFORMATIVA',
+      String(novelty.concepto).slice(0, 120),
+      Number(novelty.cantidad) || 0,
+      novelty.unidad === 'HORAS' ? 'HORAS' : 'DIAS',
+      Number(novelty.porcentaje_pago) || 0,
+      Number(novelty.valor) || 0
+    ])
+);
+
+const getPayrollNoveltiesForPeriod = async ({ db, idEmpleado, fechaInicio, fechaCorte }) => {
+  const [employeeRows] = await db.query(
     `SELECT id_empleado, nombres, apellidos, sueldo
      FROM empleados
      WHERE id_empleado = ?
@@ -194,7 +217,7 @@ const getPayrollNoveltiesForPeriod = async ({ pool, idEmpleado, fechaInicio, fec
   const employee = employeeRows[0];
   const monthlySalary = Number(employee.sueldo) || 0;
 
-  const [requestRows] = await pool.query(
+  const [requestRows] = await db.query(
     `SELECT
       s.id_solicitud,
       s.id_empleado,
@@ -210,8 +233,12 @@ const getPayrollNoveltiesForPeriod = async ({ pool, idEmpleado, fechaInicio, fec
       ? AS periodo_inicio,
       ? AS periodo_fin
     FROM solicitudes_laborales s
+    LEFT JOIN nomina_novedades_aplicadas nna ON nna.id_solicitud = s.id_solicitud
     WHERE s.id_empleado = ?
       AND s.estado = ?
+      AND s.pendiente_liquidacion = 1
+      AND s.liquidada_en_nomina = 0
+      AND nna.id_solicitud IS NULL
       AND s.fecha_inicio <= ?
       AND s.fecha_fin >= ?
     ORDER BY s.fecha_inicio ASC, s.id_solicitud ASC`,
@@ -258,5 +285,6 @@ module.exports = {
   normalizeSubtype,
   mapRequestToPayrollNovelty,
   buildPayrollNoveltyDetailRows,
+  buildAppliedNoveltyRows,
   getPayrollNoveltiesForPeriod
 };

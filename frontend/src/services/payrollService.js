@@ -7,6 +7,12 @@ export const downloadPayrollPdf = async (payrollId) => {
   })
 }
 
+export const getPayrollDetail = async (payrollId) => {
+  const response = await api.get(`/nomina/${payrollId}`)
+  return response.data?.data || null
+}
+
 export default {
-  downloadPayrollPdf
+  downloadPayrollPdf,
+  getPayrollDetail
 }
