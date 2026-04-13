@@ -80,6 +80,16 @@
     color: #000000;
 }
 
+.btn-deactivate {
+    background-color: #e5e7eb;
+    color: #000000;
+}
+
+.btn-reactivate {
+    background-color: #e5e7eb;
+    color: #000000;
+}
+
 /* Modal */
 .modal-overlay {
     position: fixed;
@@ -188,6 +198,34 @@
 }
 
 /* Clases personalizadas para botones */
+.btn-reactivate {
+    background-color: #e5e7eb;
+    color: #000000;
+}
+
+/* Toggle para empleados inactivos */
+.toggle-inactive {
+    margin-bottom: 20px;
+    padding: 10px;
+    background-color: #f9fafb;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+}
+
+.toggle-inactive label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    color: #374151;
+}
+
+.toggle-inactive input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
 .btn-cancel-red {
     background-color: #ef4444;
     color: #ffffff;

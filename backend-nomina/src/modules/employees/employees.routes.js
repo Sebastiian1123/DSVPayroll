@@ -7,6 +7,7 @@ const {
   createEmployee,
   updateEmployee,
   deleteEmployee,
+  reactivateEmployee,
   searchEmployees,
 } = require("./employees.controller");
 
@@ -26,6 +27,7 @@ router.get("/:id", getEmployeeById);
 // Operaciones de administracion reservadas para Admin y RRHH.
 router.post("/", verifyAdminORRRHH, createEmployee);
 router.put("/:id", verifyAdminORRRHH, updateEmployee);
+router.put("/:id/reactivate", verifyAdminORRRHH, reactivateEmployee);
 router.delete("/:id", verifyAdminORRRHH, deleteEmployee);
 
 module.exports = router;

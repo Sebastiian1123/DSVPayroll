@@ -16,14 +16,14 @@ export const showError = (title, text) =>
     confirmButtonText: 'Cerrar'
   });
 
-export const showConfirmDelete = () =>
+export const showConfirmDelete = (text = 'Esta acción no se puede deshacer.') =>
   Swal.fire({
     title: '¿Estás seguro?',
-    text: 'Esta acción no se puede deshacer.',
+    text,
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#d33',
     cancelButtonColor: '#6b7280',
-    confirmButtonText: 'Sí, eliminar',
+    confirmButtonText: 'Sí, continuar',
     cancelButtonText: 'Cancelar'
   });

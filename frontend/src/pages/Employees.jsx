@@ -13,7 +13,7 @@ import {
 
 
 const Employees = () => {
-    const { isAdminOrRRHH } = useAuth();
+    const { isAdminOrRRHH, isAdmin } = useAuth();
 
     const [employees, setEmployees] = useState([]);
     const [departamentos, setDepartamentos] = useState([]);
@@ -24,17 +24,19 @@ const Employees = () => {
     const [editingEmployee, setEditingEmployee] = useState(null);
     const [formData, setFormData] = useState(getDefaultEmployeeFormData());
     const [currentPage, setCurrentPage] = useState(1);
+    const [showInactive, setShowInactive] = useState(false);
     const ITEMS_PER_PAGE = 10;
 
     useEffect(() => {
         fetchEmployees();
         fetchDepartments();
-    }, []);
+    }, [showInactive]);
 
     const fetchEmployees = async () => {
         try {
             setLoading(true);
-            const response = await api.get('/employees');
+            const params = showInactive ? { includeInactive: 'true' } : {};
+            const response = await api.get('/employees', { params });
             setEmployees(response.data.data);
             setError('');
         } catch (err) {
@@ -119,19 +121,19 @@ const Employees = () => {
         }
     };
 
-    const handleDelete = async (id) => {
-        const result = await showConfirmDelete();
+    const handleReactivate = async (id) => {
+        const result = await showConfirmDelete('¿Estás seguro de que deseas reactivar este empleado?');
 
         if (!result.isConfirmed) {
             return;
         }
 
         try {
-            await api.delete(`/employees/${id}`);
-            showSuccess('Empleado eliminado', 'El empleado fue eliminado exitosamente');
+            await api.put(`/employees/${id}/reactivate`);
+            showSuccess('Empleado reactivado', 'El empleado ha sido reactivado exitosamente');
             fetchEmployees();
         } catch (err) {
-            showError('Error', err.response?.data?.message || 'Error al eliminar empleado');
+            showError('Error', err.response?.data?.message || 'Error al reactivar empleado');
         }
     };
 
@@ -170,6 +172,19 @@ const Employees = () => {
                         </button>
                     )}
                 </div>
+
+                {isAdminOrRRHH() && (
+                    <div className="toggle-inactive">
+                        <label>
+                            <input
+                                type="checkbox"
+                                checked={showInactive}
+                                onChange={(e) => { setShowInactive(e.target.checked); setCurrentPage(1); }}
+                            />
+                            Mostrar empleados inactivos
+                        </label>
+                    </div>
+                )}
 
                 {error && <div className="alert alert-error">{error}</div>}
 
@@ -217,13 +232,42 @@ const Employees = () => {
                                                         >
                                                             <i className="fa-solid fa-pen-to-square"></i>
                                                         </button>
-                                                        <button
-                                                            onClick={() => handleDelete(employee.id_empleado)}
-                                                            className="btn-action btn-delete"
-                                                            title="Eliminar"
-                                                        >
-                                                            <i className="fa-solid fa-trash"></i>
-                                                        </button>
+                                                        {employee.activo ? (
+                                                            isAdmin() ? (
+                                                                <>
+                                                                    <button
+                                                                        onClick={() => handleDelete(employee.id_empleado, false)}
+                                                                        className="btn-action btn-deactivate"
+                                                                        title="Desactivar"
+                                                                    >
+                                                                        <i className="fa-solid fa-user-slash"></i>
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleDelete(employee.id_empleado, true)}
+                                                                        className="btn-action btn-delete"
+                                                                        title="Eliminar Permanentemente"
+                                                                    >
+                                                                        <i className="fa-solid fa-trash"></i>
+                                                                    </button>
+                                                                </>
+                                                            ) : (
+                                                                <button
+                                                                    onClick={() => handleDelete(employee.id_empleado, false)}
+                                                                    className="btn-action btn-deactivate"
+                                                                    title="Desactivar"
+                                                                >
+                                                                    <i className="fa-solid fa-user-slash"></i>
+                                                                </button>
+                                                            )
+                                                        ) : (
+                                                            <button
+                                                                onClick={() => handleReactivate(employee.id_empleado)}
+                                                                className="btn-action btn-reactivate"
+                                                                title="Reactivar"
+                                                            >
+                                                                <i className="fa-solid fa-user-check"></i>
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </td>
                                             )}

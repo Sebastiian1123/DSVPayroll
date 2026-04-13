@@ -9,6 +9,13 @@ const {
   validateEmployeeScopeAccess,
   buildPagination,
 } = require("./employees.helpers");
+const {
+  validateName,
+  validateIdentificationNumber,
+  validateNumericField,
+  validateDate,
+  validateMinimumAge,
+} = require("../../utils/validators");
 
 // Lista empleados con paginacion y relaciones basicas.
 const getAllEmployees = async (req, res) => {
@@ -24,13 +31,14 @@ const getAllEmployees = async (req, res) => {
     }
 
     const { page, limit, offset } = buildPagination(req.query);
+    const includeInactive = req.query.includeInactive === 'true';
 
     const [countResult] = isEmployeeRole
       ? await pool.query(
-          `SELECT COUNT(*) as total FROM empleados WHERE id_empleado = ?`,
+          `SELECT COUNT(*) as total FROM empleados WHERE id_empleado = ? AND activo = TRUE`,
           [req.user.id_empleado]
         )
-      : await pool.query(`SELECT COUNT(*) as total FROM empleados`);
+      : await pool.query(`SELECT COUNT(*) as total FROM empleados WHERE ${includeInactive ? '1=1' : 'activo = TRUE'}`);
 
     const total = countResult[0].total;
 
@@ -43,6 +51,7 @@ const getAllEmployees = async (req, res) => {
         e.sueldo,
         e.fecha_nacimiento,
         e.fecha_ingreso,
+        e.activo,
         c.nombre_cargo,
         d.nombre_departamento,
         u.username,
@@ -56,7 +65,7 @@ const getAllEmployees = async (req, res) => {
       LEFT JOIN departamentos d ON e.id_departamento = d.id_departamento
       LEFT JOIN usuarios u ON u.id_empleado = e.id_empleado
       LEFT JOIN vacaciones_saldos vs ON e.id_empleado = vs.id_empleado AND vs.periodo_anio = YEAR(CURDATE())
-      ${isEmployeeRole ? "WHERE e.id_empleado = ?" : ""}
+      WHERE ${includeInactive ? '1=1' : 'e.activo = TRUE'} ${isEmployeeRole ? "AND e.id_empleado = ?" : ""}
       ORDER BY e.apellidos, e.nombres
       LIMIT ? OFFSET ?`;
 
@@ -107,6 +116,10 @@ const getEmployeeById = async (req, res) => {
       });
     }
 
+    // Si es empleado regular, solo puede ver su info si está activo
+    // Si es admin/rrhh, puede ver empleados activos e inactivos
+    const whereClause = isEmployeeRole ? "WHERE e.id_empleado = ? AND e.activo = TRUE" : "WHERE e.id_empleado = ?";
+
     const [employees] = await pool.query(
       `SELECT 
         e.*,
@@ -124,7 +137,7 @@ const getEmployeeById = async (req, res) => {
       LEFT JOIN departamentos d ON e.id_departamento = d.id_departamento
       LEFT JOIN usuarios u ON u.id_empleado = e.id_empleado
       LEFT JOIN vacaciones_saldos vs ON e.id_empleado = vs.id_empleado AND vs.periodo_anio = YEAR(CURDATE())
-      WHERE e.id_empleado = ?`,
+      ${whereClause}`,
       [id]
     );
 
@@ -165,6 +178,7 @@ const createEmployee = async (req, res) => {
       id_departamento,
     } = req.body;
 
+    // Validación de campos requeridos
     if (
       !nombres ||
       !apellidos ||
@@ -179,6 +193,81 @@ const createEmployee = async (req, res) => {
         success: false,
         message: "Por favor completa todos los campos requeridos",
       });
+    }
+
+    // Validar nombres
+    const nombresValidation = validateName(nombres);
+    if (!nombresValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: `Nombres: ${nombresValidation.error}`,
+      });
+    }
+
+    // Validar apellidos
+    const apellidosValidation = validateName(apellidos);
+    if (!apellidosValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: `Apellidos: ${apellidosValidation.error}`,
+      });
+    }
+
+    // Validar número de identificación
+    const idValidation = validateIdentificationNumber(numero_identificacion);
+    if (!idValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: `Número de identificación: ${idValidation.error}`,
+      });
+    }
+
+    // Validar salario
+    const salaryValidation = validateNumericField(sueldo, 0);
+    if (!salaryValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: `Salario: ${salaryValidation.error}`,
+      });
+    }
+
+    // Validar nombre de cargo
+    const cargoValidation = validateName(nombre_cargo);
+    if (!cargoValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: `Nombre de cargo: ${cargoValidation.error}`,
+      });
+    }
+
+    // Validar fecha de nacimiento si se proporciona
+    if (fecha_nacimiento) {
+      const birthDateValidation = validateDate(fecha_nacimiento);
+      if (!birthDateValidation.isValid) {
+        return res.status(400).json({
+          success: false,
+          message: `Fecha de nacimiento: ${birthDateValidation.error}`,
+        });
+      }
+
+      const ageValidation = validateMinimumAge(fecha_nacimiento, 18);
+      if (!ageValidation.isValid) {
+        return res.status(400).json({
+          success: false,
+          message: `Fecha de nacimiento: ${ageValidation.error}`,
+        });
+      }
+    }
+
+    // Validar fecha de ingreso si se proporciona
+    if (fecha_ingreso) {
+      const ingressDateValidation = validateDate(fecha_ingreso);
+      if (!ingressDateValidation.isValid) {
+        return res.status(400).json({
+          success: false,
+          message: `Fecha de ingreso: ${ingressDateValidation.error}`,
+        });
+      }
     }
 
     const [existing] = await connection.query(
@@ -363,13 +452,18 @@ const updateEmployee = async (req, res) => {
   }
 };
 
-// Elimina un empleado solo si no tiene usuario ni registros de nomina.
+// Desactiva (soft delete) o elimina (hard delete) un empleado según permisos
+// ADMINISTRADOR: puede hacer ambos
+// RRHH: solo puede desactivar
 const deleteEmployee = async (req, res) => {
   try {
     const { id } = req.params;
+    const { permanent } = req.query; // ?permanent=true para eliminación permanente
+    const userRole = req.user.rol;
 
+    // Verificar si el empleado existe
     const [existing] = await pool.query(
-      "SELECT id_empleado FROM empleados WHERE id_empleado = ?",
+      "SELECT id_empleado, activo FROM empleados WHERE id_empleado = ?",
       [id]
     );
 
@@ -380,41 +474,151 @@ const deleteEmployee = async (req, res) => {
       });
     }
 
-    const [hasUser] = await pool.query(
-      "SELECT id_usuario FROM usuarios WHERE id_empleado = ?",
-      [id]
-    );
-
-    if (hasUser.length > 0) {
-      return res.status(409).json({
+    // Si ya está inactivo y no es eliminación permanente
+    if (!existing[0].activo && !permanent) {
+      return res.status(400).json({
         success: false,
-        message: "No se puede eliminar. El empleado tiene un usuario asociado",
+        message: "El empleado ya está desactivado",
       });
     }
 
-    const [hasNomina] = await pool.query(
-      "SELECT id_nomina FROM nomina WHERE id_empleado = ?",
-      [id]
-    );
+    // ELIMINACIÓN PERMANENTE (Hard Delete) - Solo ADMINISTRADOR
+    if (permanent === 'true') {
+      if (userRole !== 'ADMINISTRADOR') {
+        return res.status(403).json({
+          success: false,
+          message: "Solo los administradores pueden eliminar permanentemente empleados",
+        });
+      }
 
-    if (hasNomina.length > 0) {
-      return res.status(409).json({
-        success: false,
-        message: "No se puede eliminar. El empleado tiene registros de nomina",
+      // Verificar que no tenga usuario o nómina asociados
+      const [hasUser] = await pool.query(
+        "SELECT id_usuario FROM usuarios WHERE id_empleado = ?",
+        [id]
+      );
+
+      if (hasUser.length > 0) {
+        return res.status(409).json({
+          success: false,
+          message: "No se puede eliminar. El empleado tiene un usuario asociado. Elimine o reasigne el usuario primero",
+        });
+      }
+
+      const [hasNomina] = await pool.query(
+        "SELECT id_nomina FROM nomina WHERE id_empleado = ?",
+        [id]
+      );
+
+      if (hasNomina.length > 0) {
+        return res.status(409).json({
+          success: false,
+          message: "No se puede eliminar. El empleado tiene registros de nómina. Archívelos primero",
+        });
+      }
+
+      // Eliminar relacionados
+      await pool.query("DELETE FROM vacaciones_saldos WHERE id_empleado = ?", [id]);
+      await pool.query("DELETE FROM empleados WHERE id_empleado = ?", [id]);
+
+      return res.json({
+        success: true,
+        message: "Empleado eliminado permanentemente del sistema",
+        type: 'hard_delete',
       });
     }
 
-    await pool.query("DELETE FROM empleados WHERE id_empleado = ?", [id]);
+    // DESACTIVACIÓN (Soft Delete) - ADMINISTRADOR o RRHH
+    if (userRole !== 'ADMINISTRADOR' && userRole !== 'RRHH') {
+      return res.status(403).json({
+        success: false,
+        message: "No tiene permiso para desactivar empleados",
+      });
+    }
+
+    // Desactivar empleado
+    await pool.query(
+      "UPDATE empleados SET activo = FALSE, eliminado_en = NOW() WHERE id_empleado = ?",
+      [id]
+    );
+
+    // Si tiene usuario asociado, también desactivarlo
+    await pool.query(
+      "UPDATE usuarios SET activo = FALSE WHERE id_empleado = ?",
+      [id]
+    );
 
     res.json({
       success: true,
-      message: "Empleado eliminado exitosamente",
+      message: "Empleado desactivado exitosamente. Sus datos se conservan en el sistema",
+      type: 'soft_delete',
+      userRole,
     });
   } catch (error) {
     console.error("Error en deleteEmployee:", error);
     res.status(500).json({
       success: false,
-      message: "Error al eliminar empleado",
+      message: "Error al procesar la solicitud",
+    });
+  }
+};
+
+// Reactiva un empleado desactivado
+const reactivateEmployee = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userRole = req.user.rol;
+
+    // Verificar permisos
+    if (userRole !== 'ADMINISTRADOR' && userRole !== 'RRHH') {
+      return res.status(403).json({
+        success: false,
+        message: "No tiene permiso para reactivar empleados",
+      });
+    }
+
+    // Verificar si el empleado existe
+    const [existing] = await pool.query(
+      "SELECT id_empleado, activo FROM empleados WHERE id_empleado = ?",
+      [id]
+    );
+
+    if (existing.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Empleado no encontrado",
+      });
+    }
+
+    // Si ya está activo
+    if (existing[0].activo) {
+      return res.status(400).json({
+        success: false,
+        message: "El empleado ya está activo",
+      });
+    }
+
+    // Reactivar empleado
+    await pool.query(
+      "UPDATE empleados SET activo = TRUE, eliminado_en = NULL WHERE id_empleado = ?",
+      [id]
+    );
+
+    // Si tiene usuario asociado, también reactivarlo
+    await pool.query(
+      "UPDATE usuarios SET activo = TRUE WHERE id_empleado = ?",
+      [id]
+    );
+
+    res.json({
+      success: true,
+      message: "Empleado reactivado exitosamente",
+      userRole,
+    });
+  } catch (error) {
+    console.error("Error en reactivateEmployee:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error al reactivar empleado",
     });
   }
 };
@@ -459,7 +663,7 @@ const searchEmployees = async (req, res) => {
       LEFT JOIN cargos c ON e.id_cargo = c.id_cargo
       LEFT JOIN departamentos d ON e.id_departamento = d.id_departamento
       LEFT JOIN vacaciones_saldos vs ON e.id_empleado = vs.id_empleado AND vs.periodo_anio = YEAR(CURDATE())
-      WHERE (e.nombres LIKE ? OR e.apellidos LIKE ? OR e.numero_identificacion LIKE ?)
+      WHERE e.activo = TRUE AND (e.nombres LIKE ? OR e.apellidos LIKE ? OR e.numero_identificacion LIKE ?)
         ${isEmployeeRole ? "AND e.id_empleado = ?" : ""}
       ORDER BY e.apellidos, e.nombres
       LIMIT ?`,
@@ -488,5 +692,6 @@ module.exports = {
   createEmployee,
   updateEmployee,
   deleteEmployee,
+  reactivateEmployee,
   searchEmployees,
 };

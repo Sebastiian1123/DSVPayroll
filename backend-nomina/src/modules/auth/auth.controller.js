@@ -11,17 +11,26 @@ const {
   generatePasswordResetToken,
   buildPasswordResetExpiration,
 } = require("./auth.helpers");
+const {
+  validateEmail,
+  validatePassword,
+  validatePasswordMatch,
+  validateLoginInput,
+  validateResetToken,
+} = require("../../utils/validators");
 
 // Inicia sesion y devuelve el token JWT junto con el usuario autenticado.
 const login = async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    if (!username || !password) {
+    // Validar inputs
+    const loginValidation = validateLoginInput(username, password);
+    if (!loginValidation.isValid) {
       return res.status(400).json({
         success: false,
         succes: false,
-        message: "Por favor proporciona usuario y contrasena",
+        message: loginValidation.error,
       });
     }
 
@@ -191,6 +200,15 @@ const requestPasswordReset = async (req, res) => {
       });
     }
 
+    // Validar formato de email
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: `Email: ${emailValidation.error}`,
+      });
+    }
+
     const [users] = await pool.query(
       `SELECT id_usuario, username, email FROM usuarios WHERE email = ? AND activo = TRUE`,
       [email]
@@ -248,7 +266,7 @@ const requestPasswordReset = async (req, res) => {
 // Restablece la contrasena usando un token valido y sin expirar.
 const resetPassword = async (req, res) => {
   try {
-    const { email, token, newPassword } = req.body;
+    const { email, token, newPassword, confirmPassword } = req.body;
 
     if (!email || !token || !newPassword) {
       return res.status(400).json({
@@ -258,12 +276,46 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    if (newPassword.length < PASSWORD_MIN_LENGTH) {
+    // Validar formato de email
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
       return res.status(400).json({
         success: false,
         succes: false,
-        message: `La contrasena debe tener al menos ${PASSWORD_MIN_LENGTH} caracteres`,
+        message: `Email: ${emailValidation.error}`,
       });
+    }
+
+    // Validar token
+    const tokenValidation = validateResetToken(token);
+    if (!tokenValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        succes: false,
+        message: tokenValidation.error,
+      });
+    }
+
+    // Validar nueva contraseña
+    const newPasswordValidation = validatePassword(newPassword);
+    if (!newPasswordValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        succes: false,
+        message: `Contraseña: ${newPasswordValidation.error}`,
+      });
+    }
+
+    // Validar que las contraseñas coincidan si se proporciona confirmPassword
+    if (confirmPassword !== undefined) {
+      const matchValidation = validatePasswordMatch(newPassword, confirmPassword);
+      if (!matchValidation.isValid) {
+        return res.status(400).json({
+          success: false,
+          succes: false,
+          message: `Contraseña: ${matchValidation.error}`,
+        });
+      }
     }
 
     const [users] = await pool.query(

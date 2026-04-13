@@ -35,6 +35,8 @@ CREATE TABLE empleados (
   fecha_ingreso DATE NOT NULL,
   id_cargo INT,
   id_departamento INT,
+  activo BOOLEAN DEFAULT TRUE,
+  eliminado_en TIMESTAMP NULL,
   FOREIGN KEY (id_cargo) REFERENCES cargos(id_cargo),
   FOREIGN KEY (id_departamento) REFERENCES departamentos(id_departamento)
 );
