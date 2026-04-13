@@ -7,7 +7,6 @@ const {
   createLicenseRequest,
   getMyRequests,
   getAllRequests,
-  getApprovedRequestsReport,
   getVacationBalance,
   approveVacationRequest,
   rejectVacationRequest,
@@ -46,7 +45,6 @@ router.get('/mis-solicitudes', getMyRequests);
 
 // Consultar todas las solicitudes para gestion de RRHH o administracion.
 router.get('/', verifyAdminORRRHH, getAllRequests);
-router.get('/reportes/aprobadas', verifyAdminORRRHH, getApprovedRequestsReport);
 
 // Consultar saldo de vacaciones por empleado.
 router.get('/vacaciones/saldo/:id_empleado', getVacationBalance);

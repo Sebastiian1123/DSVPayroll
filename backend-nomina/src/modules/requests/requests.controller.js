@@ -13,8 +13,7 @@ const {
   getAutomaticPayrollImpactDataForEmployee,
   validatePayrollImpactData,
   getEmployeeIdForRequest,
-  saveSupportFile,
-  buildApprovalPayrollSnapshot
+  saveSupportFile
 } = require('./requests.helpers');
 
 // Obtiene una solicitud por id para centralizar la validacion previa
@@ -33,8 +32,7 @@ const getRequestById = async (idSolicitud) => {
       s.es_remunerado,
       s.porcentaje_pago,
       s.origen_novedad,
-      s.estado,
-      s.pendiente_liquidacion
+      s.estado
     FROM solicitudes_laborales s
     WHERE s.id_solicitud = ?
     LIMIT 1`,
@@ -259,22 +257,9 @@ const updateBasicRequestStatus = async ({
        SET estado = ?,
            comentario_aprobador = ?,
            fecha_respuesta = CURRENT_TIMESTAMP,
-           aprobado_por = ?,
-           pendiente_liquidacion = ?,
-           liquidada_en_nomina = 0,
-           fecha_liquidacion = NULL,
-           impacto_nomina_calculado = ?
+           aprobado_por = ?
        WHERE id_solicitud = ?`,
-      [
-        nextStatus,
-        comentarioAprobador,
-        req.user.id_usuario,
-        nextStatus === 'APROBADA' ? 1 : 0,
-        nextStatus === 'APROBADA'
-          ? JSON.stringify(buildApprovalPayrollSnapshot({ requestRow: request }))
-          : null,
-        idSolicitud
-      ]
+      [nextStatus, comentarioAprobador, req.user.id_usuario, idSolicitud]
     );
 
     const [updatedRows] = await pool.query(
@@ -286,14 +271,7 @@ const updateBasicRequestStatus = async ({
         s.fecha_inicio,
         s.fecha_fin,
         s.dias_solicitados,
-        s.horas_solicitadas,
-        s.es_remunerado,
-        s.porcentaje_pago,
-        s.origen_novedad,
         s.estado,
-        s.pendiente_liquidacion,
-        s.liquidada_en_nomina,
-        s.fecha_liquidacion,
         s.comentario_empleado,
         s.comentario_aprobador,
         s.fecha_solicitud,
@@ -584,9 +562,6 @@ const getMyRequests = async (req, res) => {
         s.porcentaje_pago,
         s.origen_novedad,
         s.estado,
-        s.pendiente_liquidacion,
-        s.liquidada_en_nomina,
-        s.fecha_liquidacion,
         s.comentario_empleado,
         s.comentario_aprobador,
         s.documento_soporte,
@@ -653,9 +628,6 @@ const getAllRequests = async (req, res) => {
         s.porcentaje_pago,
         s.origen_novedad,
         s.estado,
-        s.pendiente_liquidacion,
-        s.liquidada_en_nomina,
-        s.fecha_liquidacion,
         s.comentario_empleado,
         s.comentario_aprobador,
         s.documento_soporte,
@@ -686,89 +658,6 @@ const getAllRequests = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Error obteniendo las solicitudes'
-    });
-  }
-};
-
-// Reporte consolidado de novedades aprobadas y su impacto en nomina.
-const getApprovedRequestsReport = async (req, res) => {
-  try {
-    const now = new Date();
-    const requestedYear = Number(req.query.anio) || now.getUTCFullYear();
-    const requestedMonth = req.query.mes ? Number(req.query.mes) : null;
-    const queryParams = [];
-    const whereClauses = ['s.estado = \'APROBADA\''];
-
-    if (requestedYear >= 2000 && requestedYear <= 2100) {
-      whereClauses.push('YEAR(s.fecha_inicio) = ?');
-      queryParams.push(requestedYear);
-    }
-
-    if (requestedMonth && requestedMonth >= 1 && requestedMonth <= 12) {
-      whereClauses.push('MONTH(s.fecha_inicio) = ?');
-      queryParams.push(requestedMonth);
-    }
-
-    if (req.query.tipo) {
-      whereClauses.push('s.tipo = ?');
-      queryParams.push(String(req.query.tipo).toUpperCase());
-    }
-
-    if (req.query.id_empleado) {
-      whereClauses.push('s.id_empleado = ?');
-      queryParams.push(Number(req.query.id_empleado));
-    }
-
-    const [rows] = await pool.query(
-      `SELECT
-        s.id_solicitud,
-        s.id_empleado,
-        CONCAT(e.nombres, ' ', e.apellidos) AS empleado,
-        s.tipo,
-        s.sub_tipo,
-        s.fecha_inicio,
-        s.fecha_fin,
-        s.dias_solicitados,
-        s.horas_solicitadas,
-        s.es_remunerado,
-        s.porcentaje_pago,
-        s.origen_novedad,
-        s.pendiente_liquidacion,
-        s.liquidada_en_nomina,
-        nna.id_nomina,
-        nna.categoria,
-        nna.concepto,
-        nna.valor_aplicado
-      FROM solicitudes_laborales s
-      INNER JOIN empleados e ON e.id_empleado = s.id_empleado
-      LEFT JOIN nomina_novedades_aplicadas nna ON nna.id_solicitud = s.id_solicitud
-      WHERE ${whereClauses.join(' AND ')}
-      ORDER BY s.fecha_inicio DESC, s.id_solicitud DESC`,
-      queryParams
-    );
-
-    const resumen = rows.reduce((acc, row) => {
-      if (row.categoria === 'DEVENGADO') acc.total_devengado += Number(row.valor_aplicado || 0);
-      if (row.categoria === 'DEDUCCION') acc.total_deduccion += Number(row.valor_aplicado || 0);
-      return acc;
-    }, { total_solicitudes: rows.length, total_devengado: 0, total_deduccion: 0 });
-
-    return res.json({
-      success: true,
-      data: {
-        resumen: {
-          ...resumen,
-          total_devengado: Number(resumen.total_devengado.toFixed(2)),
-          total_deduccion: Number(resumen.total_deduccion.toFixed(2))
-        },
-        rows
-      }
-    });
-  } catch (error) {
-    console.error('Error generando reporte de solicitudes aprobadas:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: 'Error generando el reporte de solicitudes aprobadas'
     });
   }
 };
@@ -922,18 +811,9 @@ const approveVacationRequest = async (req, res) => {
        SET estado = 'APROBADA',
            comentario_aprobador = ?,
            fecha_respuesta = CURRENT_TIMESTAMP,
-           aprobado_por = ?,
-           pendiente_liquidacion = 1,
-           liquidada_en_nomina = 0,
-           fecha_liquidacion = NULL,
-           impacto_nomina_calculado = ?
+           aprobado_por = ?
        WHERE id_solicitud = ?`,
-      [
-        comentarioAprobador,
-        req.user.id_usuario,
-        JSON.stringify(buildApprovalPayrollSnapshot({ requestRow: request })),
-        idSolicitud
-      ]
+      [comentarioAprobador, req.user.id_usuario, idSolicitud]
     );
 
     await connection.commit();
@@ -952,9 +832,6 @@ const approveVacationRequest = async (req, res) => {
         s.porcentaje_pago,
         s.origen_novedad,
         s.estado,
-        s.pendiente_liquidacion,
-        s.liquidada_en_nomina,
-        s.fecha_liquidacion,
         s.comentario_empleado,
         s.comentario_aprobador,
         s.fecha_solicitud,
@@ -1025,11 +902,7 @@ const rejectVacationRequest = async (req, res) => {
        SET estado = 'RECHAZADA',
            comentario_aprobador = ?,
            fecha_respuesta = CURRENT_TIMESTAMP,
-           aprobado_por = ?,
-           pendiente_liquidacion = 0,
-           liquidada_en_nomina = 0,
-           fecha_liquidacion = NULL,
-           impacto_nomina_calculado = NULL
+           aprobado_por = ?
        WHERE id_solicitud = ?`,
       [comentarioAprobador, req.user.id_usuario, idSolicitud]
     );
@@ -1048,9 +921,6 @@ const rejectVacationRequest = async (req, res) => {
         s.porcentaje_pago,
         s.origen_novedad,
         s.estado,
-        s.pendiente_liquidacion,
-        s.liquidada_en_nomina,
-        s.fecha_liquidacion,
         s.comentario_empleado,
         s.comentario_aprobador,
         s.fecha_solicitud,
@@ -1240,11 +1110,7 @@ const cancelVacationRequest = async (req, res) => {
        SET estado = 'CANCELADA',
            comentario_aprobador = ?,
            fecha_respuesta = CURRENT_TIMESTAMP,
-           aprobado_por = ?,
-           pendiente_liquidacion = 0,
-           liquidada_en_nomina = 0,
-           fecha_liquidacion = NULL,
-           impacto_nomina_calculado = NULL
+           aprobado_por = ?
        WHERE id_solicitud = ?`,
       [comentarioAprobador, req.user.id_usuario, idSolicitud]
     );
@@ -1265,9 +1131,6 @@ const cancelVacationRequest = async (req, res) => {
         s.porcentaje_pago,
         s.origen_novedad,
         s.estado,
-        s.pendiente_liquidacion,
-        s.liquidada_en_nomina,
-        s.fecha_liquidacion,
         s.comentario_empleado,
         s.comentario_aprobador,
         s.fecha_solicitud,
@@ -1339,7 +1202,6 @@ module.exports = {
   createLicenseRequest,
   getMyRequests,
   getAllRequests,
-  getApprovedRequestsReport,
   getVacationBalance,
   approveVacationRequest,
   rejectVacationRequest,
