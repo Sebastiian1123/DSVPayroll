@@ -75,14 +75,6 @@ app.use('/api/catalogs', catalogRoutes);
 app.use('/api/nomina', nominaRoutes);
 app.use('/api/solicitudes', solicitudesRoutes);
 
-// app.use((req, res) => {
-//   res.status(404).json({
-//     success: false,
-//     succes: false,
-//     message: 'Ruta no encontrada'
-//   });
-// });
-
 // Captura errores globales y da un mensaje claro cuando el body supera el limite.
 app.use((err, req, res, next) => {
   console.error('Error:', err.stack);
