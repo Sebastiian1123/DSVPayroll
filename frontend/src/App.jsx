@@ -3,7 +3,7 @@
 // Archivo: src/App.jsx
 // ============================================
 
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Link } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
 
@@ -17,6 +17,7 @@ import { Nomina } from './pages/Nomina';
 import { Directory } from './pages/Directory';
 import PermisosPage from './features/permisos';
 import ReportsPage from './features/reports';
+import { Parametros } from './pages/Parametros.jsx';
 
 
 function App() {
@@ -27,17 +28,17 @@ function App() {
       {/* ========================================
           RUTAS PÚBLICAS
           ========================================== */}
-      
+
       {/* Ruta raíz - Redirige según autenticación */}
-      <Route 
-        path="/" 
+      <Route
+        path="/"
         element={
           isAuthenticated() ? (
             <Navigate to="/dashboard" replace />
           ) : (
             <Navigate to="/login" replace />
           )
-        } 
+        }
       />
 
       {/* Login */}
@@ -60,7 +61,7 @@ function App() {
         }
       />
       {/* Vista principal nomina y gestion de la misma de empleados */}
-       <Route
+      <Route
         path="/nomina"
         element={
           <PrivateRoute>
@@ -68,8 +69,8 @@ function App() {
           </PrivateRoute>
         }
       />
-        {/* Vista directorio de empleados*/}
-       <Route
+      {/* Vista directorio de empleados*/}
+      <Route
         path="/directory"
         element={
           <PrivateRoute>
@@ -88,7 +89,7 @@ function App() {
         }
       />
 
-      {/* Usuarios - Solo Admin y RRHH */}
+      {/* Usuarios - Solo ADMINISTRADOR */}
       <Route
         path="/users"
         element={
@@ -102,8 +103,17 @@ function App() {
       <Route
         path="/reports"
         element={
-            <PrivateRoute>
+          <PrivateRoute>
             <ReportsPage />
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/parametros"
+        element={
+          <PrivateRoute>
+            <Parametros />
           </PrivateRoute>
         }
       />
@@ -126,18 +136,21 @@ function App() {
         }
       />
 
+
+      
+
       {/* ========================================
           RUTA 404 - NO ENCONTRADA
           ========================================== */}
-      <Route 
-        path="*" 
+      <Route
+        path="*"
         element={
           <div style={{ padding: '40px', textAlign: 'center' }}>
             <h1>404 - Página no encontrada</h1>
             <p>La página que buscas no existe.</p>
-            <a href="/">Volver al inicio</a>
+            <Link to="/">Volver al inicio</Link>
           </div>
-        } 
+        }
       />
     </Routes>
   );

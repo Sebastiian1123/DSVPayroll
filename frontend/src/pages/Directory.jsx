@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import Navbar from '../components/Navbar'
 import api from '../services/api'
-import { OVERTIME_TYPES, ROWS_PER_PAGE } from '../utils/payroll/constants'
+import { DEFAULT_PAYROLL_PARAMETERS, ROWS_PER_PAGE, buildOvertimeTypes } from '../utils/payroll/constants'
 import {
   buildOvertimeRow,
   buildPayrollPayload,
@@ -11,6 +11,7 @@ import {
   formatPesoColombiano,
   getDefaultPayrollPeriod
 } from '../utils/payroll/formatters'
+import { getPayrollParameters } from '../services/payrollService'
 import '../styles/Directory.css'
 
 export const Directory = () => {
@@ -34,6 +35,7 @@ export const Directory = () => {
   })
   const [loadingPayrollNovelties, setLoadingPayrollNovelties] = useState(false)
   const [payrollNoveltiesError, setPayrollNoveltiesError] = useState('')
+  const [payrollParameters, setPayrollParameters] = useState(DEFAULT_PAYROLL_PARAMETERS)
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -52,6 +54,21 @@ export const Directory = () => {
     }
 
     fetchEmployees()
+  }, [])
+
+  useEffect(() => {
+    const fetchPayrollParameters = async () => {
+      try {
+        const response = await getPayrollParameters()
+        if (response) {
+          setPayrollParameters((current) => ({ ...current, ...response }))
+        }
+      } catch (err) {
+        console.error('Error cargando parametros de nomina:', err)
+      }
+    }
+
+    fetchPayrollParameters()
   }, [])
 
   const filteredEmployees = useMemo(() => {
@@ -91,9 +108,15 @@ export const Directory = () => {
     calculatePayrollSummary({
       selectedEmployee,
       payrollDates,
-      overtimeRows
+      overtimeRows,
+      payrollParameters
     })
-  ), [selectedEmployee, payrollDates, overtimeRows])
+  ), [selectedEmployee, payrollDates, overtimeRows, payrollParameters])
+
+  const overtimeTypes = useMemo(
+    () => buildOvertimeTypes(payrollParameters),
+    [payrollParameters]
+  )
 
   const estimatedGross = payrollSummary.subtotalBruto + (Number(payrollNoveltiesSummary.totalDevengado) || 0)
   const estimatedDeductions = payrollSummary.totalDeducciones + (Number(payrollNoveltiesSummary.totalDeducciones) || 0)
@@ -465,7 +488,7 @@ export const Directory = () => {
                           value={row.typeKey}
                           onChange={(e) => updateOvertimeRow(row.id, 'typeKey', e.target.value)}
                         >
-                          {OVERTIME_TYPES.map((type) => (
+                          {overtimeTypes.map((type) => (
                             <option value={type.key} key={type.key}>
                               {type.label} (+{Math.round(type.surcharge * 100)}%)
                             </option>
@@ -499,11 +522,11 @@ export const Directory = () => {
                 <div className="deductions-grid">
                   <div className="deduction-box">
                     <div className="deduction-label">Pensión Porcentaje</div>
-                    <div className="deduction-value">4% ({formatPesoColombiano(payrollSummary.pension)})</div>
+                    <div className="deduction-value">{payrollParameters.pensionEmpleado}% ({formatPesoColombiano(payrollSummary.pension)})</div>
                   </div>
                   <div className="deduction-box">
                     <div className="deduction-label">Porcentaje a Salud</div>
-                    <div className="deduction-value">4% ({formatPesoColombiano(payrollSummary.salud)})</div>
+                    <div className="deduction-value">{payrollParameters.saludEmpleado}% ({formatPesoColombiano(payrollSummary.salud)})</div>
                   </div>
                   <div className="deduction-box">
                     <div className="deduction-label">Neto Pago</div>

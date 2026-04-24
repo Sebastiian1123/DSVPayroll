@@ -90,7 +90,21 @@ const Dashboard = () => {
                         <span className="card-action">Abrir modulo</span>
                     </Link>
 
+                     {isAdminOrRRHH() && (
+                        <Link to="/parametros">
+                        <div className="dashboard-card">
+                            <div className="card-icon"><i className="fa-solid fa-money-bill"></i></div>
+                            <h3>Parámetros</h3>
+                            <p>Configuración del sistema</p>
+                            <span className="card-action">Gestionar Parámetros →</span>
+                        </div>
+                    </Link>
+                    )}
+
                 </div>
+
+                
+                    
 
                 {/* Sección de accesos rápidos */}
                 <div className="quick-actions">

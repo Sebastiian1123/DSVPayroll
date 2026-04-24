@@ -101,6 +101,25 @@ CREATE TABLE horas_extra_nomina (
   FOREIGN KEY (id_nomina) REFERENCES nomina(id_nomina) ON DELETE CASCADE
 );
 
+CREATE TABLE parametros_nomina (
+  id_parametro INT AUTO_INCREMENT PRIMARY KEY,
+  horas_extra_ordinaria_pct DECIMAL(5,2) NOT NULL DEFAULT 25.00,
+  horas_extra_nocturna_pct DECIMAL(5,2) NOT NULL DEFAULT 75.00,
+  horas_extra_festiva_pct DECIMAL(5,2) NOT NULL DEFAULT 100.00,
+  horas_extra_festiva_nocturna_pct DECIMAL(5,2) NOT NULL DEFAULT 150.00,
+  subsidio_transporte DECIMAL(12,2) NOT NULL DEFAULT 140606.00,
+  horas_semanales DECIMAL(6,2) NOT NULL DEFAULT 47.00,
+  salud_empleado_pct DECIMAL(5,3) NOT NULL DEFAULT 4.000,
+  salud_empresa_pct DECIMAL(5,3) NOT NULL DEFAULT 8.500,
+  pension_empleado_pct DECIMAL(5,3) NOT NULL DEFAULT 4.000,
+  pension_empresa_pct DECIMAL(5,3) NOT NULL DEFAULT 12.000,
+  arl_empresa_pct DECIMAL(5,3) NOT NULL DEFAULT 0.522,
+  actualizado_por INT NULL,
+  creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (actualizado_por) REFERENCES usuarios(id_usuario) ON DELETE SET NULL
+);
+
 -- =====================
 -- VACACIONES
 -- =====================
@@ -279,6 +298,14 @@ INSERT INTO horas_extra_nomina
 (id_nomina, tipo_hora, porcentaje_recargo, horas, valor_hora_base, valor_hora_extra, valor_total) 
 VALUES
 (1, 'EXTRA_DIURNA', 25.00, 5.00, 10000.00, 12500.00, 62500.00);
+
+-- =====================
+-- PARAMETROS NOMINA
+-- =====================
+INSERT INTO parametros_nomina
+(horas_extra_ordinaria_pct, horas_extra_nocturna_pct, horas_extra_festiva_pct, horas_extra_festiva_nocturna_pct, subsidio_transporte, horas_semanales, salud_empleado_pct, salud_empresa_pct, pension_empleado_pct, pension_empresa_pct, arl_empresa_pct, actualizado_por)
+VALUES
+(25.00, 75.00, 100.00, 150.00, 140606.00, 47.00, 4.000, 8.500, 4.000, 12.000, 0.522, 1);
 
 -- =====================
 -- VACACIONES

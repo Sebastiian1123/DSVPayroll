@@ -12,7 +12,19 @@ export const getPayrollDetail = async (payrollId) => {
   return response.data?.data || null
 }
 
+export const getPayrollParameters = async () => {
+  const response = await api.get('/nomina/parametros')
+  return response.data?.data || null
+}
+
+export const updatePayrollParameters = async (payload) => {
+  const response = await api.put('/nomina/parametros', payload)
+  return response.data?.data || null
+}
+
 export default {
   downloadPayrollPdf,
-  getPayrollDetail
+  getPayrollDetail,
+  getPayrollParameters,
+  updatePayrollParameters
 }

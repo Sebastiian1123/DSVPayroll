@@ -1,5 +1,3 @@
-
-//
 const mysql = require('mysql2');
 
 const pool = mysql.createPool({
@@ -12,8 +10,7 @@ const pool = mysql.createPool({
     queueLimit: 0
 });
 
-const promisePool = pool.promise()
-
+const promisePool = pool.promise();
 
 const DEFAULT_DEPARTMENTS = [
     'Gerencia General',
@@ -75,10 +72,10 @@ const ensureDefaultDepartments = async () => {
         }
 
         if (missing.length > 0) {
-            console.log(`✅ Departamentos base sincronizados: ${missing.length} agregados`);
+            console.log(`Departamentos base sincronizados: ${missing.length} agregados`);
         }
     } catch (error) {
-        console.error('❌ Error asegurando departamentos base:', error.message);
+        console.error('Error asegurando departamentos base:', error.message);
         throw error;
     }
 };
@@ -101,15 +98,13 @@ const ensureEmployeeSalaryColumn = async () => {
                  ADD COLUMN sueldo DECIMAL(12,2) NOT NULL DEFAULT 0.00
                  AFTER numero_identificacion`
             );
-            console.log('✅ Columna empleados.sueldo creada automáticamente');
+            console.log('Columna empleados.sueldo creada automaticamente');
         }
     } catch (error) {
-        console.error('❌ Error asegurando columna empleados.sueldo:', error.message);
+        console.error('Error asegurando columna empleados.sueldo:', error.message);
         throw error;
     }
 };
-
-
 
 const ensurePayrollSupportTables = async () => {
     try {
@@ -154,21 +149,68 @@ const ensurePayrollSupportTables = async () => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
         `);
 
-        console.log('✅ Tablas de soporte de nómina (horas extra y reportes) verificadas');
+        await promisePool.query(`
+            CREATE TABLE IF NOT EXISTS parametros_nomina (
+                id_parametro INT(11) NOT NULL AUTO_INCREMENT,
+                horas_extra_ordinaria_pct DECIMAL(5,2) NOT NULL DEFAULT 25.00,
+                horas_extra_nocturna_pct DECIMAL(5,2) NOT NULL DEFAULT 75.00,
+                horas_extra_festiva_pct DECIMAL(5,2) NOT NULL DEFAULT 100.00,
+                horas_extra_festiva_nocturna_pct DECIMAL(5,2) NOT NULL DEFAULT 150.00,
+                subsidio_transporte DECIMAL(12,2) NOT NULL DEFAULT 140606.00,
+                horas_semanales DECIMAL(6,2) NOT NULL DEFAULT 47.00,
+                salud_empleado_pct DECIMAL(5,3) NOT NULL DEFAULT 4.000,
+                salud_empresa_pct DECIMAL(5,3) NOT NULL DEFAULT 8.500,
+                pension_empleado_pct DECIMAL(5,3) NOT NULL DEFAULT 4.000,
+                pension_empresa_pct DECIMAL(5,3) NOT NULL DEFAULT 12.000,
+                arl_empresa_pct DECIMAL(5,3) NOT NULL DEFAULT 0.522,
+                actualizado_por INT(11) NULL,
+                creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                actualizado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id_parametro),
+                CONSTRAINT fk_parametros_nomina_usuario
+                    FOREIGN KEY (actualizado_por) REFERENCES usuarios(id_usuario)
+                    ON DELETE SET NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+        `);
+
+        const [parameterRows] = await promisePool.query(
+            `SELECT id_parametro FROM parametros_nomina LIMIT 1`
+        );
+
+        if (parameterRows.length === 0) {
+            await promisePool.query(`
+                INSERT INTO parametros_nomina (
+                    horas_extra_ordinaria_pct,
+                    horas_extra_nocturna_pct,
+                    horas_extra_festiva_pct,
+                    horas_extra_festiva_nocturna_pct,
+                    subsidio_transporte,
+                    horas_semanales,
+                    salud_empleado_pct,
+                    salud_empresa_pct,
+                    pension_empleado_pct,
+                    pension_empresa_pct,
+                    arl_empresa_pct
+                ) VALUES (25.00, 75.00, 100.00, 150.00, 140606.00, 47.00, 4.000, 8.500, 4.000, 12.000, 0.522)
+            `);
+            console.log('Parametrizacion base de nomina inicializada');
+        }
+
+        console.log('Tablas de soporte de nomina (horas extra, reportes y parametros) verificadas');
     } catch (error) {
-        console.error('❌ Error asegurando tablas de soporte de nómina:', error.message);
+        console.error('Error asegurando tablas de soporte de nomina:', error.message);
         throw error;
     }
 };
 
-const testConnection = async () =>{
-    try{
-        const[rows] = await promisePool.query('SELECT 1 + 1 AS resultado')
-        console.log('✅ Conexión a MySQL exitosa');
-        console.log('📊 Base de datos:', process.env.DB_NAME);
-        return true
-    }catch(error){
-        console.error('❌ Error al conectar a MySQL:', error.message);
+const testConnection = async () => {
+    try {
+        await promisePool.query('SELECT 1 + 1 AS resultado');
+        console.log('Conexion a MySQL exitosa');
+        console.log('Base de datos:', process.env.DB_NAME);
+        return true;
+    } catch (error) {
+        console.error('Error al conectar a MySQL:', error.message);
         return false;
     }
 };
@@ -179,4 +221,4 @@ module.exports = {
     ensureEmployeeSalaryColumn,
     ensureDefaultDepartments,
     ensurePayrollSupportTables
-} 
+};

@@ -7,6 +7,303 @@ const {
   buildAppliedNoveltyRows
 } = require('./payroll.helpers');
 
+const parseParameterNumber = (value, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const mapPayrollParametersRow = (row = {}) => {
+  const horasSemanales = parseParameterNumber(row.horas_semanales, 47);
+
+  return {
+    id_parametro: row.id_parametro,
+    heo: `${parseParameterNumber(row.horas_extra_ordinaria_pct, 25)}%`,
+    hen: `${parseParameterNumber(row.horas_extra_nocturna_pct, 75)}%`,
+    hef: `${parseParameterNumber(row.horas_extra_festiva_pct, 100)}%`,
+    hefn: `${parseParameterNumber(row.horas_extra_festiva_nocturna_pct, 150)}%`,
+    subsidioTransporte: String(parseParameterNumber(row.subsidio_transporte, 140606)),
+    horasSemanales: String(horasSemanales),
+    horasQuincenales: (horasSemanales * 2).toFixed(1),
+    horasMensuales: (horasSemanales * 4).toFixed(1),
+    saludEmpleado: String(parseParameterNumber(row.salud_empleado_pct, 4)),
+    saludEmpresa: String(parseParameterNumber(row.salud_empresa_pct, 8.5)),
+    pensionEmpleado: String(parseParameterNumber(row.pension_empleado_pct, 4)),
+    pensionEmpresa: String(parseParameterNumber(row.pension_empresa_pct, 12)),
+    arlEmpresa: String(parseParameterNumber(row.arl_empresa_pct, 0.522)),
+    actualizado_en: row.actualizado_en || null,
+    actualizado_por: row.actualizado_por || null
+  };
+};
+
+const parsePercentageInput = (value, fallback = 0) => {
+  const parsed = Number(String(value ?? '').replace('%', '').trim());
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const calculateWorkedDays = (startDate, endDate) => {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) {
+    return 0;
+  }
+
+  const diffMs = end.getTime() - start.getTime();
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+};
+
+const OVERTIME_PERCENTAGE_BY_TYPE = (values) => ({
+  EXTRA_DIURNA: values.heo,
+  EXTRA_NOCTURNA: values.hen,
+  EXTRA_DIURNA_DOMINICAL_FESTIVO: values.hef,
+  EXTRA_NOCTURNA_DOMINICAL_FESTIVO: values.hefn
+});
+
+const getCurrentPayrollConfig = async (db = pool) => {
+  const [rows] = await db.query(
+    `SELECT
+      id_parametro,
+      horas_extra_ordinaria_pct,
+      horas_extra_nocturna_pct,
+      horas_extra_festiva_pct,
+      horas_extra_festiva_nocturna_pct,
+      subsidio_transporte,
+      horas_semanales,
+      salud_empleado_pct,
+      salud_empresa_pct,
+      pension_empleado_pct,
+      pension_empresa_pct,
+      arl_empresa_pct,
+      actualizado_por,
+      actualizado_en
+    FROM parametros_nomina
+    ORDER BY id_parametro ASC
+    LIMIT 1`
+  );
+
+  if (rows.length === 0) {
+    return {
+      id_parametro: null,
+      horas_extra_ordinaria_pct: 25,
+      horas_extra_nocturna_pct: 75,
+      horas_extra_festiva_pct: 100,
+      horas_extra_festiva_nocturna_pct: 150,
+      subsidio_transporte: 140606,
+      horas_semanales: 47,
+      salud_empleado_pct: 4,
+      salud_empresa_pct: 8.5,
+      pension_empleado_pct: 4,
+      pension_empresa_pct: 12,
+      arl_empresa_pct: 0.522,
+      actualizado_por: null,
+      actualizado_en: null
+    };
+  }
+
+  return rows[0];
+};
+
+const getPayrollParameters = async (req, res) => {
+  try {
+    const row = await getCurrentPayrollConfig(pool);
+
+    return res.json({
+      success: true,
+      data: mapPayrollParametersRow(row)
+    });
+  } catch (error) {
+    console.error('Error obteniendo parametros de nomina:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Error obteniendo parametros de nomina'
+    });
+  }
+};
+
+const updatePayrollParameters = async (req, res) => {
+  try {
+    const payload = req.body || {};
+    const horasSemanales = parseParameterNumber(payload.horasSemanales, 0);
+    const subsidioTransporte = parseParameterNumber(payload.subsidioTransporte, 0);
+
+    if (horasSemanales <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Las horas semanales deben ser mayores a cero'
+      });
+    }
+
+    if (subsidioTransporte < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'El subsidio de transporte no puede ser negativo'
+      });
+    }
+
+    const values = {
+      heo: parsePercentageInput(payload.heo, 25),
+      hen: parsePercentageInput(payload.hen, 75),
+      hef: parsePercentageInput(payload.hef, 100),
+      hefn: parsePercentageInput(payload.hefn, 150),
+      subsidioTransporte,
+      horasSemanales,
+      saludEmpleado: parseParameterNumber(payload.saludEmpleado, 4),
+      saludEmpresa: parseParameterNumber(payload.saludEmpresa, 8.5),
+      pensionEmpleado: parseParameterNumber(payload.pensionEmpleado, 4),
+      pensionEmpresa: parseParameterNumber(payload.pensionEmpresa, 12),
+      arlEmpresa: parseParameterNumber(payload.arlEmpresa, 0.522)
+    };
+
+    const percentageFields = [
+      ['heo', values.heo],
+      ['hen', values.hen],
+      ['hef', values.hef],
+      ['hefn', values.hefn],
+      ['saludEmpleado', values.saludEmpleado],
+      ['saludEmpresa', values.saludEmpresa],
+      ['pensionEmpleado', values.pensionEmpleado],
+      ['pensionEmpresa', values.pensionEmpresa],
+      ['arlEmpresa', values.arlEmpresa]
+    ];
+
+    const invalidField = percentageFields.find(([, value]) => value < 0);
+    if (invalidField) {
+      return res.status(400).json({
+        success: false,
+        message: `El valor de ${invalidField[0]} no puede ser negativo`
+      });
+    }
+
+    const [existingRows] = await pool.query(
+      `SELECT id_parametro
+       FROM parametros_nomina
+       ORDER BY id_parametro ASC
+       LIMIT 1`
+    );
+
+    let parameterId = existingRows[0]?.id_parametro || null;
+
+    if (!parameterId) {
+      const [insertResult] = await pool.query(
+        `INSERT INTO parametros_nomina (
+          horas_extra_ordinaria_pct,
+          horas_extra_nocturna_pct,
+          horas_extra_festiva_pct,
+          horas_extra_festiva_nocturna_pct,
+          subsidio_transporte,
+          horas_semanales,
+          salud_empleado_pct,
+          salud_empresa_pct,
+          pension_empleado_pct,
+          pension_empresa_pct,
+          arl_empresa_pct,
+          actualizado_por
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          values.heo,
+          values.hen,
+          values.hef,
+          values.hefn,
+          values.subsidioTransporte,
+          values.horasSemanales,
+          values.saludEmpleado,
+          values.saludEmpresa,
+          values.pensionEmpleado,
+          values.pensionEmpresa,
+          values.arlEmpresa,
+          req.user?.id_usuario || null
+        ]
+      );
+
+      parameterId = insertResult.insertId;
+    } else {
+      await pool.query(
+        `UPDATE parametros_nomina
+         SET horas_extra_ordinaria_pct = ?,
+             horas_extra_nocturna_pct = ?,
+             horas_extra_festiva_pct = ?,
+             horas_extra_festiva_nocturna_pct = ?,
+             subsidio_transporte = ?,
+             horas_semanales = ?,
+             salud_empleado_pct = ?,
+             salud_empresa_pct = ?,
+             pension_empleado_pct = ?,
+             pension_empresa_pct = ?,
+             arl_empresa_pct = ?,
+             actualizado_por = ?
+         WHERE id_parametro = ?`,
+        [
+          values.heo,
+          values.hen,
+          values.hef,
+          values.hefn,
+          values.subsidioTransporte,
+          values.horasSemanales,
+          values.saludEmpleado,
+          values.saludEmpresa,
+          values.pensionEmpleado,
+          values.pensionEmpresa,
+          values.arlEmpresa,
+          req.user?.id_usuario || null,
+          parameterId
+        ]
+      );
+    }
+
+    const overtimePercentages = OVERTIME_PERCENTAGE_BY_TYPE(values);
+    await pool.query(
+      `UPDATE horas_extra_nomina
+       SET porcentaje_recargo = CASE
+         WHEN tipo_hora = 'EXTRA_DIURNA' THEN ?
+         WHEN tipo_hora = 'EXTRA_NOCTURNA' THEN ?
+         WHEN tipo_hora = 'EXTRA_DIURNA_DOMINICAL_FESTIVO' THEN ?
+         WHEN tipo_hora = 'EXTRA_NOCTURNA_DOMINICAL_FESTIVO' THEN ?
+         ELSE porcentaje_recargo
+       END`,
+      [
+        overtimePercentages.EXTRA_DIURNA,
+        overtimePercentages.EXTRA_NOCTURNA,
+        overtimePercentages.EXTRA_DIURNA_DOMINICAL_FESTIVO,
+        overtimePercentages.EXTRA_NOCTURNA_DOMINICAL_FESTIVO
+      ]
+    );
+
+    const [savedRows] = await pool.query(
+      `SELECT
+        id_parametro,
+        horas_extra_ordinaria_pct,
+        horas_extra_nocturna_pct,
+        horas_extra_festiva_pct,
+        horas_extra_festiva_nocturna_pct,
+        subsidio_transporte,
+        horas_semanales,
+        salud_empleado_pct,
+        salud_empresa_pct,
+        pension_empleado_pct,
+        pension_empresa_pct,
+        arl_empresa_pct,
+        actualizado_por,
+        actualizado_en
+      FROM parametros_nomina
+      WHERE id_parametro = ?
+      LIMIT 1`,
+      [parameterId]
+    );
+
+    return res.json({
+      success: true,
+      message: 'Parametros de nomina actualizados exitosamente',
+      data: mapPayrollParametersRow(savedRows[0])
+    });
+  } catch (error) {
+    console.error('Error actualizando parametros de nomina:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Error actualizando parametros de nomina'
+    });
+  }
+};
+
 const createPayroll = async (req, res) => {
   const connection = await pool.getConnection();
 
@@ -37,29 +334,76 @@ const createPayroll = async (req, res) => {
     }
 
     const paymentType = VALID_PAYMENT_TYPES.has(tipo_pago) ? tipo_pago : 'MENSUAL';
-    const baseDevengado = Number(total_devengado) || 0;
-    const baseDeducciones = Number(total_deducciones) || 0;
+    const workedDays = calculateWorkedDays(fecha_inicio, fecha_corte);
 
-    if (baseDevengado < 0 || baseDeducciones < 0) {
+    if (workedDays <= 0) {
       return res.status(400).json({
         success: false,
-        message: 'Los valores de nomina no pueden ser negativos'
+        message: 'El periodo seleccionado no genera dias trabajados validos'
       });
     }
+
+    const payrollConfig = await getCurrentPayrollConfig(connection);
+    const overtimePercentages = OVERTIME_PERCENTAGE_BY_TYPE({
+      heo: parseParameterNumber(payrollConfig.horas_extra_ordinaria_pct, 25),
+      hen: parseParameterNumber(payrollConfig.horas_extra_nocturna_pct, 75),
+      hef: parseParameterNumber(payrollConfig.horas_extra_festiva_pct, 100),
+      hefn: parseParameterNumber(payrollConfig.horas_extra_festiva_nocturna_pct, 150)
+    });
+
+    const [employeeRows] = await connection.query(
+      `SELECT id_empleado, sueldo
+       FROM empleados
+       WHERE id_empleado = ?
+       LIMIT 1`,
+      [id_empleado]
+    );
+
+    if (employeeRows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Empleado no encontrado para generar la nomina'
+      });
+    }
+
+    const salarioBase = Number(employeeRows[0].sueldo) || 0;
+    const horasMensualesReferencia = Math.max(parseParameterNumber(payrollConfig.horas_semanales, 47) * 4, 1);
+    const valorDia = salarioBase / 30;
+    const valorHoraBase = salarioBase / horasMensualesReferencia;
 
     const overtimeRows = Array.isArray(horas_extras)
       ? horas_extras
         .filter((item) => item && VALID_OVERTIME_TYPES.has(item.tipo_hora))
-        .map((item) => ({
-          tipo_hora: item.tipo_hora,
-          porcentaje_recargo: Number(item.porcentaje_recargo) || 0,
-          horas: Number(item.horas) || 0,
-          valor_hora_base: Number(item.valor_hora_base) || 0,
-          valor_hora_extra: Number(item.valor_hora_extra) || 0,
-          valor_total: Number(item.valor_total) || 0
-        }))
+        .map((item) => {
+          const horas = Number(item.horas) || 0;
+          const porcentajeRecargo = parseParameterNumber(overtimePercentages[item.tipo_hora], 0);
+          const valorHoraExtra = Number((valorHoraBase * (1 + (porcentajeRecargo / 100))).toFixed(2));
+          const valorTotal = Number((horas * valorHoraExtra).toFixed(2));
+
+          return {
+            tipo_hora: item.tipo_hora,
+            porcentaje_recargo: porcentajeRecargo,
+            horas,
+            valor_hora_base: Number(valorHoraBase.toFixed(2)),
+            valor_hora_extra: valorHoraExtra,
+            valor_total: valorTotal
+          };
+        })
         .filter((item) => item.horas > 0 && item.valor_total >= 0)
       : [];
+
+    const totalHorasExtra = overtimeRows.reduce((acc, row) => acc + row.horas, 0);
+    const valorHorasExtra = overtimeRows.reduce((acc, row) => acc + row.valor_total, 0);
+    const pagoBasicoPeriodo = Number((valorDia * workedDays).toFixed(2));
+    const subsidioTransporte = parseParameterNumber(payrollConfig.subsidio_transporte, 0);
+    const baseDeduccionesEmpleado = pagoBasicoPeriodo + valorHorasExtra;
+    const saludEmpleado = Number((baseDeduccionesEmpleado * (parseParameterNumber(payrollConfig.salud_empleado_pct, 4) / 100)).toFixed(2));
+    const pensionEmpleado = Number((baseDeduccionesEmpleado * (parseParameterNumber(payrollConfig.pension_empleado_pct, 4) / 100)).toFixed(2));
+    const saludEmpresa = Number((baseDeduccionesEmpleado * (parseParameterNumber(payrollConfig.salud_empresa_pct, 8.5) / 100)).toFixed(2));
+    const pensionEmpresa = Number((baseDeduccionesEmpleado * (parseParameterNumber(payrollConfig.pension_empresa_pct, 12) / 100)).toFixed(2));
+    const arlEmpresa = Number((baseDeduccionesEmpleado * (parseParameterNumber(payrollConfig.arl_empresa_pct, 0.522) / 100)).toFixed(2));
+    const baseDevengado = Number((pagoBasicoPeriodo + valorHorasExtra + subsidioTransporte).toFixed(2));
+    const baseDeducciones = Number((saludEmpleado + pensionEmpleado).toFixed(2));
 
     // Busca novedades aprobadas del periodo antes de guardar la nómina.
     // Su impacto se suma automaticamente al devengado o a las deducciones.
@@ -107,11 +451,17 @@ const createPayroll = async (req, res) => {
     );
 
     const idNomina = payrollResult.insertId;
-    const manualDetailRows = Array.isArray(detalles) && detalles.length > 0
-      ? detalles
-          .filter((item) => item && item.concepto && Number(item.valor) >= 0)
-          .map((item) => [idNomina, String(item.concepto).slice(0, 100), Number(item.valor)])
-      : [];
+    const overtimeDetails = overtimeRows.map((row) => [idNomina, `${row.tipo_hora} (${row.horas}h)`, row.valor_total]);
+    const manualDetailRows = [
+      [idNomina, `Pago base (${workedDays} dias)`, pagoBasicoPeriodo],
+      ...overtimeDetails,
+      [idNomina, 'Subsidio de transporte', subsidioTransporte],
+      [idNomina, `Salud empleado ${parseParameterNumber(payrollConfig.salud_empleado_pct, 4)}%`, saludEmpleado],
+      [idNomina, `Pension empleado ${parseParameterNumber(payrollConfig.pension_empleado_pct, 4)}%`, pensionEmpleado],
+      [idNomina, `Salud empresa ${parseParameterNumber(payrollConfig.salud_empresa_pct, 8.5)}%`, saludEmpresa],
+      [idNomina, `Pension empresa ${parseParameterNumber(payrollConfig.pension_empresa_pct, 12)}%`, pensionEmpresa],
+      [idNomina, `ARL empresa ${parseParameterNumber(payrollConfig.arl_empresa_pct, 0.522)}%`, arlEmpresa]
+    ].filter((item) => Number(item[2]) >= 0);
     const noveltyDetailRows = buildPayrollNoveltyDetailRows(idNomina, novelties);
     const appliedNoveltyRows = buildAppliedNoveltyRows(idNomina, novelties);
     const mergedDetailRows = [...manualDetailRows, ...noveltyDetailRows];
@@ -166,8 +516,6 @@ const createPayroll = async (req, res) => {
     const corteDate = new Date(fecha_corte);
     const anio = corteDate.getUTCFullYear();
     const mes = corteDate.getUTCMonth() + 1;
-    const totalHorasExtra = overtimeRows.reduce((acc, row) => acc + row.horas, 0);
-    const valorHorasExtra = overtimeRows.reduce((acc, row) => acc + row.valor_total, 0);
 
     await connection.query(
       `INSERT INTO reporte_nomina_mensual
@@ -616,5 +964,7 @@ module.exports = {
   getPayrollById,
   downloadPayrollPdf,
   getPayrollNoveltiesPreview,
-  getPayrollNoveltiesForPeriod
+  getPayrollNoveltiesForPeriod,
+  getPayrollParameters,
+  updatePayrollParameters
 };
