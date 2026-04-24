@@ -79,20 +79,31 @@
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
 }
 
-.btn-generar-nomina:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.btn-generar-nomina--danger {
+.btn-borrar-nomina {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
   background: #b91c1c;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
   box-shadow: 0 2px 8px rgba(185, 28, 28, 0.35);
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
 }
 
-.btn-generar-nomina--danger:hover {
-  box-shadow: 0 4px 12px rgba(185, 28, 28, 0.5);
+.btn-borrar-nomina:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(185, 28, 28, 0.45);
+}
+
+.btn-borrar-nomina:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* Cards de métricas */
