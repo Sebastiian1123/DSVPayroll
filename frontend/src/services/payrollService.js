@@ -7,6 +7,16 @@ export const downloadPayrollPdf = async (payrollId) => {
   })
 }
 
+export const deletePayrollByEmployeeMonth = async ({ employeeId, year, month }) => {
+  return api.delete(`/nomina/empleado/${employeeId}/periodo`, {
+    params: {
+      anio: year,
+      mes: month
+    }
+  })
+}
+
 export default {
-  downloadPayrollPdf
+  downloadPayrollPdf,
+  deletePayrollByEmployeeMonth
 }
