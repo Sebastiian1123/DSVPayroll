@@ -102,12 +102,25 @@ export const Nomina = () => {
 
     try {
       setDeletingPayrolls(true)
-      await api.post(`/nomina/empleado/${selectedEmployee}/eliminar`, null, {
+      const deleteParams = {
         params: {
           anio: year,
           mes: month
         }
-      })
+      }
+
+      try {
+        await api.delete(`/nomina/empleado/${selectedEmployee}`, deleteParams)
+      } catch (deleteError) {
+        const status = deleteError?.response?.status
+        const routeNotAvailable = status === 404 || status === 405
+
+        if (!routeNotAvailable) {
+          throw deleteError
+        }
+
+        await api.post(`/nomina/empleado/${selectedEmployee}/eliminar`, null, deleteParams)
+      }
 
       const response = await api.get('/nomina/reportes', {
         params: {
