@@ -156,10 +156,6 @@ CREATE TABLE solicitudes_laborales (
   comentario_empleado TEXT,
   comentario_aprobador TEXT,
   documento_soporte VARCHAR(255),
-  impacto_nomina_calculado JSON NULL,
-  pendiente_liquidacion TINYINT(1) NOT NULL DEFAULT 0,
-  liquidada_en_nomina TINYINT(1) NOT NULL DEFAULT 0,
-  fecha_liquidacion TIMESTAMP NULL,
   fecha_solicitud TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   fecha_respuesta TIMESTAMP NULL,
   aprobado_por INT,
@@ -191,6 +187,50 @@ CREATE TABLE nomina_novedades_aplicadas (
   FOREIGN KEY (id_nomina) REFERENCES nomina(id_nomina) ON DELETE CASCADE,
   FOREIGN KEY (id_solicitud) REFERENCES solicitudes_laborales(id_solicitud) ON DELETE CASCADE
 );
+
+-- =====================
+-- REPORTES
+-- =====================
+
+CREATE TABLE reporte_nomina_mensual (
+  id_reporte INT AUTO_INCREMENT PRIMARY KEY,
+  anio SMALLINT NOT NULL,
+  mes TINYINT NOT NULL,
+  total_nominas INT DEFAULT 0,
+  total_devengado DECIMAL(14,2) DEFAULT 0.00,
+  total_deducciones DECIMAL(14,2) DEFAULT 0.00,
+  total_pagado DECIMAL(14,2) DEFAULT 0.00,
+  total_horas_extra DECIMAL(12,2) DEFAULT 0.00,
+  valor_horas_extra DECIMAL(14,2) DEFAULT 0.00,
+  actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE (anio, mes)
+);
+
+-- =====================
+-- TOKENS
+-- =====================
+
+CREATE TABLE password_reset_tokens (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  id_usuario INT NOT NULL,
+  token VARCHAR(255) UNIQUE NOT NULL,
+  expira_en DATETIME NOT NULL,
+  usado TINYINT(1) DEFAULT 0,
+  creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE
+);
+
+-- =====================
+-- INSERTS
+-- =====================
+
+INSERT INTO cargos (nombre_cargo) VALUES
+('Analista'),('Desarrollador'),('Soporte Técnico'),('Gerente'),('Asistente');
+
+INSERT INTO roles (nombre_rol) VALUES
+('ADMINISTRADOR'),('RRHH'),('EMPLEADO');
+
+
 -- =====================
 -- CARGOS
 -- =====================
@@ -339,4 +379,4 @@ VALUES
 INSERT INTO password_reset_tokens 
 (id_usuario, token, expira_en, usado) 
 VALUES
-(1, '220106', '2026-04-09 19:30:31', 1);
+(1, 3, '220106', '2026-04-09 19:30:31', 1);

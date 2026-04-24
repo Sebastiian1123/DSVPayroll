@@ -3,12 +3,11 @@ const router = express.Router();
 
 const {
   createPayroll,
+  deletePayrollsByEmployee,
   getPayrollReport,
   downloadPayrollPdf,
   getPayrollNoveltiesPreview,
-  getPayrollById,
-  getPayrollParameters,
-  updatePayrollParameters
+  getPayrollById
 } = require('./payroll.controller');
 const { verifyToken, verifyAdminORRRHH } = require('../../middleware/authMiddleware');
 
@@ -18,8 +17,8 @@ router.get('/parametros', getPayrollParameters);
 router.put('/parametros', verifyAdminORRRHH, updatePayrollParameters);
 router.get('/reportes', getPayrollReport);
 router.get('/novedades', verifyAdminORRRHH, getPayrollNoveltiesPreview);
-router.get('/:id_nomina/pdf', downloadPayrollPdf);
-router.get('/:id_nomina', getPayrollById);
 router.post('/', verifyAdminORRRHH, createPayroll);
+router.delete('/empleado/:id_empleado', verifyAdminORRRHH, deletePayrollsByEmployee);
+router.get('/:id_nomina/pdf', downloadPayrollPdf);
 
 module.exports = router;
