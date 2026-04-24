@@ -29,6 +29,7 @@ export const Nomina = () => {
   const [reportData, setReportData] = useState([])
   const [reportSummary, setReportSummary] = useState({ totalNominas: 0, totalDevengado: 0, totalDeducciones: 0, totalPagado: 0 })
   const [loading, setLoading] = useState(false)
+  const [deletingPayrolls, setDeletingPayrolls] = useState(false)
 
   const [year, month] = selectedMonth.split('-').map(Number)
 
@@ -85,6 +86,48 @@ export const Nomina = () => {
 
   const activeEmployees = useMemo(() => new Set(reportData.map((row) => row.id_empleado)).size, [reportData])
 
+  const handleDeletePayrollsByEmployee = async () => {
+    if (!selectedEmployee || !year || !month) return
+
+    const selectedEmployeeRow = employees.find((emp) => Number(emp.id_empleado) === Number(selectedEmployee))
+    const employeeName = selectedEmployeeRow
+      ? `${selectedEmployeeRow.nombres} ${selectedEmployeeRow.apellidos}`
+      : `ID ${selectedEmployee}`
+
+    const confirmed = window.confirm(
+      `¿Seguro que deseas eliminar las nóminas de ${employeeName} para ${selectedMonth}? Esta acción no se puede deshacer.`
+    )
+
+    if (!confirmed) return
+
+    try {
+      setDeletingPayrolls(true)
+      await api.post(`/nomina/empleado/${selectedEmployee}/eliminar`, null, {
+        params: {
+          anio: year,
+          mes: month
+        }
+      })
+
+      const response = await api.get('/nomina/reportes', {
+        params: {
+          anio: year,
+          mes: month,
+          id_empleado: Number(selectedEmployee)
+        }
+      })
+
+      setReportData(response.data?.data?.nominas || [])
+      setReportSummary(response.data?.data?.resumen || { totalNominas: 0, totalDevengado: 0, totalDeducciones: 0, totalPagado: 0 })
+      alert('Nóminas eliminadas correctamente.')
+    } catch (error) {
+      console.error('Error eliminando nóminas del empleado:', error)
+      alert(error.response?.data?.message || 'No se pudieron eliminar las nóminas del empleado.')
+    } finally {
+      setDeletingPayrolls(false)
+    }
+  }
+
   return (
     <>
       <Navbar />
@@ -117,6 +160,16 @@ export const Nomina = () => {
               <i className="fa-solid fa-play"></i>
               <span>Generar Nómina</span>
             </Link>
+            <button
+              type="button"
+              className="btn-generar-nomina btn-generar-nomina--danger"
+              onClick={handleDeletePayrollsByEmployee}
+              disabled={!selectedEmployee || deletingPayrolls}
+              title={selectedEmployee ? 'Eliminar nóminas del empleado filtrado' : 'Selecciona un empleado para eliminar nóminas'}
+            >
+              <i className="fa-solid fa-trash"></i>
+              <span>{deletingPayrolls ? 'Eliminando...' : 'Eliminar Nómina Empleado'}</span>
+            </button>
           </div>
         </div>
 

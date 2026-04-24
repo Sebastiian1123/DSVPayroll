@@ -79,6 +79,22 @@
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
 }
 
+.btn-generar-nomina:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-generar-nomina--danger {
+  background: #b91c1c;
+  box-shadow: 0 2px 8px rgba(185, 28, 28, 0.35);
+}
+
+.btn-generar-nomina--danger:hover {
+  box-shadow: 0 4px 12px rgba(185, 28, 28, 0.5);
+}
+
 /* Cards de métricas */
 .nomina-cards-grid {
   display: grid;
