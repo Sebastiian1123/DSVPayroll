@@ -26,6 +26,7 @@ export const buildOvertimeRow = (typeKey = OVERTIME_TYPES[0].key) => ({
 export const calculatePayrollSummary = ({ selectedEmployee, payrollDates, overtimeRows }) => {
   const salarioBase = Number(selectedEmployee?.sueldo) || 0
   const diasTrabajados = calculateWorkedDays(payrollDates.startDate, payrollDates.endDate)
+  const diasTrabajadosAjustados = Math.max(0, Math.min(DIAS_NOMINA_MENSUAL, diasTrabajados))
   const valorDia = salarioBase / DIAS_NOMINA_MENSUAL
   const valorHoraOrdinaria = salarioBase / HORAS_MENSUALES_REFERENCIA
 
@@ -48,7 +49,8 @@ export const calculatePayrollSummary = ({ selectedEmployee, payrollDates, overti
   const pension = baseDeducciones * 0.04
   const salud = baseDeducciones * 0.04
   const totalDeducciones = pension + salud
-  const subtotalBruto = pagoBasicoPeriodo + totalHorasExtra + SUBSIDIO_TRANSPORTE
+  const subsidioTransporte = SUBSIDIO_TRANSPORTE * (diasTrabajadosAjustados / DIAS_NOMINA_MENSUAL)
+  const subtotalBruto = pagoBasicoPeriodo + totalHorasExtra + subsidioTransporte
   const neto = subtotalBruto - totalDeducciones
 
   return {
@@ -57,7 +59,7 @@ export const calculatePayrollSummary = ({ selectedEmployee, payrollDates, overti
     valorHoraOrdinaria,
     detallesHorasExtra,
     totalHorasExtra,
-    subsidioTransporte: SUBSIDIO_TRANSPORTE,
+    subsidioTransporte,
     pension,
     salud,
     totalDeducciones,
@@ -87,7 +89,7 @@ export const buildPayrollPayload = ({ selectedEmployee, payrollDates, payrollSum
   const detalles = [
     { concepto: `Pago base (${payrollSummary.diasTrabajados} días)`, valor: payrollSummary.pagoBasicoPeriodo },
     ...overtimeDetails,
-    { concepto: 'Subsidio de transporte', valor: payrollSummary.subsidioTransporte },
+    { concepto: `Subsidio de transporte proporcional (${payrollSummary.diasTrabajados} días)`, valor: payrollSummary.subsidioTransporte },
     { concepto: 'Salud 4%', valor: payrollSummary.salud },
     { concepto: 'Pensión 4%', valor: payrollSummary.pension }
   ]
