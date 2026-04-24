@@ -1,4 +1,4 @@
-const { APPROVED_STATUS, MS_PER_DAY } = require('./payroll.constants');
+const { APPROVED_STATUS, MS_PER_DAY, SUBSIDIO_TRANSPORTE } = require('./payroll.constants');
 
 const calculateOverlappingDays = (periodStart, periodEnd, requestStart, requestEnd) => {
   const effectiveStart = new Date(Math.max(new Date(periodStart).getTime(), new Date(requestStart).getTime()));
@@ -69,7 +69,7 @@ const getCommonDisabilitySegments = (requestRow) => {
 
 const normalizeSubtype = (subtype) => String(subtype || '').trim().toUpperCase();
 
-const mapRequestToPayrollNovelty = (requestRow, monthlySalary) => {
+const mapRequestToPayrollNoveltyRows = (requestRow, monthlySalary) => {
   const overlappingDays = calculateOverlappingDays(
     requestRow.periodo_inicio,
     requestRow.periodo_fin,
@@ -85,7 +85,7 @@ const mapRequestToPayrollNovelty = (requestRow, monthlySalary) => {
   const normalizedSubtype = normalizeSubtype(requestRow.sub_tipo);
 
   if (overlappingDays <= 0 && requestedHours <= 0) {
-    return null;
+    return [];
   }
 
   let concept = '';
@@ -97,9 +97,57 @@ const mapRequestToPayrollNovelty = (requestRow, monthlySalary) => {
   const unpaidFactor = 1 - paidFactor;
 
   if (requestRow.tipo === 'VACACIONES') {
-    concept = `Vacaciones pagadas (${overlappingDays} dias)`;
-    category = 'INFORMATIVA';
-    amount = 0;
+    const transportDailyValue = SUBSIDIO_TRANSPORTE / 30;
+    const vacationPayrollDeduction = Number(fullDaysValue.toFixed(2));
+    const transportDeduction = Number((transportDailyValue * overlappingDays).toFixed(2));
+
+    return [
+      {
+        id_solicitud: requestRow.id_solicitud,
+        tipo: requestRow.tipo,
+        sub_tipo: requestRow.sub_tipo,
+        fecha_inicio: requestRow.fecha_inicio,
+        fecha_fin: requestRow.fecha_fin,
+        cantidad: overlappingDays,
+        unidad: 'DIAS',
+        porcentaje_pago: paymentPercentage,
+        es_remunerado: Number(requestRow.es_remunerado) === 1,
+        origen_novedad: requestRow.origen_novedad,
+        categoria: vacationPayrollDeduction > 0 ? 'DEVENGADO' : 'INFORMATIVA',
+        concepto: `Pago vacaciones (${overlappingDays} dias)`,
+        valor: vacationPayrollDeduction
+      },
+      {
+        id_solicitud: requestRow.id_solicitud,
+        tipo: requestRow.tipo,
+        sub_tipo: requestRow.sub_tipo,
+        fecha_inicio: requestRow.fecha_inicio,
+        fecha_fin: requestRow.fecha_fin,
+        cantidad: overlappingDays,
+        unidad: 'DIAS',
+        porcentaje_pago: paymentPercentage,
+        es_remunerado: Number(requestRow.es_remunerado) === 1,
+        origen_novedad: requestRow.origen_novedad,
+        categoria: vacationPayrollDeduction > 0 ? 'DEDUCCION' : 'INFORMATIVA',
+        concepto: `Descuento dias no trabajados por vacaciones (${overlappingDays} dias)`,
+        valor: vacationPayrollDeduction
+      },
+      {
+        id_solicitud: requestRow.id_solicitud,
+        tipo: requestRow.tipo,
+        sub_tipo: requestRow.sub_tipo,
+        fecha_inicio: requestRow.fecha_inicio,
+        fecha_fin: requestRow.fecha_fin,
+        cantidad: overlappingDays,
+        unidad: 'DIAS',
+        porcentaje_pago: paymentPercentage,
+        es_remunerado: Number(requestRow.es_remunerado) === 1,
+        origen_novedad: requestRow.origen_novedad,
+        categoria: transportDeduction > 0 ? 'DEDUCCION' : 'INFORMATIVA',
+        concepto: `Descuento subsidio transporte por vacaciones (${overlappingDays} dias)`,
+        valor: transportDeduction
+      }
+    ];
   } else if (requestRow.tipo === 'PERMISO') {
     if (requestedHours > 0) {
       quantity = requestedHours;
@@ -155,7 +203,7 @@ const mapRequestToPayrollNovelty = (requestRow, monthlySalary) => {
     }
   }
 
-  return {
+  return [{
     id_solicitud: requestRow.id_solicitud,
     tipo: requestRow.tipo,
     sub_tipo: requestRow.sub_tipo,
@@ -169,7 +217,7 @@ const mapRequestToPayrollNovelty = (requestRow, monthlySalary) => {
     categoria: category,
     concepto: concept,
     valor: amount
-  };
+  }];
 };
 
 const buildPayrollNoveltyDetailRows = (idNomina, novelties) => (
@@ -218,9 +266,7 @@ const getPayrollNoveltiesForPeriod = async ({ pool, idEmpleado, fechaInicio, fec
     [fechaInicio, fechaCorte, idEmpleado, APPROVED_STATUS, fechaCorte, fechaInicio]
   );
 
-  const novelties = requestRows
-    .map((row) => mapRequestToPayrollNovelty(row, monthlySalary))
-    .filter(Boolean);
+  const novelties = requestRows.flatMap((row) => mapRequestToPayrollNoveltyRows(row, monthlySalary));
 
   const summary = novelties.reduce((acc, novelty) => {
     if (novelty.categoria === 'DEVENGADO') {
@@ -256,7 +302,7 @@ module.exports = {
   getOverlappingDateRange,
   getCommonDisabilitySegments,
   normalizeSubtype,
-  mapRequestToPayrollNovelty,
+  mapRequestToPayrollNoveltyRows,
   buildPayrollNoveltyDetailRows,
   getPayrollNoveltiesForPeriod
 };
