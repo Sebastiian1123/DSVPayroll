@@ -15,6 +15,7 @@ router.use(verifyToken);
 router.get('/reportes', getPayrollReport);
 router.get('/novedades', verifyAdminORRRHH, getPayrollNoveltiesPreview);
 router.post('/', verifyAdminORRRHH, createPayroll);
+router.delete('/empleado/:id_empleado/periodo', verifyAdminORRRHH, deletePayrollByEmployeeMonth);
 router.delete('/empleado/:id_empleado', verifyAdminORRRHH, deletePayrollByEmployeeMonth);
 router.delete('/empleados/:id_empleado', verifyAdminORRRHH, deletePayrollByEmployeeMonth);
 router.delete('/:id_empleado/periodo', verifyAdminORRRHH, deletePayrollByEmployeeMonth);
