@@ -3,6 +3,7 @@ import Navbar from '../components/Navbar'
 import { useAuth } from '../context/AuthContext'
 import { Link } from 'react-router-dom'
 import api from '../services/api'
+import { deletePayrollByEmployeeMonth } from '../services/payrollService'
 import '../styles/Nomina.css'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
@@ -29,6 +30,8 @@ export const Nomina = () => {
   const [reportData, setReportData] = useState([])
   const [reportSummary, setReportSummary] = useState({ totalNominas: 0, totalDevengado: 0, totalDeducciones: 0, totalPagado: 0 })
   const [loading, setLoading] = useState(false)
+  const [deletingPayroll, setDeletingPayroll] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   const [year, month] = selectedMonth.split('-').map(Number)
 
@@ -71,7 +74,40 @@ export const Nomina = () => {
     }
 
     fetchReport()
-  }, [year, month, selectedEmployee])
+  }, [year, month, selectedEmployee, refreshKey])
+
+  const handleDeletePayroll = async () => {
+    const employeeId = Number(selectedEmployee)
+
+    if (!employeeId || !year || !month) {
+      window.alert('Debes seleccionar empleado y mes para borrar la nómina.')
+      return
+    }
+
+    const shouldDelete = window.confirm(
+      `¿Confirmas borrar la nómina generada del empleado ${employeeId} para ${selectedMonth}?`
+    )
+
+    if (!shouldDelete) return
+
+    try {
+      setDeletingPayroll(true)
+      const response = await deletePayrollByEmployeeMonth({
+        employeeId,
+        year,
+        month
+      })
+
+      const removedCount = response.data?.data?.nominas_eliminadas ?? 0
+      window.alert(`Nómina eliminada correctamente. Registros eliminados: ${removedCount}`)
+      setRefreshKey((prev) => prev + 1)
+    } catch (error) {
+      const message = error?.response?.data?.message || 'No fue posible eliminar la nómina del periodo seleccionado.'
+      window.alert(message)
+    } finally {
+      setDeletingPayroll(false)
+    }
+  }
 
   const chartData = useMemo(() => {
     const totalsByEmployee = reportData.reduce((acc, row) => {
@@ -117,6 +153,16 @@ export const Nomina = () => {
               <i className="fa-solid fa-play"></i>
               <span>Generar Nómina</span>
             </Link>
+            <button
+              type="button"
+              className="btn-borrar-nomina"
+              onClick={handleDeletePayroll}
+              disabled={!selectedEmployee || deletingPayroll}
+              title={!selectedEmployee ? 'Selecciona un empleado para borrar la nómina del mes' : 'Borrar nómina del empleado para el mes seleccionado'}
+            >
+              <i className="fa-solid fa-trash"></i>
+              <span>{deletingPayroll ? 'Borrando...' : 'Borrar Nómina Mes'}</span>
+            </button>
           </div>
         </div>
 
