@@ -191,6 +191,180 @@ const createPayroll = async (req, res) => {
   }
 };
 
+const deletePayrollsByEmployee = async (req, res) => {
+  const connection = await pool.getConnection();
+
+  try {
+    const idEmpleado = Number(req.params.id_empleado);
+    const requestedYear = req.query.anio !== undefined ? Number(req.query.anio) : null;
+    const requestedMonth = req.query.mes !== undefined ? Number(req.query.mes) : null;
+
+    if (!idEmpleado) {
+      return res.status(400).json({
+        success: false,
+        message: 'El id del empleado es obligatorio'
+      });
+    }
+
+    if (requestedYear !== null && (requestedYear < 2000 || requestedYear > 2100)) {
+      return res.status(400).json({
+        success: false,
+        message: 'El parametro anio debe estar entre 2000 y 2100'
+      });
+    }
+
+    if (requestedMonth !== null && (requestedMonth < 1 || requestedMonth > 12)) {
+      return res.status(400).json({
+        success: false,
+        message: 'El parametro mes debe estar entre 1 y 12'
+      });
+    }
+
+    await connection.beginTransaction();
+
+    const whereParts = ['id_empleado = ?'];
+    const queryParams = [idEmpleado];
+
+    if (requestedYear !== null) {
+      whereParts.push('YEAR(fecha_corte) = ?');
+      queryParams.push(requestedYear);
+    }
+
+    if (requestedMonth !== null) {
+      whereParts.push('MONTH(fecha_corte) = ?');
+      queryParams.push(requestedMonth);
+    }
+
+    const [payrollRows] = await connection.query(
+      `SELECT id_nomina, fecha_corte
+       FROM nomina
+       WHERE ${whereParts.join(' AND ')}
+       FOR UPDATE`,
+      queryParams
+    );
+
+    if (payrollRows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'No se encontraron nominas para eliminar con los filtros enviados'
+      });
+    }
+
+    const payrollIds = payrollRows.map((row) => row.id_nomina);
+    const affectedPeriods = [...new Set(payrollRows.map((row) => {
+      const corteDate = new Date(row.fecha_corte);
+      const year = corteDate.getUTCFullYear();
+      const month = corteDate.getUTCMonth() + 1;
+      return `${year}-${month}`;
+    }))];
+
+    await connection.query(
+      `DELETE FROM detalle_nomina WHERE id_nomina IN (?)`,
+      [payrollIds]
+    );
+
+    await connection.query(
+      `DELETE FROM horas_extra_nomina WHERE id_nomina IN (?)`,
+      [payrollIds]
+    );
+
+    await connection.query(
+      `DELETE FROM nomina WHERE id_nomina IN (?)`,
+      [payrollIds]
+    );
+
+    for (const periodKey of affectedPeriods) {
+      const [year, month] = periodKey.split('-').map(Number);
+
+      const [summaryRows] = await connection.query(
+        `SELECT
+          COUNT(*) AS totalNominas,
+          COALESCE(SUM(total_devengado), 0) AS totalDevengado,
+          COALESCE(SUM(total_deducciones), 0) AS totalDeducciones,
+          COALESCE(SUM(total_pagar), 0) AS totalPagado
+        FROM nomina
+        WHERE YEAR(fecha_corte) = ?
+          AND MONTH(fecha_corte) = ?`,
+        [year, month]
+      );
+
+      const summary = summaryRows[0];
+      const totalNominas = Number(summary.totalNominas) || 0;
+
+      if (totalNominas <= 0) {
+        await connection.query(
+          `DELETE FROM reporte_nomina_mensual
+           WHERE anio = ?
+             AND mes = ?`,
+          [year, month]
+        );
+        continue;
+      }
+
+      const [overtimeRows] = await connection.query(
+        `SELECT
+          COALESCE(SUM(he.horas), 0) AS totalHorasExtra,
+          COALESCE(SUM(he.valor_total), 0) AS valorHorasExtra
+        FROM horas_extra_nomina he
+        INNER JOIN nomina n ON n.id_nomina = he.id_nomina
+        WHERE YEAR(n.fecha_corte) = ?
+          AND MONTH(n.fecha_corte) = ?`,
+        [year, month]
+      );
+
+      const overtime = overtimeRows[0] || { totalHorasExtra: 0, valorHorasExtra: 0 };
+
+      await connection.query(
+        `UPDATE reporte_nomina_mensual
+         SET
+           total_nominas = ?,
+           total_devengado = ?,
+           total_deducciones = ?,
+           total_pagado = ?,
+           total_horas_extra = ?,
+           valor_horas_extra = ?
+         WHERE anio = ?
+           AND mes = ?`,
+        [
+          totalNominas,
+          Number(summary.totalDevengado) || 0,
+          Number(summary.totalDeducciones) || 0,
+          Number(summary.totalPagado) || 0,
+          Number(overtime.totalHorasExtra) || 0,
+          Number(overtime.valorHorasExtra) || 0,
+          year,
+          month
+        ]
+      );
+    }
+
+    await connection.commit();
+
+    return res.json({
+      success: true,
+      message: `Se eliminaron ${payrollIds.length} nomina(s) del empleado`,
+      data: {
+        id_empleado: idEmpleado,
+        total_nominas_eliminadas: payrollIds.length,
+        filtros: {
+          anio: requestedYear,
+          mes: requestedMonth
+        }
+      }
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error eliminando nominas por empleado:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Error eliminando nominas del empleado'
+    });
+  } finally {
+    connection.release();
+  }
+};
+
 // Muestra las solicitudes aprobadas que impactarian una nómina del periodo.
 // Sirve como paso previo para validar reglas antes de integrarlas al guardado final.
 const getPayrollNoveltiesPreview = async (req, res) => {
@@ -484,6 +658,7 @@ const downloadPayrollPdf = async (req, res) => {
 
 module.exports = {
   createPayroll,
+  deletePayrollsByEmployee,
   getPayrollReport,
   downloadPayrollPdf,
   getPayrollNoveltiesPreview,
