@@ -6,7 +6,7 @@ import api from '../services/api'
 import { deletePayrollByEmployeeMonth } from '../services/payrollService'
 import '../styles/Nomina.css'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-
+import {showSuccess, showError, showConfirmDelete} from '../utils/alerts.js'
 const COLORS = ['#3b82f6', '#6366f1', '#14b8a6', '#f59e0b', '#ec4899', '#8b5cf6']
 
 const formatPesoColombiano = (value) => {
@@ -80,11 +80,11 @@ export const Nomina = () => {
     const employeeId = Number(selectedEmployee)
 
     if (!employeeId || !year || !month) {
-      window.alert('Debes seleccionar empleado y mes para borrar la nómina.')
+      showError('Debes seleccionar empleado y mes para borrar la nómina.')
       return
     }
-
-    const shouldDelete = window.confirm(
+      //::
+    const shouldDelete = showConfirmDelete(
       `¿Confirmas borrar la nómina generada del empleado ${employeeId} para ${selectedMonth}?`
     )
 
@@ -99,11 +99,11 @@ export const Nomina = () => {
       })
 
       const removedCount = response.data?.data?.nominas_eliminadas ?? 0
-      window.alert(`Nómina eliminada correctamente. Registros eliminados: ${removedCount}`)
+      showSuccess(`Nómina eliminada correctamente. Registros eliminados: ${removedCount}`)
       setRefreshKey((prev) => prev + 1)
     } catch (error) {
       const message = error?.response?.data?.message || 'No fue posible eliminar la nómina del periodo seleccionado.'
-      window.alert(message)
+      showError(message)
     } finally {
       setDeletingPayroll(false)
     }
