@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import api from '../services/api'
 import '../styles/Nomina.css'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import {showSuccess, showConfirmDelete, showError} from '../utils/alerts.js'
 
 const COLORS = ['#3b82f6', '#6366f1', '#14b8a6', '#f59e0b', '#ec4899', '#8b5cf6']
 
@@ -94,38 +95,37 @@ export const Nomina = () => {
       ? `${selectedEmployeeRow.nombres} ${selectedEmployeeRow.apellidos}`
       : `ID ${selectedEmployee}`
 
-    const confirmed = window.confirm(
-      `¿Seguro que deseas eliminar las nóminas de ${employeeName} para ${selectedMonth}? Esta acción no se puede deshacer.`
-    )
+    showConfirmDelete(
+      `¿Seguro que deseas eliminar las nóminas de ${employeeName} para ${selectedMonth}? Esta acción no se puede deshacer.`,
+      async () => {
+        try {
+          setDeletingPayrolls(true)
+          await api.delete(`/nomina/empleado/${selectedEmployee}`, {
+            params: {
+              anio: year,
+              mes: month
+            }
+          })
 
-    if (!confirmed) return
+          const response = await api.get('/nomina/reportes', {
+            params: {
+              anio: year,
+              mes: month,
+              id_empleado: Number(selectedEmployee)
+            }
+          })
 
-    try {
-      setDeletingPayrolls(true)
-      await api.delete(`/nomina/empleado/${selectedEmployee}`, {
-        params: {
-          anio: year,
-          mes: month
+          setReportData(response.data?.data?.nominas || [])
+          setReportSummary(response.data?.data?.resumen || { totalNominas: 0, totalDevengado: 0, totalDeducciones: 0, totalPagado: 0 })
+          showSuccess('Nóminas eliminadas correctamente.')
+        } catch (error) {
+          console.error('Error eliminando nóminas del empleado:', error)
+          showError(error.response?.data?.message || 'No se pudieron eliminar las nóminas del empleado.')
+        } finally {
+          setDeletingPayrolls(false)
         }
-      })
-
-      const response = await api.get('/nomina/reportes', {
-        params: {
-          anio: year,
-          mes: month,
-          id_empleado: Number(selectedEmployee)
-        }
-      })
-
-      setReportData(response.data?.data?.nominas || [])
-      setReportSummary(response.data?.data?.resumen || { totalNominas: 0, totalDevengado: 0, totalDeducciones: 0, totalPagado: 0 })
-      alert('Nóminas eliminadas correctamente.')
-    } catch (error) {
-      console.error('Error eliminando nóminas del empleado:', error)
-      alert(error.response?.data?.message || 'No se pudieron eliminar las nóminas del empleado.')
-    } finally {
-      setDeletingPayrolls(false)
-    }
+      }
+    );
   }
 
   return (

@@ -38,6 +38,8 @@ export const calculatePayrollSummary = ({
   const valorDia = salarioBase / DIAS_NOMINA_MENSUAL
   const horasMensualesReferencia = Math.max(parseParameterNumber(payrollParameters.horasSemanales, 47) * 4, 1)
   const valorHoraOrdinaria = salarioBase / horasMensualesReferencia
+  const overtimeTypes = buildOvertimeTypes(payrollParameters)
+  const subsidioTransporte = parseParameterNumber(payrollParameters.subsidioTransporte, 0)
 
   const detallesHorasExtra = overtimeRows.map((row) => {
     const overtimeType = overtimeTypes.find((item) => item.key === row.typeKey) || overtimeTypes[0]
@@ -58,7 +60,7 @@ export const calculatePayrollSummary = ({
   const pension = baseDeducciones * (parseParameterNumber(payrollParameters.pensionEmpleado, 4) / 100)
   const salud = baseDeducciones * (parseParameterNumber(payrollParameters.saludEmpleado, 4) / 100)
   const totalDeducciones = pension + salud
-  const subtotalBruto = pagoBasicoPeriodo + totalHorasExtra + SUBSIDIO_TRANSPORTE
+  const subtotalBruto = pagoBasicoPeriodo + totalHorasExtra + subsidioTransporte
   const neto = subtotalBruto - totalDeducciones
 
   return {
@@ -91,7 +93,10 @@ export const buildPayrollPayload = ({ selectedEmployee, payrollDates, payrollSum
 
   const detalles = [
     { concepto: `Pago base (${payrollSummary.diasTrabajados} días)`, valor: payrollSummary.pagoBasicoPeriodo },
-    ...overtimeDetails,
+    ...overtimeRowsToSave.map((row) => ({
+      concepto: `${row.overtimeType.label} (${row.hours}h)`,
+      valor: row.totalFila
+    })),
     { concepto: 'Subsidio de transporte', valor: payrollSummary.subsidioTransporte },
     { concepto: 'Salud 4%', valor: payrollSummary.salud },
     { concepto: 'Pensión 4%', valor: payrollSummary.pension }
@@ -102,6 +107,7 @@ export const buildPayrollPayload = ({ selectedEmployee, payrollDates, payrollSum
     fecha_inicio: payrollDates.startDate,
     fecha_corte: payrollDates.endDate,
     tipo_pago: 'MENSUAL',
+    detalles,
     horas_extras
   }
 }

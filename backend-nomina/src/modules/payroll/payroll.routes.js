@@ -7,12 +7,13 @@ const {
   getPayrollReport,
   downloadPayrollPdf,
   getPayrollNoveltiesPreview,
-  getPayrollById
+  getPayrollById,
+  getPayrollParameters,
+  updatePayrollParameters
 } = require('./payroll.controller');
 const { verifyToken, verifyAdminORRRHH } = require('../../middleware/authMiddleware');
 
 router.use(verifyToken);
-
 router.get('/parametros', getPayrollParameters);
 router.put('/parametros', verifyAdminORRRHH, updatePayrollParameters);
 router.get('/reportes', getPayrollReport);

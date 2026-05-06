@@ -16,7 +16,7 @@ export const showError = (title, text) =>
     confirmButtonText: 'Cerrar'
   });
 
-export const showConfirmDelete = (text = 'Esta acción no se puede deshacer.') =>
+export const showConfirmDelete = (text = 'Esta acción no se puede deshacer.', callback = () => undefined) =>
   Swal.fire({
     title: '¿Estás seguro?',
     text,
@@ -26,4 +26,7 @@ export const showConfirmDelete = (text = 'Esta acción no se puede deshacer.') =
     cancelButtonColor: '#6b7280',
     confirmButtonText: 'Sí, continuar',
     cancelButtonText: 'Cancelar'
+  }).then(result => {
+    if(result.isConfirmed && callback)
+      callback();
   });
