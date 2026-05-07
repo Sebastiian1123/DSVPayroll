@@ -1,9 +1,21 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import reportsService from '../../../services/reportsService';
+import { useAuth } from '../../../context/AuthContext';
 import { buildAdminMonthCards, buildAdminYearOptions } from '../utils/adminReportsUtils';
 import { formatReportCurrency } from '../utils/reportFormatters';
 
 const AdminReportsDashboard = ({ onSelectPeriod }) => {
+    const { isAdmin } = useAuth();
+
+    if (!isAdmin()) {
+        return (
+            <div style={{ padding: '20px', textAlign: 'center' }}>
+                <h2>No tienes permisos para acceder a esta página</h2>
+                <p>Contacta al administrador si crees que esto es un error.</p>
+            </div>
+        );
+    }
+
     const currentYear = new Date().getFullYear();
     const [selectedYear, setSelectedYear] = useState(currentYear);
     const [loading, setLoading] = useState(false);

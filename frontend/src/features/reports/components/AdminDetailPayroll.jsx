@@ -1,14 +1,26 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import reportsService from '../../../services/reportsService';
+import { useAuth } from '../../../context/AuthContext';
 import { calculateAdminPayrollTotals, filterAdminPayrollRows } from '../utils/adminDetailPayrollUtils';
 import { formatReportCurrency } from '../utils/reportFormatters';
 
 const AdminDetailPayroll = ({ period, onBack }) => {
+    const { isAdmin } = useAuth();
+
+    if (!isAdmin()) {
+        return (
+            <div style={{ padding: '20px', textAlign: 'center' }}>
+                <h2>No tienes permisos para acceder a esta página</h2>
+                <p>Contacta al administrador si crees que esto es un error.</p>
+            </div>
+        );
+    }
     const [search, setSearch] = useState('');
     const [department, setDepartment] = useState('Todos');
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [downloading, setDownloading] = useState('');
 
     useEffect(() => {
         const fetchAdminPayrollByPeriod = async () => {
@@ -26,7 +38,7 @@ const AdminDetailPayroll = ({ period, onBack }) => {
                 });
                 setRows(Array.isArray(data?.nominas) ? data.nominas : []);
             } catch (fetchError) {
-                console.error('Error cargando detalle administrativo de nómina:', fetchError);
+                console.error('Error cargando detalle administrativo de nomina:', fetchError);
                 setRows([]);
                 setError('No fue posible cargar el reporte detallado para el periodo seleccionado.');
             } finally {
@@ -52,6 +64,34 @@ const AdminDetailPayroll = ({ period, onBack }) => {
 
     const totals = useMemo(() => calculateAdminPayrollTotals(filteredRows), [filteredRows]);
 
+    const handleDownload = async ({ format, idEmpleado = null }) => {
+        if (!period?.year || !period?.monthNumber) return;
+
+        const downloadKey = `${format}-${idEmpleado || 'all'}`;
+
+        try {
+            setDownloading(downloadKey);
+            setError('');
+            const payload = {
+                anio: period.year,
+                mes: period.monthNumber,
+                id_empleado: idEmpleado
+            };
+
+            if (format === 'excel') {
+                await reportsService.downloadPayrollReportExcel(payload);
+                return;
+            }
+
+            await reportsService.downloadPayrollReportPdf(payload);
+        } catch (downloadError) {
+            console.error('Error descargando reporte de nomina:', downloadError);
+            setError('No fue posible descargar el reporte. Intenta nuevamente.');
+        } finally {
+            setDownloading('');
+        }
+    };
+
     return (
         <div className="admin-payroll-report">
             <div className="back-link" onClick={onBack}>
@@ -67,25 +107,35 @@ const AdminDetailPayroll = ({ period, onBack }) => {
                             {period?.month || 'Mes'} {period?.year || ''}
                         </span>
                     </div>
-                    <h1>Reporte Detallado de Nómina</h1>
+                    <h1>Reporte Detallado de Nomina</h1>
                     <p>
                         Lista consolidada de empleados, horas extras y deducciones del periodo seleccionado.
                     </p>
                 </div>
 
                 <div className="admin-payroll-report__actions">
-                    <button className="admin-report-btn admin-report-btn--primary" type="button">
+                    <button
+                        className="admin-report-btn admin-report-btn--primary"
+                        type="button"
+                        onClick={() => handleDownload({ format: 'excel' })}
+                        disabled={!!downloading || loading}
+                    >
                         <i className="fa-solid fa-download"></i>
-                        Exportar Excel (Próximamente)
+                        {downloading === 'excel-all' ? 'Generando Excel...' : 'Exportar Excel'}
                     </button>
-                    <button className="admin-report-btn admin-report-btn--secondary" type="button">
+                    <button
+                        className="admin-report-btn admin-report-btn--secondary"
+                        type="button"
+                        onClick={() => handleDownload({ format: 'pdf' })}
+                        disabled={!!downloading || loading}
+                    >
                         <i className="fa-regular fa-file-pdf"></i>
-                        PDF (Próximamente)
+                        {downloading === 'pdf-all' ? 'Generando PDF...' : 'PDF'}
                     </button>
                 </div>
             </div>
             {!!error && <p style={{ color: 'var(--danger-color)', marginBottom: '16px' }}>{error}</p>}
-            {loading && <p style={{ color: 'var(--text-light)', marginBottom: '16px' }}>Cargando nómina del periodo...</p>}
+            {loading && <p style={{ color: 'var(--text-light)', marginBottom: '16px' }}>Cargando nomina del periodo...</p>}
 
             <div className="admin-payroll-filters">
                 <div className="admin-payroll-search">
@@ -106,7 +156,7 @@ const AdminDetailPayroll = ({ period, onBack }) => {
                 </div>
 
                 <div className="admin-payroll-select">
-                    <label>Año:</label>
+                    <label>Anio:</label>
                     <select value={period?.year || ''} disabled>
                         <option>{period?.year || 'No seleccionado'}</option>
                     </select>
@@ -133,21 +183,22 @@ const AdminDetailPayroll = ({ period, onBack }) => {
                         <thead>
                             <tr>
                                 <th className="admin-payroll-table__employee-col">Empleado</th>
-                                <th>Salario básico</th>
+                                <th>Salario basico</th>
                                 <th>HEO</th>
                                 <th>HEF</th>
                                 <th>HEN</th>
                                 <th>HEFN</th>
                                 <th className="is-danger">Deduc. salud</th>
                                 <th className="is-danger">Deduc. ARL</th>
-                                <th className="is-danger">Deduc. pensión</th>
+                                <th className="is-danger">Deduc. pension</th>
                                 <th className="is-primary">Neto a pagar</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredRows.length === 0 ? (
                                 <tr>
-                                    <td colSpan={10} style={{ textAlign: 'center', padding: '28px 24px', color: 'var(--text-light)' }}>
+                                    <td colSpan={11} style={{ textAlign: 'center', padding: '28px 24px', color: 'var(--text-light)' }}>
                                         No hay empleados para el filtro seleccionado.
                                     </td>
                                 </tr>
@@ -172,6 +223,28 @@ const AdminDetailPayroll = ({ period, onBack }) => {
                                         <td className="is-danger">{formatReportCurrency(row.deduccion_arl)}</td>
                                         <td className="is-danger">{formatReportCurrency(row.deduccion_pension)}</td>
                                         <td className="is-primary is-strong">{formatReportCurrency(row.total_pagar)}</td>
+                                        <td>
+                                            <div className="admin-payroll-row-actions">
+                                                <button
+                                                    type="button"
+                                                    className="admin-payroll-row-action"
+                                                    title="Descargar Excel del empleado"
+                                                    onClick={() => handleDownload({ format: 'excel', idEmpleado: row.id_empleado })}
+                                                    disabled={!!downloading}
+                                                >
+                                                    <i className="fa-solid fa-file-excel"></i>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="admin-payroll-row-action"
+                                                    title="Descargar PDF del empleado"
+                                                    onClick={() => handleDownload({ format: 'pdf', idEmpleado: row.id_empleado })}
+                                                    disabled={!!downloading}
+                                                >
+                                                    <i className="fa-regular fa-file-pdf"></i>
+                                                </button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 ))
                             )}
@@ -188,6 +261,7 @@ const AdminDetailPayroll = ({ period, onBack }) => {
                                 <td className="is-danger">{formatReportCurrency(totals.arl)}</td>
                                 <td className="is-danger">{formatReportCurrency(totals.pension)}</td>
                                 <td className="is-primary is-strong">{formatReportCurrency(totals.totalPagar)}</td>
+                                <td></td>
                             </tr>
                         </tfoot>
                     </table>

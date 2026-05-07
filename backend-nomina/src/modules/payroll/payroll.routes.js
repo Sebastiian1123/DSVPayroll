@@ -5,6 +5,8 @@ const {
   createPayroll,
   deletePayrollsByEmployee,
   getPayrollReport,
+  downloadPayrollReportExcel,
+  downloadPayrollReportPdf,
   downloadPayrollPdf,
   getPayrollNoveltiesPreview,
   getPayrollById,
@@ -17,6 +19,8 @@ router.use(verifyToken);
 router.get('/parametros', getPayrollParameters);
 router.put('/parametros', verifyAdminORRRHH, updatePayrollParameters);
 router.get('/reportes', getPayrollReport);
+router.get('/reportes/export/excel', verifyAdminORRRHH, downloadPayrollReportExcel);
+router.get('/reportes/export/pdf', verifyAdminORRRHH, downloadPayrollReportPdf);
 router.get('/novedades', verifyAdminORRRHH, getPayrollNoveltiesPreview);
 router.post('/', verifyAdminORRRHH, createPayroll);
 router.delete('/empleado/:id_empleado', verifyAdminORRRHH, deletePayrollsByEmployee);

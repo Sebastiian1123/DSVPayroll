@@ -30,7 +30,7 @@ const Users = () => {
 
     const fetchUsers = async () => {
         try {
-            setLoading(true); 
+            setLoading(true);
             const response = await api.get('/users');
             setUsers(response.data.data || []);
         } catch (err) {
@@ -68,6 +68,13 @@ const Users = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        // Validar contraseña
+        const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        if (!passwordRegex.test(formData.password)) {
+            showError('Contraseña inválida', 'La contraseña debe tener al menos 8 caracteres, una letra mayúscula, un número y un carácter especial.');
+            return;
+        }
+
         try {
             await authService.register(formData);
             showSuccess('Usuario registrado', 'El usuario fue creado exitosamente');
@@ -75,7 +82,7 @@ const Users = () => {
             fetchUsers();
             fetchEmployees();
         } catch (err) {
-            showError('Error al registrar', 'Error al registrar usuario');
+            showError('Error al registrar', 'Error al registrar usuario', err.response?.data?.message || '');
         }
     };
 
@@ -95,25 +102,33 @@ const Users = () => {
             fetchUsers();
             fetchEmployees();
         } catch (err) {
-            showError('Error al actualizar', 'Error al actualizar usuario');
+            showError('Error al actualizar', 'Error al actualizar usuario', err.response?.data?.message || '');
         }
     };
 
-    const handleDelete = async (userId) => {
-        const result = await showConfirmDelete();
+    const handleDelete = (userId) => {
+        showConfirmDelete(
+            '¿Seguro que deseas eliminar este usuario?',
+            async () => {
+                try {
+                    await api.delete(`/users/${userId}`);
 
-        if (!result.isConfirmed) {
-            return;
-        }
+                    showSuccess(
+                        'Usuario eliminado',
+                        'El usuario fue eliminado exitosamente'
+                    );
 
-        try {
-            await api.delete(`/users/${userId}`);
-            showSuccess('Usuario eliminado', 'El usuario fue eliminado exitosamente');
-            fetchUsers();
-            fetchEmployees();
-        } catch (err) {
-            showError('Error al eliminar', 'Error al eliminar usuario');
-        }
+                    fetchUsers();
+                    fetchEmployees();
+                } catch (err) {
+                    showError(
+                        'Error al eliminar',
+                        'Error al eliminar usuario',
+                        err.response?.data?.message || ''
+                    );
+                }
+            }
+        );
     };
 
     const handleToggleStatus = async (userId) => {
@@ -305,9 +320,9 @@ const Users = () => {
                                         name="password"
                                         value={formData.password}
                                         onChange={handleChange}
-                                        placeholder="Mínimo 6 caracteres"
+                                        placeholder="Mínimo 8 caracteres"
                                         required
-                                        minLength={6}
+                                        minLength={8}
                                         maxLength={30}
                                     />
                                 </div>

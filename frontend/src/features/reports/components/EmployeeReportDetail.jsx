@@ -53,9 +53,7 @@ const EmployeeReportDetail = ({ report, onBack }) => {
                     <h1>Detalle de Nómina</h1>
                 </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                    <button className="btn" style={{ background: 'white', color: 'var(--text-dark)', border: '1px solid var(--border-color)' }}>
-                        <i className="fa-regular fa-envelope"></i> Enviar a Email
-                    </button>
+                    
                     <button
                         className="btn btn-primary"
                         style={{ display: 'flex', alignItems: 'center', gap: '8px' }}

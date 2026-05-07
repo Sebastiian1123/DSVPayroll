@@ -1,5 +1,7 @@
 const { pool } = require('../../config/database');
 const { generatePayrollPdfBuffer } = require('./payroll-pdf.service');
+const { generatePayrollReportExcelBuffer } = require('./payroll-report-excel.service');
+const { generatePayrollReportPdfBuffer } = require('./payroll-report-pdf.service');
 const { VALID_PAYMENT_TYPES, VALID_OVERTIME_TYPES } = require('./payroll.constants');
 const {
   getPayrollNoveltiesForPeriod,
@@ -804,82 +806,12 @@ const getPayrollReport = async (req, res) => {
 
     const finalEmployeeId = isAdminOrRRHH ? requestedEmployeeId : authenticatedEmployeeId;
 
-    const queryParams = [requestedYear];
-    let monthFilterSql = '';
-    let employeeFilterSql = '';
-
-    if (hasMonthFilter) {
-      monthFilterSql = ' AND MONTH(n.fecha_corte) = ? ';
-      queryParams.push(requestedMonth);
-    }
-
-    if (finalEmployeeId) {
-      employeeFilterSql = ' AND n.id_empleado = ? ';
-      queryParams.push(finalEmployeeId);
-    }
-
-    const [rows] = await pool.query(
-      `SELECT
-        n.id_nomina,
-        n.id_empleado,
-        CONCAT(e.nombres, ' ', e.apellidos) AS empleado,
-        e.sueldo AS salario_basico,
-        c.nombre_cargo AS cargo,
-        d.nombre_departamento AS departamento,
-        n.fecha_inicio,
-        n.fecha_corte,
-        n.tipo_pago,
-        n.total_devengado,
-        n.total_deducciones,
-        n.total_pagar,
-        COALESCE(he.heo, 0) AS heo,
-        COALESCE(he.hef, 0) AS hef,
-        COALESCE(he.hen, 0) AS hen,
-        COALESCE(he.hefn, 0) AS hefn,
-        COALESCE(dd.salud, 0) AS deduccion_salud,
-        COALESCE(dd.arl, 0) AS deduccion_arl,
-        COALESCE(dd.pension, 0) AS deduccion_pension
-      FROM nomina n
-      INNER JOIN empleados e ON e.id_empleado = n.id_empleado
-      LEFT JOIN cargos c ON c.id_cargo = e.id_cargo
-      LEFT JOIN departamentos d ON d.id_departamento = e.id_departamento
-      LEFT JOIN (
-        SELECT
-          id_nomina,
-          SUM(CASE WHEN tipo_hora = 'EXTRA_DIURNA' THEN horas ELSE 0 END) AS heo,
-          SUM(CASE WHEN tipo_hora = 'EXTRA_DIURNA_DOMINICAL_FESTIVO' THEN horas ELSE 0 END) AS hef,
-          SUM(CASE WHEN tipo_hora = 'EXTRA_NOCTURNA' THEN horas ELSE 0 END) AS hen,
-          SUM(CASE WHEN tipo_hora = 'EXTRA_NOCTURNA_DOMINICAL_FESTIVO' THEN horas ELSE 0 END) AS hefn
-        FROM horas_extra_nomina
-        GROUP BY id_nomina
-      ) he ON he.id_nomina = n.id_nomina
-      LEFT JOIN (
-        SELECT
-          id_nomina,
-          SUM(CASE WHEN LOWER(concepto) LIKE '%salud%' THEN valor ELSE 0 END) AS salud,
-          SUM(CASE WHEN LOWER(concepto) LIKE '%arl%' THEN valor ELSE 0 END) AS arl,
-          SUM(CASE WHEN LOWER(concepto) LIKE '%pensi%' THEN valor ELSE 0 END) AS pension
-        FROM detalle_nomina
-        GROUP BY id_nomina
-      ) dd ON dd.id_nomina = n.id_nomina
-      WHERE YEAR(n.fecha_corte) = ?
-        ${monthFilterSql}
-        ${employeeFilterSql}
-      ORDER BY n.fecha_corte DESC, n.id_nomina DESC`,
-      queryParams
-    );
-
-    const resumen = rows.reduce((acc, row) => ({
-      totalNominas: acc.totalNominas + 1,
-      totalDevengado: acc.totalDevengado + (Number(row.total_devengado) || 0),
-      totalDeducciones: acc.totalDeducciones + (Number(row.total_deducciones) || 0),
-      totalPagado: acc.totalPagado + (Number(row.total_pagar) || 0)
-    }), {
-      totalNominas: 0,
-      totalDevengado: 0,
-      totalDeducciones: 0,
-      totalPagado: 0
+    const rows = await getPayrollReportRows({
+      anio: requestedYear,
+      mes: hasMonthFilter ? requestedMonth : null,
+      id_empleado: finalEmployeeId
     });
+    const resumen = buildPayrollReportSummary(rows);
 
     return res.json({
       success: true,
@@ -898,6 +830,188 @@ const getPayrollReport = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Error obteniendo el reporte de nomina'
+    });
+  }
+};
+
+const buildPayrollReportFilename = ({ anio, mes, id_empleado, extension }) => {
+  const period = mes ? `${anio}-${String(mes).padStart(2, '0')}` : `${anio}`;
+  const scope = id_empleado ? `empleado-${id_empleado}` : 'todos';
+  return `reporte-nomina-${period}-${scope}.${extension}`;
+};
+
+const buildPayrollReportSummary = (rows) => (
+  rows.reduce((acc, row) => ({
+    totalNominas: acc.totalNominas + 1,
+    totalDevengado: acc.totalDevengado + (Number(row.total_devengado) || 0),
+    totalDeducciones: acc.totalDeducciones + (Number(row.total_deducciones) || 0),
+    totalPagado: acc.totalPagado + (Number(row.total_pagar) || 0)
+  }), {
+    totalNominas: 0,
+    totalDevengado: 0,
+    totalDeducciones: 0,
+    totalPagado: 0
+  })
+);
+
+const getPayrollReportRows = async ({ anio, mes, id_empleado }) => {
+  const queryParams = [anio];
+  let monthFilterSql = '';
+  let employeeFilterSql = '';
+
+  if (mes) {
+    monthFilterSql = ' AND MONTH(n.fecha_corte) = ? ';
+    queryParams.push(mes);
+  }
+
+  if (id_empleado) {
+    employeeFilterSql = ' AND n.id_empleado = ? ';
+    queryParams.push(id_empleado);
+  }
+
+  const [rows] = await pool.query(
+    `SELECT
+      n.id_nomina,
+      n.id_empleado,
+      CONCAT(e.nombres, ' ', e.apellidos) AS empleado,
+      e.tipo_identificacion,
+      e.numero_identificacion,
+      e.fecha_ingreso,
+      e.sueldo AS salario_basico,
+      c.nombre_cargo AS cargo,
+      d.nombre_departamento AS departamento,
+      n.fecha_inicio,
+      n.fecha_corte,
+      n.tipo_pago,
+      n.total_devengado,
+      n.total_deducciones,
+      n.total_pagar,
+      COALESCE(he.heo, 0) AS heo,
+      COALESCE(he.hef, 0) AS hef,
+      COALESCE(he.hen, 0) AS hen,
+      COALESCE(he.hefn, 0) AS hefn,
+      COALESCE(dd.salud, 0) AS deduccion_salud,
+      COALESCE(dd.arl, 0) AS deduccion_arl,
+      COALESCE(dd.pension, 0) AS deduccion_pension
+    FROM nomina n
+    INNER JOIN empleados e ON e.id_empleado = n.id_empleado
+    LEFT JOIN cargos c ON c.id_cargo = e.id_cargo
+    LEFT JOIN departamentos d ON d.id_departamento = e.id_departamento
+    LEFT JOIN (
+      SELECT
+        id_nomina,
+        SUM(CASE WHEN tipo_hora = 'EXTRA_DIURNA' THEN horas ELSE 0 END) AS heo,
+        SUM(CASE WHEN tipo_hora = 'EXTRA_DIURNA_DOMINICAL_FESTIVO' THEN horas ELSE 0 END) AS hef,
+        SUM(CASE WHEN tipo_hora = 'EXTRA_NOCTURNA' THEN horas ELSE 0 END) AS hen,
+        SUM(CASE WHEN tipo_hora = 'EXTRA_NOCTURNA_DOMINICAL_FESTIVO' THEN horas ELSE 0 END) AS hefn
+      FROM horas_extra_nomina
+      GROUP BY id_nomina
+    ) he ON he.id_nomina = n.id_nomina
+    LEFT JOIN (
+      SELECT
+        id_nomina,
+        SUM(CASE WHEN LOWER(concepto) LIKE '%salud%' THEN valor ELSE 0 END) AS salud,
+        SUM(CASE WHEN LOWER(concepto) LIKE '%arl%' THEN valor ELSE 0 END) AS arl,
+        SUM(CASE WHEN LOWER(concepto) LIKE '%pensi%' THEN valor ELSE 0 END) AS pension
+      FROM detalle_nomina
+      GROUP BY id_nomina
+    ) dd ON dd.id_nomina = n.id_nomina
+    WHERE YEAR(n.fecha_corte) = ?
+      ${monthFilterSql}
+      ${employeeFilterSql}
+    ORDER BY n.fecha_corte DESC, n.id_nomina DESC`,
+    queryParams
+  );
+
+  return rows;
+};
+
+const downloadPayrollReportExcel = async (req, res) => {
+  try {
+    const now = new Date();
+    const requestedYear = Number(req.query.anio) || now.getUTCFullYear();
+    const hasMonthFilter = req.query.mes !== undefined && req.query.mes !== null && req.query.mes !== '';
+    const requestedMonth = hasMonthFilter ? Number(req.query.mes) : null;
+    const requestedEmployeeId = Number(req.query.id_empleado) || null;
+
+    if (hasMonthFilter && (requestedMonth < 1 || requestedMonth > 12)) {
+      return res.status(400).json({
+        success: false,
+        message: 'El parametro mes debe estar entre 1 y 12'
+      });
+    }
+
+    if (requestedYear < 2000 || requestedYear > 2100) {
+      return res.status(400).json({
+        success: false,
+        message: 'El parametro anio debe estar entre 2000 y 2100'
+      });
+    }
+
+    const filtros = {
+      anio: requestedYear,
+      mes: hasMonthFilter ? requestedMonth : null,
+      id_empleado: requestedEmployeeId
+    };
+    const rows = await getPayrollReportRows(filtros);
+    const resumen = buildPayrollReportSummary(rows);
+    const excelBuffer = await generatePayrollReportExcelBuffer({ rows, resumen, filtros });
+    const filename = buildPayrollReportFilename({ ...filtros, extension: 'xlsx' });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    return res.send(excelBuffer);
+  } catch (error) {
+    console.error('Error generando Excel de reporte de nomina:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Error generando el Excel del reporte de nomina'
+    });
+  }
+};
+
+const downloadPayrollReportPdf = async (req, res) => {
+  try {
+    const now = new Date();
+    const requestedYear = Number(req.query.anio) || now.getUTCFullYear();
+    const hasMonthFilter = req.query.mes !== undefined && req.query.mes !== null && req.query.mes !== '';
+    const requestedMonth = hasMonthFilter ? Number(req.query.mes) : null;
+    const requestedEmployeeId = Number(req.query.id_empleado) || null;
+
+    if (hasMonthFilter && (requestedMonth < 1 || requestedMonth > 12)) {
+      return res.status(400).json({
+        success: false,
+        message: 'El parametro mes debe estar entre 1 y 12'
+      });
+    }
+
+    if (requestedYear < 2000 || requestedYear > 2100) {
+      return res.status(400).json({
+        success: false,
+        message: 'El parametro anio debe estar entre 2000 y 2100'
+      });
+    }
+
+    const filtros = {
+      anio: requestedYear,
+      mes: hasMonthFilter ? requestedMonth : null,
+      id_empleado: requestedEmployeeId
+    };
+    const rows = await getPayrollReportRows(filtros);
+    const resumen = buildPayrollReportSummary(rows);
+    const pdfBuffer = await generatePayrollReportPdfBuffer({ rows, resumen, filtros });
+    const filename = buildPayrollReportFilename({ ...filtros, extension: 'pdf' });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    return res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Error generando PDF de reporte de nomina:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Error generando el PDF del reporte de nomina'
     });
   }
 };
@@ -1008,6 +1122,8 @@ module.exports = {
   createPayroll,
   deletePayrollsByEmployee,
   getPayrollReport,
+  downloadPayrollReportExcel,
+  downloadPayrollReportPdf,
   downloadPayrollPdf,
   getPayrollNoveltiesPreview,
   getPayrollNoveltiesForPeriod,
