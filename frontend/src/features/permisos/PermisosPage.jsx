@@ -341,10 +341,45 @@ const PermisosPage = () => {
     }
   };
 
+  const handleDeleteRequest = async (request) => {
+    const result = await Swal.fire({
+      title: '¿Eliminar solicitud?',
+      text: `¿Estás seguro de eliminar la solicitud #${request.id_solicitud}? Esta acción no se puede deshacer.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d33',
+      reverseButtons: true
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    try {
+      setProcessingRequestId(request.id_solicitud);
+
+      await api.delete(`/solicitudes/${request.id_solicitud}`);
+
+      showSuccess(
+        'Solicitud eliminada',
+        'La solicitud fue eliminada permanentemente del sistema.'
+      );
+
+      await Promise.all([fetchAdminRequests(), fetchRequests(), fetchBalance()]);
+    } catch (error) {
+      showError('No se pudo eliminar la solicitud', error.response?.data?.message || 'Intenta nuevamente.');
+    } finally {
+      setProcessingRequestId(null);
+    }
+  };
+
   return (
     <>
       <Navbar />
       <div className="permisos-container">
+
         <div className="permisos-header">
           <div>
             <h1>Permisos</h1>
@@ -379,7 +414,18 @@ const PermisosPage = () => {
         )}
 
         {requestsError && <div className="permisos-alert permisos-alert--error">{requestsError}</div>}
-
+        {isAdminOrRRHH() && (
+          <AdminRequestsSection
+            adminFilters={adminFilters}
+            adminRequestsError={adminRequestsError}
+            loadingAdminRequests={loadingAdminRequests}
+            adminRequests={adminRequests}
+            processingRequestId={processingRequestId}
+            onFilterChange={handleAdminFilterChange}
+            onAction={handleAdminAction}
+            onDelete={handleDeleteRequest}
+          />
+        )}
         <div className="permisos-layout">
           <RequestFormSection
             selectedOption={selectedOption}
@@ -397,20 +443,12 @@ const PermisosPage = () => {
             selectedOption={selectedOption}
             loadingRequests={loadingRequests}
             requests={requests}
+            onDelete={handleDeleteRequest}
+            processingRequestId={processingRequestId}
           />
         </div>
 
-        {isAdminOrRRHH() && (
-          <AdminRequestsSection
-            adminFilters={adminFilters}
-            adminRequestsError={adminRequestsError}
-            loadingAdminRequests={loadingAdminRequests}
-            adminRequests={adminRequests}
-            processingRequestId={processingRequestId}
-            onFilterChange={handleAdminFilterChange}
-            onAction={handleAdminAction}
-          />
-        )}
+
       </div>
     </>
   );

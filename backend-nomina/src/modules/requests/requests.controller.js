@@ -1240,6 +1240,93 @@ const cancelLicenseRequest = async (req, res) => (
   })
 );
 
+// Elimina permanentemente una solicitud de la base de datos.
+// Si es una solicitud de vacaciones aprobada, devuelve los dias al saldo antes de borrar.
+const deleteLaborRequest = async (req, res) => {
+  const connection = await pool.getConnection();
+
+  try {
+    const idSolicitud = Number(req.params.id);
+
+    if (!idSolicitud) {
+      return res.status(400).json({
+        success: false,
+        message: 'Debes indicar un id de solicitud valido'
+      });
+    }
+
+    const request = await getRequestById(idSolicitud);
+
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: 'Solicitud no encontrada'
+      });
+    }
+
+    // Permisos: ADMIN/RRHH siempre pueden. El EMPLEADO solo si esta PENDIENTE.
+    const isOwner = req.user.rol === 'EMPLEADO' && Number(req.user.id_empleado) === Number(request.id_empleado);
+    const isAdmin = req.user.rol === 'ADMINISTRADOR' || req.user.rol === 'RRHH';
+
+    if (!isAdmin && !(isOwner && request.estado === 'PENDIENTE')) {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permiso para eliminar esta solicitud. Solo puedes eliminar solicitudes pendientes propias.'
+      });
+    }
+
+    await connection.beginTransaction();
+
+    // Si la solicitud era de vacaciones y estaba aprobada, recomponemos el saldo.
+    if (request.tipo === VACATION_TYPE && request.estado === 'APROBADA') {
+      const periodYear = new Date(request.fecha_inicio).getUTCFullYear();
+
+      const [balanceRows] = await connection.query(
+        `SELECT id_saldo, dias_disfrutados, dias_pendientes
+         FROM vacaciones_saldos
+         WHERE id_empleado = ? AND periodo_anio = ?
+         LIMIT 1
+         FOR UPDATE`,
+        [request.id_empleado, periodYear]
+      );
+
+      if (balanceRows.length > 0) {
+        const balance = balanceRows[0];
+        const requestedDays = Number(request.dias_solicitados) || 0;
+
+        await connection.query(
+          `UPDATE vacaciones_saldos
+           SET dias_disfrutados = dias_disfrutados - ?,
+               dias_pendientes = dias_pendientes + ?
+           WHERE id_saldo = ?`,
+          [requestedDays, requestedDays, balance.id_saldo]
+        );
+      }
+    }
+
+    await connection.query(
+      'DELETE FROM solicitudes_laborales WHERE id_solicitud = ?',
+      [idSolicitud]
+    );
+
+    await connection.commit();
+
+    return res.json({
+      success: true,
+      message: 'Solicitud eliminada permanentemente del sistema'
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error eliminando solicitud laboral:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Error eliminando la solicitud'
+    });
+  } finally {
+    connection.release();
+  }
+};
+
 module.exports = {
   createVacationRequest,
   createPermissionRequest,
@@ -1259,5 +1346,6 @@ module.exports = {
   cancelDisabilityRequest,
   approveLicenseRequest,
   rejectLicenseRequest,
-  cancelLicenseRequest
+  cancelLicenseRequest,
+  deleteLaborRequest
 };

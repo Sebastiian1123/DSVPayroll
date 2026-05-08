@@ -302,6 +302,35 @@
     margin-bottom: 10px;
 }
 
+.permisos-request-actions-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.permisos-delete-icon-btn {
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.permisos-delete-icon-btn:hover {
+    background-color: #fee2e2;
+    color: #dc2626;
+}
+
+.permisos-delete-icon-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .permisos-request-top h3 {
     margin: 0 0 4px;
     font-size: 16px;
@@ -380,7 +409,7 @@
 }
 
 .permisos-admin-panel {
-    margin-top: 24px;
+    margin: 24px 0;
     background: white;
     border-radius: 18px;
     border: 1px solid #e5e7eb;
@@ -392,7 +421,7 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 220px));
     gap: 16px;
-    margin-bottom: 18px;
+    margin: 18px 0;
 }
 
 .permisos-admin-table-wrapper {

@@ -8,7 +8,8 @@ const AdminRequestsSection = ({
   adminRequests,
   processingRequestId,
   onFilterChange,
-  onAction
+  onAction,
+  onDelete
 }) => (
   <section className="permisos-admin-panel">
     <div className="permisos-panel-header">
@@ -131,6 +132,16 @@ const AdminRequestsSection = ({
                         Cancelar
                       </button>
                     )}
+
+                    <button
+                      type="button"
+                      className="permisos-admin-btn permisos-admin-btn--reject"
+                      style={{ backgroundColor: '#dc2626' }}
+                      onClick={() => onDelete(request)}
+                      disabled={processingRequestId === request.id_solicitud}
+                    >
+                      Eliminar
+                    </button>
 
                     {request.documento_soporte && (
                       <a

@@ -19,7 +19,8 @@ const {
   cancelDisabilityRequest,
   approveLicenseRequest,
   rejectLicenseRequest,
-  cancelLicenseRequest
+  cancelLicenseRequest,
+  deleteLaborRequest
 } = require('./requests.controller');
 const { verifyToken, verifyAdminORRRHH } = require('../../middleware/authMiddleware');
 
@@ -27,6 +28,9 @@ const router = express.Router();
 
 // Todas las rutas de solicitudes requieren usuario autenticado.
 router.use(verifyToken);
+
+// Borrar una solicitud (cualquier tipo).
+router.delete('/:id', deleteLaborRequest);
 
 // Crear una nueva solicitud de vacaciones.
 router.post('/vacaciones', createVacationRequest);
