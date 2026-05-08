@@ -80,7 +80,18 @@ const AdminRequestsSection = ({
                   <span className="permisos-admin-subtext">ID {request.id_empleado}</span>
                 </td>
                 <td>{formatDate(request.fecha_inicio)} al {formatDate(request.fecha_fin)}</td>
-                <td>{Number(request.dias_solicitados || 0).toFixed(2)}</td>
+                <td>
+                  {request.tipo === 'VACACIONES' && (Number(request.dias_disfrutar) > 0 || Number(request.dias_dinero) > 0) ? (
+                    <>
+                      {Number(request.dias_solicitados || 0).toFixed(1)}
+                      <span className="permisos-admin-subtext">
+                        ({Number(request.dias_disfrutar || 0).toFixed(1)} D / {Number(request.dias_dinero || 0).toFixed(1)} $)
+                      </span>
+                    </>
+                  ) : (
+                    Number(request.dias_solicitados || 0).toFixed(1)
+                  )}
+                </td>
                 <td>
                   <span className={`permisos-status permisos-status--${getStatusClass(request.estado)}`}>
                     {request.estado}

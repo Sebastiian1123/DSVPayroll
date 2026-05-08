@@ -47,6 +47,70 @@ const RequestFormSection = ({
         </div>
       </div>
 
+      {selectedOption.key === 'VACACIONES' && (
+        <div className="permisos-vacation-split">
+          <div className="permisos-form-row">
+            <div className="permisos-form-group">
+              <label htmlFor="dias_disfrutar">Dias a disfrutar (descanso)</label>
+              <input
+                id="dias_disfrutar"
+                type="number"
+                name="dias_disfrutar"
+                value={formData.dias_disfrutar}
+                onChange={onChange}
+                min="0"
+                max="15"
+                step="0.5"
+                required
+                readOnly
+                className="permisos-input--readonly"
+              />
+              <span className="permisos-field-help">Calculado por rango de fechas (Min 7)</span>
+            </div>
+
+            <div className="permisos-form-group">
+              <label htmlFor="dias_dinero">Dias en dinero (pago)</label>
+              <input
+                id="dias_dinero"
+                type="number"
+                name="dias_dinero"
+                value={formData.dias_dinero}
+                onChange={onChange}
+                min="0"
+                max={Math.min(7, 15 - Number(formData.dias_disfrutar || 0))}
+                step="0.5"
+                required
+              />
+              <span className="permisos-field-help">Maximo 7 dias</span>
+            </div>
+          </div>
+
+          <div className="permisos-vacation-summary">
+            <div className="permisos-summary-item">
+              <span>Dias de descanso:</span>
+              <strong>{Number(formData.dias_disfrutar || 0)}</strong>
+            </div>
+            <div className="permisos-summary-item">
+              <span>Dias pendientes/disponibles:</span>
+              <strong>{Math.max(0, 15 - Number(formData.dias_disfrutar || 0))}</strong>
+            </div>
+            <div className="permisos-summary-item">
+              <span>Total solicitud:</span>
+              <strong>{Number(formData.dias_disfrutar || 0) + Number(formData.dias_dinero || 0)}</strong>
+            </div>
+            {Number(formData.dias_disfrutar || 0) > 0 && Number(formData.dias_disfrutar || 0) < 7 && (
+              <p className="permisos-validation-error">Debes disfrutar al menos 7 dias de descanso.</p>
+            )}
+            {(Number(formData.dias_disfrutar || 0) + Number(formData.dias_dinero || 0)) > 15 && (
+              <p className="permisos-validation-error">El total no puede exceder los 15 dias.</p>
+            )}
+            {Number(formData.dias_dinero || 0) > 7 && (
+              <p className="permisos-validation-error">El maximo en dinero es 7 dias.</p>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="permisos-form-group">
         <label htmlFor="sub_tipo">{selectedOption.subtypeLabel}</label>
         {selectedOption.subtypeOptions.length > 0 ? (

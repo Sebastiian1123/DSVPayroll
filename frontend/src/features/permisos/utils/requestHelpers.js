@@ -47,3 +47,20 @@ export const getStatusClass = (status) => {
       return 'pending';
   }
 };
+
+export const calculateDays = (startDate, endDate) => {
+  if (!startDate || !endDate) return 0;
+  
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
+  if (end < start) return 0;
+
+  // Diferencia en milisegundos
+  const diffTime = Math.abs(end - start);
+  // Diferencia en dias (+1 para incluir el dia inicial)
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  
+  return diffDays;
+};

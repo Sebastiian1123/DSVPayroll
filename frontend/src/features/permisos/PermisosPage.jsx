@@ -16,7 +16,7 @@ import {
   getInitialForm,
   getDefaultPayrollValuesByType
 } from './utils/requestTypeOptions';
-import { toBase64 } from './utils/requestHelpers';
+import { toBase64, calculateDays } from './utils/requestHelpers';
 
 const PermisosPage = () => {
   const { user, isAdminOrRRHH } = useAuth();
@@ -144,10 +144,19 @@ const PermisosPage = () => {
     const { name, value } = event.target;
 
     setFormData((prev) => {
-      const nextState = {
+      let nextState = {
         ...prev,
         [name]: value
       };
+
+      // Si cambian las fechas en vacaciones, recalculamos dias_disfrutar.
+      if (selectedRequestType === REQUEST_TYPE_OPTIONS.VACACIONES.key && (name === 'fecha_inicio' || name === 'fecha_fin')) {
+        const days = calculateDays(
+          name === 'fecha_inicio' ? value : prev.fecha_inicio,
+          name === 'fecha_fin' ? value : prev.fecha_fin
+        );
+        nextState.dias_disfrutar = String(days);
+      }
 
       // Mantiene sincronizados los campos que luego usara nomina.
       if (selectedRequestType === REQUEST_TYPE_OPTIONS.INCAPACIDAD.key && name === 'origen_novedad') {
@@ -202,6 +211,32 @@ const PermisosPage = () => {
     if (!formData.fecha_inicio || !formData.fecha_fin) {
       showError('Datos incompletos', 'Debes seleccionar la fecha de inicio y la fecha final.');
       return;
+    }
+
+    if (selectedRequestType === REQUEST_TYPE_OPTIONS.VACACIONES.key) {
+      const dDisfrutar = Number(formData.dias_disfrutar || 0);
+      const dDinero = Number(formData.dias_dinero || 0);
+      const total = dDisfrutar + dDinero;
+
+      if (dDisfrutar < 7) {
+        showError('Validacion de vacaciones', 'Es obligatorio disfrutar al menos 7 dias de descanso.');
+        return;
+      }
+
+      if (total > 15) {
+        showError('Validacion de vacaciones', 'El total de dias no puede exceder los 15 dias.');
+        return;
+      }
+
+      if (dDinero > 7) {
+        showError('Validacion de vacaciones', 'El maximo de dias en dinero permitido es 7.');
+        return;
+      }
+
+      if (total <= 0) {
+        showError('Validacion de vacaciones', 'Debes solicitar al menos un dia (descanso o dinero).');
+        return;
+      }
     }
 
     try {

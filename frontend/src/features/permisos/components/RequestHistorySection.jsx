@@ -26,7 +26,12 @@ const RequestHistorySection = ({ selectedOption, loadingRequests, requests }) =>
             </div>
 
             <div className="permisos-request-meta">
-              <span>{Number(request.dias_solicitados || 0).toFixed(2)} dias</span>
+              <span>
+                {Number(request.dias_solicitados || 0).toFixed(1)} dias
+                {selectedOption.key === 'VACACIONES' && (Number(request.dias_disfrutar) > 0 || Number(request.dias_dinero) > 0) && (
+                  ` (${Number(request.dias_disfrutar || 0).toFixed(1)} Descanso / ${Number(request.dias_dinero || 0).toFixed(1)} Pago)`
+                )}
+              </span>
               <span>Creada: {formatDate(request.fecha_solicitud)}</span>
             </div>
 

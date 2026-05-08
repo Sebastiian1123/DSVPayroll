@@ -12,8 +12,18 @@ export const getInitialForm = (requestType = 'VACACIONES') => {
     es_remunerado: 'SI',
     porcentaje_pago: '100',
     origen_novedad: '',
-    horas_solicitadas: ''
+    horas_solicitadas: '',
+    dias_disfrutar: '0',
+    dias_dinero: '0'
   };
+
+  if (requestType === 'VACACIONES') {
+    return {
+      ...sharedFields,
+      dias_disfrutar: '0',
+      dias_dinero: '0'
+    };
+  }
 
   if (requestType === 'PERMISO') {
     return {

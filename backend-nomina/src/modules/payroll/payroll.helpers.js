@@ -98,56 +98,97 @@ const mapRequestToPayrollNoveltyRows = (requestRow, monthlySalary) => {
 
   if (requestRow.tipo === 'VACACIONES') {
     const transportDailyValue = SUBSIDIO_TRANSPORTE / 30;
-    const vacationPayrollDeduction = Number(fullDaysValue.toFixed(2));
-    const transportDeduction = Number((transportDailyValue * overlappingDays).toFixed(2));
+    
+    // Si existen los campos de división, los usamos. 
+    // Si no, asumimos que todos los dias solicitados son para disfrutar (compatibilidad hacia atras).
+    const dDisfrutar = Number(requestRow.dias_disfrutar || 0);
+    const dDinero = Number(requestRow.dias_dinero || 0);
+    const hasSplitData = (dDisfrutar + dDinero) > 0;
 
-    return [
-      {
+    // Los días que efectivamente se ausenta para la nómina actual son los que se cruzan con el periodo y son "a disfrutar".
+    // Si no tiene split data, usamos el cálculo tradicional basado en overlappingDays.
+    const effectiveEnjoyedDays = hasSplitData ? Math.min(overlappingDays, dDisfrutar) : overlappingDays;
+    
+    const results = [];
+
+    if (effectiveEnjoyedDays > 0) {
+      const vacationEnjoyedValue = Number((dailySalary * effectiveEnjoyedDays).toFixed(2));
+      const transportDeduction = Number((transportDailyValue * effectiveEnjoyedDays).toFixed(2));
+
+      results.push(
+        {
+          id_solicitud: requestRow.id_solicitud,
+          tipo: requestRow.tipo,
+          sub_tipo: requestRow.sub_tipo,
+          fecha_inicio: requestRow.fecha_inicio,
+          fecha_fin: requestRow.fecha_fin,
+          cantidad: effectiveEnjoyedDays,
+          unidad: 'DIAS',
+          porcentaje_pago: paymentPercentage,
+          es_remunerado: Number(requestRow.es_remunerado) === 1,
+          origen_novedad: requestRow.origen_novedad,
+          categoria: vacationEnjoyedValue > 0 ? 'DEVENGADO' : 'INFORMATIVA',
+          concepto: `Pago vacaciones disfrutadas (${effectiveEnjoyedDays} dias)`,
+          valor: vacationEnjoyedValue
+        },
+        {
+          id_solicitud: requestRow.id_solicitud,
+          tipo: requestRow.tipo,
+          sub_tipo: requestRow.sub_tipo,
+          fecha_inicio: requestRow.fecha_inicio,
+          fecha_fin: requestRow.fecha_fin,
+          cantidad: effectiveEnjoyedDays,
+          unidad: 'DIAS',
+          porcentaje_pago: paymentPercentage,
+          es_remunerado: Number(requestRow.es_remunerado) === 1,
+          origen_novedad: requestRow.origen_novedad,
+          categoria: vacationEnjoyedValue > 0 ? 'DEDUCCION' : 'INFORMATIVA',
+          concepto: `Descuento dias no trabajados por vacaciones (${effectiveEnjoyedDays} dias)`,
+          valor: vacationEnjoyedValue
+        },
+        {
+          id_solicitud: requestRow.id_solicitud,
+          tipo: requestRow.tipo,
+          sub_tipo: requestRow.sub_tipo,
+          fecha_inicio: requestRow.fecha_inicio,
+          fecha_fin: requestRow.fecha_fin,
+          cantidad: effectiveEnjoyedDays,
+          unidad: 'DIAS',
+          porcentaje_pago: paymentPercentage,
+          es_remunerado: Number(requestRow.es_remunerado) === 1,
+          origen_novedad: requestRow.origen_novedad,
+          categoria: transportDeduction > 0 ? 'DEDUCCION' : 'INFORMATIVA',
+          concepto: `Descuento subsidio transporte por vacaciones (${effectiveEnjoyedDays} dias)`,
+          valor: transportDeduction
+        }
+      );
+    }
+
+    // El pago en dinero se realiza una sola vez (usualmente en el primer periodo que toque la fecha de inicio).
+    // Para simplificar, si hay dDinero y estamos en el periodo de inicio, lo pagamos.
+    const isPeriodOfStart = new Date(requestRow.fecha_inicio) >= new Date(requestRow.periodo_inicio) && 
+                           new Date(requestRow.fecha_inicio) <= new Date(requestRow.periodo_fin);
+
+    if (dDinero > 0 && isPeriodOfStart) {
+      const vacationMoneyValue = Number((dailySalary * dDinero).toFixed(2));
+      results.push({
         id_solicitud: requestRow.id_solicitud,
         tipo: requestRow.tipo,
         sub_tipo: requestRow.sub_tipo,
         fecha_inicio: requestRow.fecha_inicio,
         fecha_fin: requestRow.fecha_fin,
-        cantidad: overlappingDays,
+        cantidad: dDinero,
         unidad: 'DIAS',
         porcentaje_pago: paymentPercentage,
-        es_remunerado: Number(requestRow.es_remunerado) === 1,
+        es_remunerado: true,
         origen_novedad: requestRow.origen_novedad,
-        categoria: vacationPayrollDeduction > 0 ? 'DEVENGADO' : 'INFORMATIVA',
-        concepto: `Pago vacaciones (${overlappingDays} dias)`,
-        valor: vacationPayrollDeduction
-      },
-      {
-        id_solicitud: requestRow.id_solicitud,
-        tipo: requestRow.tipo,
-        sub_tipo: requestRow.sub_tipo,
-        fecha_inicio: requestRow.fecha_inicio,
-        fecha_fin: requestRow.fecha_fin,
-        cantidad: overlappingDays,
-        unidad: 'DIAS',
-        porcentaje_pago: paymentPercentage,
-        es_remunerado: Number(requestRow.es_remunerado) === 1,
-        origen_novedad: requestRow.origen_novedad,
-        categoria: vacationPayrollDeduction > 0 ? 'DEDUCCION' : 'INFORMATIVA',
-        concepto: `Descuento dias no trabajados por vacaciones (${overlappingDays} dias)`,
-        valor: vacationPayrollDeduction
-      },
-      {
-        id_solicitud: requestRow.id_solicitud,
-        tipo: requestRow.tipo,
-        sub_tipo: requestRow.sub_tipo,
-        fecha_inicio: requestRow.fecha_inicio,
-        fecha_fin: requestRow.fecha_fin,
-        cantidad: overlappingDays,
-        unidad: 'DIAS',
-        porcentaje_pago: paymentPercentage,
-        es_remunerado: Number(requestRow.es_remunerado) === 1,
-        origen_novedad: requestRow.origen_novedad,
-        categoria: transportDeduction > 0 ? 'DEDUCCION' : 'INFORMATIVA',
-        concepto: `Descuento subsidio transporte por vacaciones (${overlappingDays} dias)`,
-        valor: transportDeduction
-      }
-    ];
+        categoria: 'DEVENGADO',
+        concepto: `Compensacion vacaciones en dinero (${dDinero} dias)`,
+        valor: vacationMoneyValue
+      });
+    }
+
+    return results;
   } else if (requestRow.tipo === 'PERMISO') {
     if (requestedHours > 0) {
       quantity = requestedHours;
@@ -251,6 +292,8 @@ const getPayrollNoveltiesForPeriod = async ({ pool, idEmpleado, fechaInicio, fec
       s.fecha_inicio,
       s.fecha_fin,
       s.dias_solicitados,
+      s.dias_disfrutar,
+      s.dias_dinero,
       s.horas_solicitadas,
       s.es_remunerado,
       s.porcentaje_pago,

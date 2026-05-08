@@ -205,9 +205,49 @@
     background: #f9fafb;
 }
 
+.permisos-form-group input.permisos-input--readonly {
+    background: #f3f4f6;
+    color: #6b7280;
+    cursor: not-allowed;
+    border-color: #e5e7eb;
+}
+
 .permisos-form-group textarea {
     resize: vertical;
     min-height: 96px;
+}
+
+.permisos-vacation-split {
+    padding: 16px;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 14px;
+    margin-bottom: 8px;
+}
+
+.permisos-vacation-summary {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed #bae6fd;
+}
+
+.permisos-summary-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: #0369a1;
+}
+
+.permisos-summary-item strong {
+    font-size: 16px;
+    color: #075985;
+}
+
+.permisos-validation-error {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: #dc2626;
+    font-weight: 600;
 }
 
 .permisos-submit-btn {

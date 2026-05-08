@@ -28,6 +28,8 @@ const getRequestById = async (idSolicitud) => {
       s.fecha_inicio,
       s.fecha_fin,
       s.dias_solicitados,
+      s.dias_disfrutar,
+      s.dias_dinero,
       s.horas_solicitadas,
       s.es_remunerado,
       s.porcentaje_pago,
@@ -311,7 +313,9 @@ const createVacationRequest = async (req, res) => {
       comentario_empleado,
       documento_soporte,
       sub_tipo,
-      support_file
+      support_file,
+      dias_disfrutar = 0,
+      dias_dinero = 0
     } = req.body;
 
     if (!idEmpleado) {
@@ -328,6 +332,40 @@ const createVacationRequest = async (req, res) => {
       });
     }
 
+    // Validaciones de negocio para división de vacaciones
+    const dDisfrutar = Number(dias_disfrutar);
+    const dDinero = Number(dias_dinero);
+
+    if (dDisfrutar < 0 || dDinero < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Los dias a disfrutar y en dinero deben ser mayores o iguales a cero'
+      });
+    }
+
+    if (dDinero > 7) {
+      return res.status(400).json({
+        success: false,
+        message: 'El maximo de dias en dinero permitido es 7'
+      });
+    }
+
+    const totalSolicitado = dDisfrutar + dDinero;
+
+    if (totalSolicitado > 15) {
+      return res.status(400).json({
+        success: false,
+        message: 'El total de dias (disfrutar + dinero) no puede exceder los 15 dias'
+      });
+    }
+
+    if (totalSolicitado <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Debes solicitar al menos un dia de vacaciones (ya sea a disfrutar o en dinero)'
+      });
+    }
+
     if (req.user?.rol === 'EMPLEADO' && !req.user?.id_empleado) {
       return res.status(403).json({
         success: false,
@@ -340,15 +378,8 @@ const createVacationRequest = async (req, res) => {
       body: req.body
     });
 
-    // Si el cliente no envia dias_solicitados, se calculan automaticamente por rango.
-    const requestedDays = Number(req.body.dias_solicitados) || calculateRequestedDays(fecha_inicio, fecha_fin);
-
-    if (requestedDays <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Los dias solicitados deben ser mayores a cero'
-      });
-    }
+    // Los dias solicitados totales para efectos de saldo son la suma de ambos.
+    const requestedDays = totalSolicitado;
 
     if (new Date(fecha_fin) < new Date(fecha_inicio)) {
       return res.status(400).json({
@@ -433,8 +464,8 @@ const createVacationRequest = async (req, res) => {
     // La solicitud siempre entra en estado PENDIENTE para revision posterior.
     const [result] = await pool.query(
       `INSERT INTO solicitudes_laborales
-        (id_empleado, tipo, sub_tipo, fecha_inicio, fecha_fin, dias_solicitados, horas_solicitadas, es_remunerado, porcentaje_pago, origen_novedad, estado, comentario_empleado, documento_soporte)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id_empleado, tipo, sub_tipo, fecha_inicio, fecha_fin, dias_solicitados, dias_disfrutar, dias_dinero, horas_solicitadas, es_remunerado, porcentaje_pago, origen_novedad, estado, comentario_empleado, documento_soporte)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         idEmpleado,
         VACATION_TYPE,
@@ -442,6 +473,8 @@ const createVacationRequest = async (req, res) => {
         fecha_inicio,
         fecha_fin,
         requestedDays,
+        dDisfrutar,
+        dDinero,
         payrollImpactData.horasSolicitadas,
         payrollImpactData.esRemunerado,
         payrollImpactData.porcentajePago,
@@ -461,6 +494,8 @@ const createVacationRequest = async (req, res) => {
         s.fecha_inicio,
         s.fecha_fin,
         s.dias_solicitados,
+        s.dias_disfrutar,
+        s.dias_dinero,
         s.horas_solicitadas,
         s.es_remunerado,
         s.porcentaje_pago,
@@ -557,6 +592,8 @@ const getMyRequests = async (req, res) => {
         s.fecha_inicio,
         s.fecha_fin,
         s.dias_solicitados,
+        s.dias_disfrutar,
+        s.dias_dinero,
         s.horas_solicitadas,
         s.es_remunerado,
         s.porcentaje_pago,
@@ -623,6 +660,8 @@ const getAllRequests = async (req, res) => {
         s.fecha_inicio,
         s.fecha_fin,
         s.dias_solicitados,
+        s.dias_disfrutar,
+        s.dias_dinero,
         s.horas_solicitadas,
         s.es_remunerado,
         s.porcentaje_pago,
@@ -827,6 +866,8 @@ const approveVacationRequest = async (req, res) => {
         s.fecha_inicio,
         s.fecha_fin,
         s.dias_solicitados,
+        s.dias_disfrutar,
+        s.dias_dinero,
         s.horas_solicitadas,
         s.es_remunerado,
         s.porcentaje_pago,
@@ -916,6 +957,8 @@ const rejectVacationRequest = async (req, res) => {
         s.fecha_inicio,
         s.fecha_fin,
         s.dias_solicitados,
+        s.dias_disfrutar,
+        s.dias_dinero,
         s.horas_solicitadas,
         s.es_remunerado,
         s.porcentaje_pago,
@@ -1126,6 +1169,8 @@ const cancelVacationRequest = async (req, res) => {
         s.fecha_inicio,
         s.fecha_fin,
         s.dias_solicitados,
+        s.dias_disfrutar,
+        s.dias_dinero,
         s.horas_solicitadas,
         s.es_remunerado,
         s.porcentaje_pago,
