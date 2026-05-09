@@ -69,14 +69,19 @@ const Users = () => {
         e.preventDefault();
 
         // Validar contraseña
-        const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-        if (!passwordRegex.test(formData.password)) {
-            showError('Contraseña inválida', 'La contraseña debe tener al menos 8 caracteres, una letra mayúscula, un número y un carácter especial.');
+        const password = formData.password.trim();
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d\s]).{8,30}$/;
+
+        if (!passwordRegex.test(password)) {
+            showError(
+                'Contraseña inválida',
+                'La contraseña debe tener entre 8 y 30 caracteres, incluir mayúscula, minúscula, número y un carácter especial.'
+            );
             return;
         }
 
         try {
-            await authService.register(formData);
+            await authService.register({ ...formData, password });
             showSuccess('Usuario registrado', 'El usuario fue creado exitosamente');
             closeModal();
             fetchUsers();
