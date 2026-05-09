@@ -137,6 +137,33 @@ const Employees = () => {
         }
     };
 
+    const handleDelete = async (id, isPermanent = false) => {
+        const confirmMessage = isPermanent
+            ? '¿Estás seguro de que deseas eliminar este empleado permanentemente? Esta acción no se puede deshacer.'
+            : '¿Estás seguro de que deseas desactivar este empleado?';
+
+        const result = await showConfirmDelete(confirmMessage);
+
+        if (!result.isConfirmed) {
+            return;
+        }
+
+        try {
+            const query = isPermanent ? '?permanent=true' : '';
+            await api.delete(`/employees/${id}${query}`);
+
+            if (isPermanent) {
+                showSuccess('Empleado eliminado', 'El empleado fue eliminado permanentemente');
+            } else {
+                showSuccess('Empleado desactivado', 'El empleado fue desactivado exitosamente');
+            }
+
+            fetchEmployees();
+        } catch (err) {
+            showError('Error', err.response?.data?.message || 'Error al procesar la solicitud');
+        }
+    };
+
     const totalPages = Math.ceil(employees.length / ITEMS_PER_PAGE);
     const paginatedEmployees = employees.slice(
         (currentPage - 1) * ITEMS_PER_PAGE,
