@@ -27,6 +27,9 @@ export const showConfirmDelete = (text = 'Esta acción no se puede deshacer.', c
     confirmButtonText: 'Sí, continuar',
     cancelButtonText: 'Cancelar'
   }).then(result => {
-    if(result.isConfirmed && callback)
+    if (result.isConfirmed && callback) {
       callback();
+    }
+
+    return result;
   });
