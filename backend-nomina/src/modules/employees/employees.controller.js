@@ -458,7 +458,7 @@ const updateEmployee = async (req, res) => {
 const deleteEmployee = async (req, res) => {
   try {
     const { id } = req.params;
-    const { permanent } = req.query; // ?permanent=true para eliminación permanente
+    const permanent = req.query.permanent === 'true'; // ?permanent=true para eliminación permanente
     const userRole = req.user.rol;
 
     // Verificar si el empleado existe
@@ -483,7 +483,7 @@ const deleteEmployee = async (req, res) => {
     }
 
     // ELIMINACIÓN PERMANENTE (Hard Delete) - Solo ADMINISTRADOR
-    if (permanent === 'true') {
+    if (permanent) {
       if (userRole !== 'ADMINISTRADOR') {
         return res.status(403).json({
           success: false,
@@ -536,7 +536,7 @@ const deleteEmployee = async (req, res) => {
     }
 
     // Desactivar empleado
-    await pool.query("UPDATE empleados SET activo = FALSE WHERE id_empleado = ?", [
+    await pool.query("UPDATE empleados SET activo = FALSE, eliminado_en = NOW() WHERE id_empleado = ?", [
       id,
     ]);
 
