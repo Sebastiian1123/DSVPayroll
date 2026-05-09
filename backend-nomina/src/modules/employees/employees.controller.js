@@ -536,10 +536,9 @@ const deleteEmployee = async (req, res) => {
     }
 
     // Desactivar empleado
-    await pool.query(
-      "UPDATE empleados SET activo = FALSE, eliminado_en = NOW() WHERE id_empleado = ?",
-      [id]
-    );
+    await pool.query("UPDATE empleados SET activo = FALSE WHERE id_empleado = ?", [
+      id,
+    ]);
 
     // Si tiene usuario asociado, también desactivarlo
     await pool.query(
