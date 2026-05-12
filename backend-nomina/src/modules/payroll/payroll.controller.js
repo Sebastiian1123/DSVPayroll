@@ -41,14 +41,37 @@ const parsePercentageInput = (value, fallback = 0) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const parsePayrollDate = (value) => {
+  if (value instanceof Date) {
+    return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()));
+  }
+
+  if (typeof value === 'string') {
+    const match = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (match) {
+      const year = Number(match[1]);
+      const month = Number(match[2]);
+      const day = Number(match[3]);
+      return new Date(Date.UTC(year, month - 1, day));
+    }
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return parsed;
+  }
+
+  return new Date(Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate()));
+};
+
 const isLastDayOfMonth = (date) => {
   const probe = new Date(date);
-  probe.setDate(probe.getDate() + 1);
-  return probe.getDate() === 1;
+  probe.setUTCDate(probe.getUTCDate() + 1);
+  return probe.getUTCDate() === 1;
 };
 
 const toPayrollDay = (date) => {
-  const day = date.getDate();
+  const day = date.getUTCDate();
   if (isLastDayOfMonth(date)) {
     return 30;
   }
@@ -57,14 +80,14 @@ const toPayrollDay = (date) => {
 };
 
 const calculateWorkedDays = (startDate, endDate) => {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
+  const start = parsePayrollDate(startDate);
+  const end = parsePayrollDate(endDate);
 
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) {
     return 0;
   }
 
-  const sameMonth = start.getFullYear() == end.getFullYear() && start.getMonth() == end.getMonth();
+  const sameMonth = start.getUTCFullYear() === end.getUTCFullYear() && start.getUTCMonth() === end.getUTCMonth();
 
   if (sameMonth) {
     const workedDays = toPayrollDay(end) - toPayrollDay(start) + 1;
