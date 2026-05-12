@@ -4,6 +4,18 @@ import {
   buildOvertimeTypes
 } from './constants'
 
+const isLastDayOfMonth = (date) => {
+  const probe = new Date(date)
+  probe.setDate(probe.getDate() + 1)
+  return probe.getDate() === 1
+}
+
+const toPayrollDay = (date) => {
+  const day = date.getDate()
+  if (isLastDayOfMonth(date)) return 30
+  return Math.min(day, 30)
+}
+
 export const calculateWorkedDays = (startDate, endDate) => {
   if (!startDate || !endDate) return 0
 
@@ -12,8 +24,16 @@ export const calculateWorkedDays = (startDate, endDate) => {
 
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return 0
 
+  const sameMonth = start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth()
+
+  if (sameMonth) {
+    const workedDays = toPayrollDay(end) - toPayrollDay(start) + 1
+    return Math.max(0, Math.min(workedDays, 30))
+  }
+
   const diffMs = end.getTime() - start.getTime()
-  return Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1
+  const calendarDays = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1
+  return Math.max(0, Math.min(calendarDays, 30))
 }
 
 const parseParameterNumber = (value, fallback = 0) => {
