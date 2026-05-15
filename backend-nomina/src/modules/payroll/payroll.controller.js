@@ -7,6 +7,7 @@ const {
   getPayrollNoveltiesForPeriod,
   buildPayrollNoveltyDetailRows
 } = require('./payroll.helpers');
+const { calcularPrestacionesEmpleado } = require('../prestaciones/prestaciones.controller');
 
 const parseParameterNumber = (value, fallback = 0) => {
   const parsed = Number(value);
@@ -616,6 +617,10 @@ const createPayroll = async (req, res) => {
 
     await connection.commit();
 
+    calcularPrestacionesEmpleado(id_empleado, anio, mes, salarioBase).catch((err) => {
+      console.error('Error acumulando prestaciones post-nomina:', err.message);
+    });
+
     const [savedPayrollRows] = await connection.query(
       `SELECT id_nomina, id_empleado, fecha_inicio, fecha_corte, tipo_pago, total_devengado, total_deducciones, total_pagar
        FROM nomina
@@ -1124,7 +1129,6 @@ const downloadPayrollReportPdf = async (req, res) => {
 };
 
 const downloadPayrollPdf = async (req, res) => {
-  console.log("1. Inicio descarga PDF");
   try {
     const { id_nomina } = req.params;
 
@@ -1159,8 +1163,6 @@ const downloadPayrollPdf = async (req, res) => {
       WHERE n.id_nomina = ?`,
       [id_nomina]
     );
-    console.log("2. Datos nómina");
-
     if (payrollRows.length === 0) {
       return res.status(404).json({
         success: false,
@@ -1187,8 +1189,6 @@ const downloadPayrollPdf = async (req, res) => {
       WHERE id_nomina = ?`,
       [id_nomina]
     );
-    console.log("3. Detalles");
-
     const [overtimeRows] = await pool.query(
       `SELECT
       tipo_hora,
@@ -1200,14 +1200,13 @@ const downloadPayrollPdf = async (req, res) => {
       FROM horas_extra_nomina
       WHERE id_nomina = ?`,
       [id_nomina]
-    );console.log("4. Horas extra");
+    );
 
     const pdfBuffer = await generatePayrollPdfBuffer({
       payroll,
       detailRows,
       overtimeRows
     });
-    console.log("5. PDF generado");
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(

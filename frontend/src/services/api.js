@@ -32,11 +32,9 @@ api.interceptors.request.use(
             config.headers.Authorization = `Bearer ${token}`;
         }
         
-        console.log('📤 Request:', config.method.toUpperCase(), config.url);
         return config;
     },
     (error) => {
-        console.error('❌ Error en request:', error);
         return Promise.reject(error);
     }
 );
@@ -48,7 +46,6 @@ api.interceptors.request.use(
 // Se ejecuta DESPUÉS de cada respuesta
 api.interceptors.response.use(
     (response) => {
-        console.log('📥 Response:', response.status, response.config.url);
         return response;
     },
     (error) => {
@@ -57,12 +54,9 @@ api.interceptors.response.use(
             // El servidor respondió con un código de error
             const { status, data } = error.response;
             
-            console.error('❌ Error Response:', status, data.message);
             
             // Si el token expiró o es inválido (401)
             if (status === 401) {
-                console.log('🔒 Token inválido o expirado');
-                
                 // Limpiar el localStorage
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
@@ -73,15 +67,11 @@ api.interceptors.response.use(
             
             // Si no tiene permisos (403)
             if (status === 403) {
-                console.log('🚫 Sin permisos para esta acción');
             }
             
         } else if (error.request) {
             // La petición se hizo pero no hubo respuesta
-            console.error('❌ Sin respuesta del servidor:', error.request);
         } else {
-            // Error al configurar la petición
-            console.error('❌ Error:', error.message);
         }
         
         return Promise.reject(error);

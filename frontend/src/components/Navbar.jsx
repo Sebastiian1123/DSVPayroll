@@ -56,9 +56,17 @@ const Navbar = () => {
                         <i className="fa-solid fa-clipboard-check"></i> Permisos
                     </Link>
                     {isAdmin() && (
+                        <>
                         <Link to="/users" className="nav-link">
                             <i className="fa-solid fa-user-shield"></i> Usuarios
                         </Link>
+                        <Link to="/prestaciones" className="nav-link">
+                            <i className="fa-solid fa-chart-line"></i> Prestaciones
+                        </Link>
+                        <Link to="/liquidacion" className="nav-link">
+                            <i className="fa-solid fa-file-contract"></i> Liquidación
+                        </Link>
+                        </>
                     )}
                 </div>
 

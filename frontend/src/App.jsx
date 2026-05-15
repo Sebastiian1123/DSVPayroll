@@ -18,6 +18,8 @@ import { Directory } from './pages/Directory';
 import PermisosPage from './features/permisos';
 import ReportsPage from './features/reports';
 import { Parametros } from './pages/Parametros.jsx';
+import Prestaciones from './pages/Prestaciones.jsx';
+import Liquidacion from './pages/Liquidacion.jsx';
 
 
 function App() {
@@ -136,9 +138,25 @@ function App() {
         }
       />
 
+      <Route
+        path="/prestaciones"
+        element={
+          <PrivateRoute>
+            <Prestaciones />
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/liquidacion"
+        element={
+          <PrivateRoute>
+            <Liquidacion />
+          </PrivateRoute>
+        }
+      />
 
       
-
       {/* ========================================
           RUTA 404 - NO ENCONTRADA
           ========================================== */}

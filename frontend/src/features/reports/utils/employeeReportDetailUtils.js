@@ -5,7 +5,7 @@ export const EMPLOYEE_REPORT_ACTIONS = [
 ]
 
 export const getEmployeeReportPeriodMeta = (report) => {
-  const year = report.year || 2023
+  const year = report.year || new Date().getFullYear()
   const monthToken = report.id?.split('-').pop() || '01'
 
   return {

@@ -13,7 +13,8 @@ const {
   testConnection,
   ensureEmployeeSalaryColumn,
   ensureDefaultDepartments,
-  ensurePayrollSupportTables
+  ensurePayrollSupportTables,
+  ensurePrestacionesLiquidacionTables
 } = require('./src/config/database.js');
 const { verifyConnection } = require('./src/services/emailService');
 
@@ -23,6 +24,8 @@ const userRoutes = require('./src/modules/users/users.routes.js');
 const catalogRoutes = require('./src/modules/catalogs/catalogs.routes.js');
 const nominaRoutes = require('./src/modules/payroll/payroll.routes.js');
 const solicitudesRoutes = require('./src/modules/requests/requests.routes.js');
+const prestacionesRoutes = require('./src/modules/prestaciones/prestaciones.routes.js');
+const liquidacionRoutes = require('./src/modules/liquidacion/liquidacion.routes.js');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -39,9 +42,10 @@ app.use(
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
-// Logger basico para ver cada peticion que entra al servidor.
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path} - ${new Date().toLocaleDateString()}`);
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`${req.method} ${req.path}`);
+  }
   next();
 });
 
@@ -73,10 +77,13 @@ app.use('/api/users', userRoutes);
 app.use('/api/catalogs', catalogRoutes);
 app.use('/api/nomina', nominaRoutes);
 app.use('/api/solicitudes', solicitudesRoutes);
+app.use('/api/prestaciones', prestacionesRoutes);
+app.use('/api/liquidacion', liquidacionRoutes);
 
-// Captura errores globales y da un mensaje claro cuando el body supera el limite.
 app.use((err, req, res, next) => {
-  console.error('Error:', err.stack);
+  if (process.env.NODE_ENV === 'development') {
+    console.error('Error:', err.stack);
+  }
 
   if (err.type === 'entity.too.large') {
     return res.status(413).json({
@@ -110,6 +117,7 @@ const startServer = async () => {
       await ensureEmployeeSalaryColumn();
       await ensureDefaultDepartments();
       await ensurePayrollSupportTables();
+      await ensurePrestacionesLiquidacionTables();
     }
 
     app.listen(PORT, () => {
