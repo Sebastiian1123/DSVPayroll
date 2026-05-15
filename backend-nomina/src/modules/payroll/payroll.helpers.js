@@ -113,7 +113,6 @@ const mapRequestToPayrollNoveltyRows = (requestRow, monthlySalary, subsidioTrans
     const results = [];
 
     if (effectiveEnjoyedDays > 0) {
-      const vacationEnjoyedValue = Number((dailySalary * effectiveEnjoyedDays).toFixed(2));
       const transportDeduction = Number((transportDailyValue * effectiveEnjoyedDays).toFixed(2));
 
       results.push(
@@ -128,24 +127,9 @@ const mapRequestToPayrollNoveltyRows = (requestRow, monthlySalary, subsidioTrans
           porcentaje_pago: paymentPercentage,
           es_remunerado: Number(requestRow.es_remunerado) === 1,
           origen_novedad: requestRow.origen_novedad,
-          categoria: vacationEnjoyedValue > 0 ? 'DEVENGADO' : 'INFORMATIVA',
-          concepto: `Pago vacaciones disfrutadas (${effectiveEnjoyedDays} dias)`,
-          valor: vacationEnjoyedValue
-        },
-        {
-          id_solicitud: requestRow.id_solicitud,
-          tipo: requestRow.tipo,
-          sub_tipo: requestRow.sub_tipo,
-          fecha_inicio: requestRow.fecha_inicio,
-          fecha_fin: requestRow.fecha_fin,
-          cantidad: effectiveEnjoyedDays,
-          unidad: 'DIAS',
-          porcentaje_pago: paymentPercentage,
-          es_remunerado: Number(requestRow.es_remunerado) === 1,
-          origen_novedad: requestRow.origen_novedad,
-          categoria: vacationEnjoyedValue > 0 ? 'DEDUCCION' : 'INFORMATIVA',
-          concepto: `Descuento dias no trabajados por vacaciones (${effectiveEnjoyedDays} dias)`,
-          valor: vacationEnjoyedValue
+          categoria: 'INFORMATIVA',
+          concepto: `Vacaciones disfrutadas (${effectiveEnjoyedDays} dias)`,
+          valor: 0
         },
         {
           id_solicitud: requestRow.id_solicitud,
