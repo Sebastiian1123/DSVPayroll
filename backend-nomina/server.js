@@ -48,7 +48,6 @@ app.use((req, res, next) => {
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    succes: true,
     message: 'Servidor funcionando correctamente',
     timestamp: new Date().toISOString()
   });

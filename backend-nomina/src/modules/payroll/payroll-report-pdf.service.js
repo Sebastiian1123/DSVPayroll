@@ -8,7 +8,8 @@ const generatePayrollReportPdfBuffer = async ({ rows, resumen, filtros }) => {
     const html = buildPayrollReportPdfTemplate({ rows, resumen, filtros });
 
     browser = await puppeteer.launch({
-      headless: true
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
     const page = await browser.newPage();

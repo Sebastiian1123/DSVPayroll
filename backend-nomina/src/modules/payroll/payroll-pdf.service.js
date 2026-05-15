@@ -8,7 +8,8 @@ const generatePayrollPdfBuffer = async ({ payroll, detailRows, overtimeRows }) =
     const html = buildPayrollPdfTemplate({ payroll, detailRows, overtimeRows });
 
     browser = await puppeteer.launch({
-      headless: true
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
     const page = await browser.newPage();

@@ -24,6 +24,7 @@ router.get('/reportes/export/pdf', verifyAdminORRRHH, downloadPayrollReportPdf);
 router.get('/novedades', verifyAdminORRRHH, getPayrollNoveltiesPreview);
 router.post('/', verifyAdminORRRHH, createPayroll);
 router.delete('/empleado/:id_empleado', verifyAdminORRRHH, deletePayrollsByEmployee);
+router.get('/:id_nomina', getPayrollById);
 router.get('/:id_nomina/pdf', downloadPayrollPdf);
 
 module.exports = router;

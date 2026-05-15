@@ -1189,6 +1189,80 @@ const downloadPayrollPdf = async (req, res) => {
   }
 };
 
+const getPayrollById = async (req, res) => {
+  try {
+    const { id_nomina } = req.params;
+
+    if (!id_nomina) {
+      return res.status(400).json({
+        success: false,
+        message: 'El id de la nomina es obligatorio'
+      });
+    }
+
+    const [payrollRows] = await pool.query(
+      `SELECT
+        n.id_nomina,
+        n.id_empleado,
+        n.fecha_inicio,
+        n.fecha_corte,
+        n.tipo_pago,
+        n.total_devengado,
+        n.total_deducciones,
+        n.total_pagar,
+        e.nombres,
+        e.apellidos,
+        e.tipo_identificacion,
+        e.numero_identificacion,
+        e.sueldo,
+        c.nombre_cargo,
+        d.nombre_departamento
+      FROM nomina n
+      INNER JOIN empleados e ON e.id_empleado = n.id_empleado
+      INNER JOIN cargos c ON c.id_cargo = e.id_cargo
+      INNER JOIN departamentos d ON d.id_departamento = e.id_departamento
+      WHERE n.id_nomina = ?`,
+      [id_nomina]
+    );
+
+    if (payrollRows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Nomina no encontrada'
+      });
+    }
+
+    const [detailRows] = await pool.query(
+      `SELECT id_detalle, concepto, valor
+       FROM detalle_nomina
+       WHERE id_nomina = ?`,
+      [id_nomina]
+    );
+
+    const [overtimeRows] = await pool.query(
+      `SELECT id_hora_extra, tipo_hora, horas, valor_hora_base, valor_hora_extra, valor_total
+       FROM horas_extra_nomina
+       WHERE id_nomina = ?`,
+      [id_nomina]
+    );
+
+    return res.json({
+      success: true,
+      data: {
+        payroll: payrollRows[0],
+        detailRows,
+        overtimeRows
+      }
+    });
+  } catch (error) {
+    console.error('Error obteniendo nomina por ID:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Error obteniendo la nomina'
+    });
+  }
+};
+
 module.exports = {
   createPayroll,
   deletePayrollsByEmployee,
@@ -1197,7 +1271,7 @@ module.exports = {
   downloadPayrollReportPdf,
   downloadPayrollPdf,
   getPayrollNoveltiesPreview,
-  getPayrollNoveltiesForPeriod,
+  getPayrollById,
   getPayrollParameters,
   updatePayrollParameters
 };
