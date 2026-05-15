@@ -32,6 +32,9 @@ const mapPayrollParametersRow = (row = {}) => {
     pensionEmpleado: String(parseParameterNumber(row.pension_empleado_pct, 4)),
     pensionEmpresa: String(parseParameterNumber(row.pension_empresa_pct, 12)),
     arlEmpresa: String(parseParameterNumber(row.arl_empresa_pct, 0.522)),
+    sena: String(parseParameterNumber(row.sena_pct, 2)),
+    icbf: String(parseParameterNumber(row.icbf_pct, 3)),
+    cajaCompensacion: String(parseParameterNumber(row.caja_compensacion_pct, 4)),
     actualizado_en: row.actualizado_en || null,
     actualizado_por: row.actualizado_por || null
   };
@@ -123,6 +126,9 @@ const getCurrentPayrollConfig = async (db = pool) => {
       pension_empleado_pct,
       pension_empresa_pct,
       arl_empresa_pct,
+      sena_pct,
+      icbf_pct,
+      caja_compensacion_pct,
       actualizado_por,
       actualizado_en
     FROM parametros_nomina
@@ -145,6 +151,9 @@ const getCurrentPayrollConfig = async (db = pool) => {
       pension_empleado_pct: 4,
       pension_empresa_pct: 12,
       arl_empresa_pct: 0.522,
+      sena_pct: 2,
+      icbf_pct: 3,
+      caja_compensacion_pct: 4,
       actualizado_por: null,
       actualizado_en: null
     };
@@ -210,7 +219,10 @@ const updatePayrollParameters = async (req, res) => {
       saludEmpresa: parseParameterNumber(payload.saludEmpresa, 8.5),
       pensionEmpleado: parseParameterNumber(payload.pensionEmpleado, 4),
       pensionEmpresa: parseParameterNumber(payload.pensionEmpresa, 12),
-      arlEmpresa: parseParameterNumber(payload.arlEmpresa, 0.522)
+      arlEmpresa: parseParameterNumber(payload.arlEmpresa, 0.522),
+      sena: parseParameterNumber(payload.sena, 2),
+      icbf: parseParameterNumber(payload.icbf, 3),
+      cajaCompensacion: parseParameterNumber(payload.cajaCompensacion, 4)
     };
 
     const percentageFields = [
@@ -222,7 +234,10 @@ const updatePayrollParameters = async (req, res) => {
       ['saludEmpresa', values.saludEmpresa],
       ['pensionEmpleado', values.pensionEmpleado],
       ['pensionEmpresa', values.pensionEmpresa],
-      ['arlEmpresa', values.arlEmpresa]
+      ['arlEmpresa', values.arlEmpresa],
+      ['sena', values.sena],
+      ['icbf', values.icbf],
+      ['cajaCompensacion', values.cajaCompensacion]
     ];
 
     const invalidField = percentageFields.find(([, value]) => value < 0);
@@ -257,8 +272,11 @@ const updatePayrollParameters = async (req, res) => {
           pension_empleado_pct,
           pension_empresa_pct,
           arl_empresa_pct,
+          sena_pct,
+          icbf_pct,
+          caja_compensacion_pct,
           actualizado_por
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           values.heo,
           values.hen,
@@ -272,6 +290,9 @@ const updatePayrollParameters = async (req, res) => {
           values.pensionEmpleado,
           values.pensionEmpresa,
           values.arlEmpresa,
+          values.sena,
+          values.icbf,
+          values.cajaCompensacion,
           req.user?.id_usuario || null
         ]
       );
@@ -292,6 +313,9 @@ const updatePayrollParameters = async (req, res) => {
              pension_empleado_pct = ?,
              pension_empresa_pct = ?,
              arl_empresa_pct = ?,
+             sena_pct = ?,
+             icbf_pct = ?,
+             caja_compensacion_pct = ?,
              actualizado_por = ?
          WHERE id_parametro = ?`,
         [
@@ -307,6 +331,9 @@ const updatePayrollParameters = async (req, res) => {
           values.pensionEmpleado,
           values.pensionEmpresa,
           values.arlEmpresa,
+          values.sena,
+          values.icbf,
+          values.cajaCompensacion,
           req.user?.id_usuario || null,
           parameterId
         ]
@@ -346,6 +373,9 @@ const updatePayrollParameters = async (req, res) => {
         pension_empleado_pct,
         pension_empresa_pct,
         arl_empresa_pct,
+        sena_pct,
+        icbf_pct,
+        caja_compensacion_pct,
         actualizado_por,
         actualizado_en
       FROM parametros_nomina
@@ -469,6 +499,9 @@ const createPayroll = async (req, res) => {
     const saludEmpresa = Number((baseDeduccionesEmpleado * (parseParameterNumber(payrollConfig.salud_empresa_pct, 8.5) / 100)).toFixed(2));
     const pensionEmpresa = Number((baseDeduccionesEmpleado * (parseParameterNumber(payrollConfig.pension_empresa_pct, 12) / 100)).toFixed(2));
     const arlEmpresa = Number((baseDeduccionesEmpleado * (parseParameterNumber(payrollConfig.arl_empresa_pct, 0.522) / 100)).toFixed(2));
+    const sena = Number((baseDeduccionesEmpleado * (parseParameterNumber(payrollConfig.sena_pct, 2) / 100)).toFixed(2));
+    const icbf = Number((baseDeduccionesEmpleado * (parseParameterNumber(payrollConfig.icbf_pct, 3) / 100)).toFixed(2));
+    const cajaCompensacion = Number((baseDeduccionesEmpleado * (parseParameterNumber(payrollConfig.caja_compensacion_pct, 4) / 100)).toFixed(2));
     const baseDevengado = Number((pagoBasicoPeriodo + valorHorasExtra + subsidioTransporte).toFixed(2));
     const baseDeducciones = Number((saludEmpleado + pensionEmpleado).toFixed(2));
 
@@ -529,7 +562,10 @@ const createPayroll = async (req, res) => {
       [idNomina, `Pension empleado ${parseParameterNumber(payrollConfig.pension_empleado_pct, 4)}%`, pensionEmpleado],
       [idNomina, `Salud empresa ${parseParameterNumber(payrollConfig.salud_empresa_pct, 8.5)}%`, saludEmpresa],
       [idNomina, `Pension empresa ${parseParameterNumber(payrollConfig.pension_empresa_pct, 12)}%`, pensionEmpresa],
-      [idNomina, `ARL empresa ${parseParameterNumber(payrollConfig.arl_empresa_pct, 0.522)}%`, arlEmpresa]
+      [idNomina, `ARL empresa ${parseParameterNumber(payrollConfig.arl_empresa_pct, 0.522)}%`, arlEmpresa],
+      [idNomina, `SENA ${parseParameterNumber(payrollConfig.sena_pct, 2)}%`, sena],
+      [idNomina, `ICBF ${parseParameterNumber(payrollConfig.icbf_pct, 3)}%`, icbf],
+      [idNomina, `Caja compensacion ${parseParameterNumber(payrollConfig.caja_compensacion_pct, 4)}%`, cajaCompensacion]
     ].filter((item) => Number(item[2]) >= 0);
     const noveltyDetailRows = buildPayrollNoveltyDetailRows(idNomina, novelties);
     const mergedDetailRows = [...manualDetailRows, ...noveltyDetailRows];
@@ -1273,5 +1309,6 @@ module.exports = {
   getPayrollNoveltiesPreview,
   getPayrollById,
   getPayrollParameters,
-  updatePayrollParameters
+  updatePayrollParameters,
+  getPayrollNoveltiesForPeriod
 };

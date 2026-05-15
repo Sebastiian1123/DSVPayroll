@@ -164,6 +164,9 @@ const ensurePayrollSupportTables = async () => {
                 pension_empleado_pct DECIMAL(5,3) NOT NULL DEFAULT 4.000,
                 pension_empresa_pct DECIMAL(5,3) NOT NULL DEFAULT 12.000,
                 arl_empresa_pct DECIMAL(5,3) NOT NULL DEFAULT 0.522,
+                sena_pct DECIMAL(5,3) NOT NULL DEFAULT 2.000,
+                icbf_pct DECIMAL(5,3) NOT NULL DEFAULT 3.000,
+                caja_compensacion_pct DECIMAL(5,3) NOT NULL DEFAULT 4.000,
                 actualizado_por INT(11) NULL,
                 creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 actualizado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -192,8 +195,11 @@ const ensurePayrollSupportTables = async () => {
                     salud_empresa_pct,
                     pension_empleado_pct,
                     pension_empresa_pct,
-                    arl_empresa_pct
-                ) VALUES (25.00, 75.00, 100.00, 150.00, 140606.00, 3501810.00, 47.00, 4.000, 8.500, 4.000, 12.000, 0.522)
+                    arl_empresa_pct,
+                    sena_pct,
+                    icbf_pct,
+                    caja_compensacion_pct
+                ) VALUES (25.00, 75.00, 100.00, 150.00, 140606.00, 3501810.00, 47.00, 4.000, 8.500, 4.000, 12.000, 0.522, 2.000, 3.000, 4.000)
             `);
             console.log('Parametrizacion base de nomina inicializada');
         }
@@ -215,6 +221,25 @@ const ensurePayrollSupportTables = async () => {
                  AFTER subsidio_transporte`
             );
             console.log('Columna parametros_nomina.tope_subsidio_transporte creada automaticamente');
+        }
+
+        const [senaColumn] = await promisePool.query(
+            `SELECT COLUMN_NAME
+             FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = ?
+               AND TABLE_NAME = 'parametros_nomina'
+               AND COLUMN_NAME = 'sena_pct'`,
+            [dbName]
+        );
+
+        if (senaColumn.length === 0) {
+            await promisePool.query(
+                `ALTER TABLE parametros_nomina
+                 ADD COLUMN sena_pct DECIMAL(5,3) NOT NULL DEFAULT 2.000 AFTER arl_empresa_pct,
+                 ADD COLUMN icbf_pct DECIMAL(5,3) NOT NULL DEFAULT 3.000 AFTER sena_pct,
+                 ADD COLUMN caja_compensacion_pct DECIMAL(5,3) NOT NULL DEFAULT 4.000 AFTER icbf_pct`
+            );
+            console.log('Columnas de parafiscales creadas automaticamente');
         }
 
         console.log('Tablas de soporte de nomina (horas extra, reportes y parametros) verificadas');

@@ -12,7 +12,10 @@ export const DEFAULT_PAYROLL_PARAMETERS = {
   saludEmpresa: '8.5',
   pensionEmpleado: '4.0',
   pensionEmpresa: '12.0',
-  arlEmpresa: '0.522'
+  arlEmpresa: '0.522',
+  sena: '2.0',
+  icbf: '3.0',
+  cajaCompensacion: '4.0'
 }
 
 export const buildOvertimeTypes = (parameters = DEFAULT_PAYROLL_PARAMETERS) => ([

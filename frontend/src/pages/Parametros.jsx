@@ -16,6 +16,9 @@ const INITIAL_FORM = {
   pensionEmpleado: '4.0',
   pensionEmpresa: '12.0',
   arlEmpresa: '0.522',
+  sena: '2.0',
+  icbf: '3.0',
+  cajaCompensacion: '4.0',
 };
 
 const parseRate = (value) => {
@@ -171,6 +174,9 @@ export const Parametros = () => {
         pensionEmpleado: form.pensionEmpleado,
         pensionEmpresa: form.pensionEmpresa,
         arlEmpresa: form.arlEmpresa,
+        sena: form.sena,
+        icbf: form.icbf,
+        cajaCompensacion: form.cajaCompensacion,
       });
 
       if (savedParameters) {
@@ -447,6 +453,45 @@ export const Parametros = () => {
                     <span className="parametros-muted">N/A</span>
                     <input type="text" name="arlEmpresa" value={form.arlEmpresa} onChange={handleChange} disabled={loading} />
                     <strong>{totals.arl.toFixed(3)}%</strong>
+                  </div>
+                </div>
+              </section>
+
+              <section className="parametros-card parametros-card-table">
+                <div className="parametros-card-header">
+                  <div className="parametros-card-icon orange">
+                    <i className="fa-solid fa-building-columns"></i>
+                  </div>
+                  <h2>Aportes Parafiscales (Empresa)</h2>
+                </div>
+
+                <div className="parametros-table">
+                  <div className="parametros-table-header">
+                    <span>Concepto</span>
+                    <span className="parametros-muted">N/A</span>
+                    <span>Empresa %</span>
+                    <span>Total</span>
+                  </div>
+
+                  <div className="parametros-table-row">
+                    <span>SENA</span>
+                    <span className="parametros-muted">N/A</span>
+                    <input type="text" name="sena" value={form.sena} onChange={handleChange} disabled={loading} />
+                    <strong>{parseRate(form.sena).toFixed(1)}%</strong>
+                  </div>
+
+                  <div className="parametros-table-row">
+                    <span>ICBF</span>
+                    <span className="parametros-muted">N/A</span>
+                    <input type="text" name="icbf" value={form.icbf} onChange={handleChange} disabled={loading} />
+                    <strong>{parseRate(form.icbf).toFixed(1)}%</strong>
+                  </div>
+
+                  <div className="parametros-table-row">
+                    <span>Caja de Compensación</span>
+                    <span className="parametros-muted">N/A</span>
+                    <input type="text" name="cajaCompensacion" value={form.cajaCompensacion} onChange={handleChange} disabled={loading} />
+                    <strong>{parseRate(form.cajaCompensacion).toFixed(1)}%</strong>
                   </div>
                 </div>
               </section>
