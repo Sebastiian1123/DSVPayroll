@@ -6,6 +6,7 @@ export const DEFAULT_PAYROLL_PARAMETERS = {
   hef: '100%',
   hefn: '150%',
   subsidioTransporte: '140606',
+  topeSubsidioTransporte: '3501810',
   horasSemanales: '47',
   saludEmpleado: '4.0',
   saludEmpresa: '8.5',

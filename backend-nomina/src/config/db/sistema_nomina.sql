@@ -108,6 +108,7 @@ CREATE TABLE parametros_nomina (
   horas_extra_festiva_pct DECIMAL(5,2) NOT NULL DEFAULT 100.00,
   horas_extra_festiva_nocturna_pct DECIMAL(5,2) NOT NULL DEFAULT 150.00,
   subsidio_transporte DECIMAL(12,2) NOT NULL DEFAULT 140606.00,
+  tope_subsidio_transporte DECIMAL(12,2) NOT NULL DEFAULT 3501810.00,
   horas_semanales DECIMAL(6,2) NOT NULL DEFAULT 47.00,
   salud_empleado_pct DECIMAL(5,3) NOT NULL DEFAULT 4.000,
   salud_empresa_pct DECIMAL(5,3) NOT NULL DEFAULT 8.500,

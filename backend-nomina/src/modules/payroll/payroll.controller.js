@@ -23,6 +23,7 @@ const mapPayrollParametersRow = (row = {}) => {
     hef: `${parseParameterNumber(row.horas_extra_festiva_pct, 100)}%`,
     hefn: `${parseParameterNumber(row.horas_extra_festiva_nocturna_pct, 150)}%`,
     subsidioTransporte: String(parseParameterNumber(row.subsidio_transporte, 140606)),
+    topeSubsidioTransporte: String(parseParameterNumber(row.tope_subsidio_transporte, 3501810)),
     horasSemanales: String(horasSemanales),
     horasQuincenales: (horasSemanales * 2).toFixed(1),
     horasMensuales: (horasSemanales * 4).toFixed(1),
@@ -115,6 +116,7 @@ const getCurrentPayrollConfig = async (db = pool) => {
       horas_extra_festiva_pct,
       horas_extra_festiva_nocturna_pct,
       subsidio_transporte,
+      tope_subsidio_transporte,
       horas_semanales,
       salud_empleado_pct,
       salud_empresa_pct,
@@ -136,6 +138,7 @@ const getCurrentPayrollConfig = async (db = pool) => {
       horas_extra_festiva_pct: 100,
       horas_extra_festiva_nocturna_pct: 150,
       subsidio_transporte: 140606,
+      tope_subsidio_transporte: 3501810,
       horas_semanales: 47,
       salud_empleado_pct: 4,
       salud_empresa_pct: 8.5,
@@ -172,6 +175,7 @@ const updatePayrollParameters = async (req, res) => {
     const payload = req.body || {};
     const horasSemanales = parseParameterNumber(payload.horasSemanales, 0);
     const subsidioTransporte = parseParameterNumber(payload.subsidioTransporte, 0);
+    const topeSubsidioTransporte = parseParameterNumber(payload.topeSubsidioTransporte, 0);
 
     if (horasSemanales <= 0) {
       return res.status(400).json({
@@ -187,12 +191,20 @@ const updatePayrollParameters = async (req, res) => {
       });
     }
 
+    if (topeSubsidioTransporte <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'El tope para subsidio de transporte debe ser mayor a cero'
+      });
+    }
+
     const values = {
       heo: parsePercentageInput(payload.heo, 25),
       hen: parsePercentageInput(payload.hen, 75),
       hef: parsePercentageInput(payload.hef, 100),
       hefn: parsePercentageInput(payload.hefn, 150),
       subsidioTransporte,
+      topeSubsidioTransporte,
       horasSemanales,
       saludEmpleado: parseParameterNumber(payload.saludEmpleado, 4),
       saludEmpresa: parseParameterNumber(payload.saludEmpresa, 8.5),
@@ -238,6 +250,7 @@ const updatePayrollParameters = async (req, res) => {
           horas_extra_festiva_pct,
           horas_extra_festiva_nocturna_pct,
           subsidio_transporte,
+          tope_subsidio_transporte,
           horas_semanales,
           salud_empleado_pct,
           salud_empresa_pct,
@@ -245,13 +258,14 @@ const updatePayrollParameters = async (req, res) => {
           pension_empresa_pct,
           arl_empresa_pct,
           actualizado_por
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           values.heo,
           values.hen,
           values.hef,
           values.hefn,
           values.subsidioTransporte,
+          values.topeSubsidioTransporte,
           values.horasSemanales,
           values.saludEmpleado,
           values.saludEmpresa,
@@ -271,6 +285,7 @@ const updatePayrollParameters = async (req, res) => {
              horas_extra_festiva_pct = ?,
              horas_extra_festiva_nocturna_pct = ?,
              subsidio_transporte = ?,
+             tope_subsidio_transporte = ?,
              horas_semanales = ?,
              salud_empleado_pct = ?,
              salud_empresa_pct = ?,
@@ -285,6 +300,7 @@ const updatePayrollParameters = async (req, res) => {
           values.hef,
           values.hefn,
           values.subsidioTransporte,
+          values.topeSubsidioTransporte,
           values.horasSemanales,
           values.saludEmpleado,
           values.saludEmpresa,
@@ -323,6 +339,7 @@ const updatePayrollParameters = async (req, res) => {
         horas_extra_festiva_pct,
         horas_extra_festiva_nocturna_pct,
         subsidio_transporte,
+        tope_subsidio_transporte,
         horas_semanales,
         salud_empleado_pct,
         salud_empresa_pct,
@@ -442,7 +459,10 @@ const createPayroll = async (req, res) => {
     const totalHorasExtra = overtimeRows.reduce((acc, row) => acc + row.horas, 0);
     const valorHorasExtra = overtimeRows.reduce((acc, row) => acc + row.valor_total, 0);
     const pagoBasicoPeriodo = Number((valorDia * workedDays).toFixed(2));
-    const subsidioTransporte = parseParameterNumber(payrollConfig.subsidio_transporte, 0);
+    const topeSubsidioTransporte = parseParameterNumber(payrollConfig.tope_subsidio_transporte, 3501810);
+    const subsidioTransporte = salarioBase >= topeSubsidioTransporte
+      ? 0
+      : parseParameterNumber(payrollConfig.subsidio_transporte, 0);
     const baseDeduccionesEmpleado = pagoBasicoPeriodo + valorHorasExtra;
     const saludEmpleado = Number((baseDeduccionesEmpleado * (parseParameterNumber(payrollConfig.salud_empleado_pct, 4) / 100)).toFixed(2));
     const pensionEmpleado = Number((baseDeduccionesEmpleado * (parseParameterNumber(payrollConfig.pension_empleado_pct, 4) / 100)).toFixed(2));
@@ -458,7 +478,9 @@ const createPayroll = async (req, res) => {
       pool,
       idEmpleado: id_empleado,
       fechaInicio: fecha_inicio,
-      fechaCorte: fecha_corte
+      fechaCorte: fecha_corte,
+      subsidioTransporte: parseParameterNumber(payrollConfig.subsidio_transporte, 0),
+      topeSubsidioTransporte
     });
 
     const novelties = payrollNovelties.novedades || [];
@@ -783,11 +805,14 @@ const getPayrollNoveltiesPreview = async (req, res) => {
       });
     }
 
+    const payrollConfig = await getCurrentPayrollConfig(pool);
     const payrollNovelties = await getPayrollNoveltiesForPeriod({
       pool,
       idEmpleado,
       fechaInicio,
-      fechaCorte
+      fechaCorte,
+      subsidioTransporte: parseParameterNumber(payrollConfig.subsidio_transporte, 0),
+      topeSubsidioTransporte: parseParameterNumber(payrollConfig.tope_subsidio_transporte, 3501810)
     });
 
     return res.json({

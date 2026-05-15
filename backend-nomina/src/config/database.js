@@ -157,6 +157,7 @@ const ensurePayrollSupportTables = async () => {
                 horas_extra_festiva_pct DECIMAL(5,2) NOT NULL DEFAULT 100.00,
                 horas_extra_festiva_nocturna_pct DECIMAL(5,2) NOT NULL DEFAULT 150.00,
                 subsidio_transporte DECIMAL(12,2) NOT NULL DEFAULT 140606.00,
+                tope_subsidio_transporte DECIMAL(12,2) NOT NULL DEFAULT 3501810.00,
                 horas_semanales DECIMAL(6,2) NOT NULL DEFAULT 47.00,
                 salud_empleado_pct DECIMAL(5,3) NOT NULL DEFAULT 4.000,
                 salud_empresa_pct DECIMAL(5,3) NOT NULL DEFAULT 8.500,
@@ -185,15 +186,35 @@ const ensurePayrollSupportTables = async () => {
                     horas_extra_festiva_pct,
                     horas_extra_festiva_nocturna_pct,
                     subsidio_transporte,
+                    tope_subsidio_transporte,
                     horas_semanales,
                     salud_empleado_pct,
                     salud_empresa_pct,
                     pension_empleado_pct,
                     pension_empresa_pct,
                     arl_empresa_pct
-                ) VALUES (25.00, 75.00, 100.00, 150.00, 140606.00, 47.00, 4.000, 8.500, 4.000, 12.000, 0.522)
+                ) VALUES (25.00, 75.00, 100.00, 150.00, 140606.00, 3501810.00, 47.00, 4.000, 8.500, 4.000, 12.000, 0.522)
             `);
             console.log('Parametrizacion base de nomina inicializada');
+        }
+
+        const dbName = process.env.DB_NAME || 'sistema_nomina';
+        const [topeColumn] = await promisePool.query(
+            `SELECT COLUMN_NAME
+             FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = ?
+               AND TABLE_NAME = 'parametros_nomina'
+               AND COLUMN_NAME = 'tope_subsidio_transporte'`,
+            [dbName]
+        );
+
+        if (topeColumn.length === 0) {
+            await promisePool.query(
+                `ALTER TABLE parametros_nomina
+                 ADD COLUMN tope_subsidio_transporte DECIMAL(12,2) NOT NULL DEFAULT 3501810.00
+                 AFTER subsidio_transporte`
+            );
+            console.log('Columna parametros_nomina.tope_subsidio_transporte creada automaticamente');
         }
 
         console.log('Tablas de soporte de nomina (horas extra, reportes y parametros) verificadas');

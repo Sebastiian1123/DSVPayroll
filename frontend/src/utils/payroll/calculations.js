@@ -80,7 +80,10 @@ export const calculatePayrollSummary = ({
   const horasMensualesReferencia = Math.max(parseParameterNumber(payrollParameters.horasSemanales, 47) * 4, 1)
   const valorHoraOrdinaria = salarioBase / horasMensualesReferencia
   const overtimeTypes = buildOvertimeTypes(payrollParameters)
-  const subsidioTransporte = parseParameterNumber(payrollParameters.subsidioTransporte, 0)
+  const topeSubsidioTransporte = parseParameterNumber(payrollParameters.topeSubsidioTransporte, 3501810)
+  const subsidioTransporte = salarioBase >= topeSubsidioTransporte
+    ? 0
+    : parseParameterNumber(payrollParameters.subsidioTransporte, 0)
 
   const detallesHorasExtra = overtimeRows.map((row) => {
     const overtimeType = overtimeTypes.find((item) => item.key === row.typeKey) || overtimeTypes[0]

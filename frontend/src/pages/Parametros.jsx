@@ -9,6 +9,7 @@ const INITIAL_FORM = {
   hef: '100%',
   hefn: '150%',
   subsidioTransporte: '140606',
+  topeSubsidioTransporte: '3501810',
   horasSemanales: '47',
   saludEmpleado: '4.0',
   saludEmpresa: '8.5',
@@ -163,6 +164,7 @@ export const Parametros = () => {
         hef: form.hef,
         hefn: form.hefn,
         subsidioTransporte: form.subsidioTransporte,
+        topeSubsidioTransporte: form.topeSubsidioTransporte,
         horasSemanales: form.horasSemanales,
         saludEmpleado: form.saludEmpleado,
         saludEmpresa: form.saludEmpresa,
@@ -351,6 +353,18 @@ export const Parametros = () => {
                     disabled={loading}
                   />
                   <small>{formatCurrency(form.subsidioTransporte)}</small>
+                </label>
+
+                <label className="parametros-field">
+                  <span>Tope para aplicar (salario base maximo)</span>
+                  <input
+                    type="text"
+                    name="topeSubsidioTransporte"
+                    value={form.topeSubsidioTransporte}
+                    onChange={handleChange}
+                    disabled={loading}
+                  />
+                  <small>{formatCurrency(form.topeSubsidioTransporte)}</small>
                 </label>
 
                 <div className="parametros-note">

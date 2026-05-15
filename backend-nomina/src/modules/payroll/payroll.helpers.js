@@ -1,4 +1,4 @@
-const { APPROVED_STATUS, MS_PER_DAY, SUBSIDIO_TRANSPORTE } = require('./payroll.constants');
+const { APPROVED_STATUS, MS_PER_DAY } = require('./payroll.constants');
 
 const calculateOverlappingDays = (periodStart, periodEnd, requestStart, requestEnd) => {
   const effectiveStart = new Date(Math.max(new Date(periodStart).getTime(), new Date(requestStart).getTime()));
@@ -69,7 +69,7 @@ const getCommonDisabilitySegments = (requestRow) => {
 
 const normalizeSubtype = (subtype) => String(subtype || '').trim().toUpperCase();
 
-const mapRequestToPayrollNoveltyRows = (requestRow, monthlySalary) => {
+const mapRequestToPayrollNoveltyRows = (requestRow, monthlySalary, subsidioTransporte = 0, topeSubsidioTransporte = 0) => {
   const overlappingDays = calculateOverlappingDays(
     requestRow.periodo_inicio,
     requestRow.periodo_fin,
@@ -97,7 +97,8 @@ const mapRequestToPayrollNoveltyRows = (requestRow, monthlySalary) => {
   const unpaidFactor = 1 - paidFactor;
 
   if (requestRow.tipo === 'VACACIONES') {
-    const transportDailyValue = SUBSIDIO_TRANSPORTE / 30;
+    const tieneSubsidio = monthlySalary < topeSubsidioTransporte && subsidioTransporte > 0;
+    const transportDailyValue = tieneSubsidio ? subsidioTransporte / 30 : 0;
     
     // Si existen los campos de división, los usamos. 
     // Si no, asumimos que todos los dias solicitados son para disfrutar (compatibilidad hacia atras).
@@ -267,7 +268,7 @@ const buildPayrollNoveltyDetailRows = (idNomina, novelties) => (
     .map((novelty) => [idNomina, String(novelty.concepto).slice(0, 100), Number(novelty.valor)])
 );
 
-const getPayrollNoveltiesForPeriod = async ({ pool, idEmpleado, fechaInicio, fechaCorte }) => {
+const getPayrollNoveltiesForPeriod = async ({ pool, idEmpleado, fechaInicio, fechaCorte, subsidioTransporte = 0, topeSubsidioTransporte = 0 }) => {
   const [employeeRows] = await pool.query(
     `SELECT id_empleado, nombres, apellidos, sueldo
      FROM empleados
@@ -309,7 +310,7 @@ const getPayrollNoveltiesForPeriod = async ({ pool, idEmpleado, fechaInicio, fec
     [fechaInicio, fechaCorte, idEmpleado, APPROVED_STATUS, fechaCorte, fechaInicio]
   );
 
-  const novelties = requestRows.flatMap((row) => mapRequestToPayrollNoveltyRows(row, monthlySalary));
+  const novelties = requestRows.flatMap((row) => mapRequestToPayrollNoveltyRows(row, monthlySalary, subsidioTransporte, topeSubsidioTransporte));
 
   const summary = novelties.reduce((acc, novelty) => {
     if (novelty.categoria === 'DEVENGADO') {
