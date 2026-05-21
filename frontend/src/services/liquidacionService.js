@@ -43,6 +43,16 @@ export const updateRecontratacionConfig = async (meses, dias) => {
   return response.data
 }
 
+export const revertirPago = async (idLiquidacion, reactivar = false) => {
+  const response = await api.put(`/liquidacion/${idLiquidacion}/revertir-pago`, { reactivar })
+  return response.data
+}
+
+export const revertirAnulacion = async (idLiquidacion) => {
+  const response = await api.put(`/liquidacion/${idLiquidacion}/revertir-anulacion`)
+  return response.data
+}
+
 export default {
   getLiquidaciones,
   getLiquidacionById,
@@ -51,5 +61,7 @@ export default {
   marcarPagada,
   anularLiquidacion,
   getRecontratacionConfig,
-  updateRecontratacionConfig
+  updateRecontratacionConfig,
+  revertirPago,
+  revertirAnulacion
 }

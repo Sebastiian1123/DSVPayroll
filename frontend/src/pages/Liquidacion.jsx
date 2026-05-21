@@ -126,6 +126,36 @@ const Liquidacion = () => {
     }
   }
 
+  const handleRevertirPago = async (id) => {
+    const reactivar = window.confirm('¿Desea reactivar al empleado al revertir el pago?')
+    try {
+      const result = await liquidacionService.revertirPago(id, reactivar)
+      if (result.success) {
+        alert(result.message)
+        fetchLiquidaciones()
+      } else {
+        alert(result.message || 'Error al revertir pago')
+      }
+    } catch (e) {
+      alert('Error al revertir pago')
+    }
+  }
+
+  const handleRevertirAnulacion = async (id) => {
+    if (!window.confirm('¿Desea revertir la anulación? La liquidación volverá a estar PENDIENTE y el empleado será desactivado nuevamente.')) return
+    try {
+      const result = await liquidacionService.revertirAnulacion(id)
+      if (result.success) {
+        alert(result.message)
+        fetchLiquidaciones()
+      } else {
+        alert(result.message || 'Error al revertir anulación')
+      }
+    } catch (e) {
+      alert('Error al revertir anulación')
+    }
+  }
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-light)' }}>
       <Navbar />
@@ -278,6 +308,12 @@ const Liquidacion = () => {
                           <button onClick={(e) => { e.stopPropagation(); handlePagar(liq.id_liquidacion) }} style={{ padding: '4px 12px', borderRadius: '6px', border: 'none', background: '#16a34a', color: 'white', cursor: 'pointer', marginRight: '6px', fontSize: '12px' }}>Pagar</button>
                           <button onClick={(e) => { e.stopPropagation(); handleAnular(liq.id_liquidacion) }} style={{ padding: '4px 12px', borderRadius: '6px', border: 'none', background: '#dc2626', color: 'white', cursor: 'pointer', fontSize: '12px' }}>Anular</button>
                         </>
+                      )}
+                      {liq.estado === 'PAGADA' && isAdmin() && (
+                        <button onClick={(e) => { e.stopPropagation(); handleRevertirPago(liq.id_liquidacion) }} style={{ padding: '4px 12px', borderRadius: '6px', border: 'none', background: '#6366f1', color: 'white', cursor: 'pointer', fontSize: '12px' }}>Revertir Pago</button>
+                      )}
+                      {liq.estado === 'ANULADA' && isAdmin() && (
+                        <button onClick={(e) => { e.stopPropagation(); handleRevertirAnulacion(liq.id_liquidacion) }} style={{ padding: '4px 12px', borderRadius: '6px', border: 'none', background: '#6366f1', color: 'white', cursor: 'pointer', fontSize: '12px' }}>Revertir Anulación</button>
                       )}
                     </td>
                   </tr>

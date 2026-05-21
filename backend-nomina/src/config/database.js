@@ -389,6 +389,31 @@ const ensureRehiringParameters = async () => {
     }
 };
 
+const ensureNominaStatusColumn = async () => {
+    try {
+        const dbName = process.env.DB_NAME || 'sistema_nomina';
+        const [columns] = await promisePool.query(
+            `SELECT COLUMN_NAME
+             FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = ?
+               AND TABLE_NAME = 'nomina'
+               AND COLUMN_NAME = 'estado'`,
+            [dbName]
+        );
+
+        if (columns.length === 0) {
+            await promisePool.query(
+                `ALTER TABLE nomina
+                 ADD COLUMN estado ENUM('PAGADA', 'ANULADA') NOT NULL DEFAULT 'PAGADA'`
+            );
+            console.log('Columna nomina.estado creada automaticamente');
+        }
+    } catch (error) {
+        console.error('Error asegurando columna nomina.estado:', error.message);
+        throw error;
+    }
+};
+
 module.exports = {
     pool: promisePool,
     testConnection,
@@ -397,5 +422,6 @@ module.exports = {
     ensureDefaultDepartments,
     ensurePayrollSupportTables,
     ensurePrestacionesLiquidacionTables,
-    ensureRehiringParameters
+    ensureRehiringParameters,
+    ensureNominaStatusColumn
 };

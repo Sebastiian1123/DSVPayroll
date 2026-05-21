@@ -61,16 +61,41 @@ const calcularLiquidacion = async (req, res) => {
       { concepto: 'Vacaciones no disfrutadas', tipo: 'DEVENGADO', valor: vacacionesNoDisfrutadas }
     ];
 
-    const [nominaPendienteRows] = await pool.query(
-      `SELECT COALESCE(SUM(total_pagar), 0) AS pendiente
-       FROM nomina
-       WHERE id_empleado = ? AND fecha_corte <= ?`,
-      [id_empleado, fecha_retiro]
+    // 1. Obtener la última fecha de corte pagada (si existe registro se asume pagado)
+    const [lastNominaRows] = await pool.query(
+      `SELECT MAX(fecha_corte) AS ultima_fecha FROM nomina WHERE id_empleado = ?`,
+      [id_empleado]
     );
-    const nominaPendiente = Number(nominaPendienteRows[0]?.pendiente) || 0;
+    
+    let fechaInicioSueldo = new Date(emp.fecha_ingreso);
+    if (lastNominaRows[0]?.ultima_fecha) {
+      fechaInicioSueldo = new Date(lastNominaRows[0].ultima_fecha);
+      fechaInicioSueldo.setUTCDate(fechaInicioSueldo.getUTCDate() + 1);
+    }
 
-    if (nominaPendiente > 0) {
-      detalle.push({ concepto: 'Salarios pendientes', tipo: 'DEVENGADO', valor: nominaPendiente });
+    // 2. Calcular días pendientes usando regla de 30 días por mes
+    const y1 = fechaInicioSueldo.getUTCFullYear();
+    const m1 = fechaInicioSueldo.getUTCMonth() + 1;
+    const d1 = Math.min(30, fechaInicioSueldo.getUTCDate());
+
+    const y2 = fechaRetiro.getUTCFullYear();
+    const m2 = fechaRetiro.getUTCMonth() + 1;
+    const d2 = Math.min(30, fechaRetiro.getUTCDate());
+
+    const diasPendientes = Math.max(0, (y2 - y1) * 360 + (m2 - m1) * 30 + (d2 - d1 + 1));
+
+    if (diasPendientes > 0) {
+      const sueldoBruto = Number(((salarioBase / 30) * diasPendientes).toFixed(2));
+      const salud = Number((sueldoBruto * 0.04).toFixed(2));
+      const pension = Number((sueldoBruto * 0.04).toFixed(2));
+
+      detalle.push({ 
+        concepto: `Sueldo pendiente (${diasPendientes} días desde último pago)`, 
+        tipo: 'DEVENGADO', 
+        valor: sueldoBruto 
+      });
+      detalle.push({ concepto: 'Deducción Salud (4%)', tipo: 'DEDUCCION', valor: salud });
+      detalle.push({ concepto: 'Deducción Pensión (4%)', tipo: 'DEDUCCION', valor: pension });
     }
 
     const totalLiquidacion = detalle.reduce((sum, d) => sum + (d.tipo === 'DEVENGADO' ? d.valor : -d.valor), 0);
@@ -453,6 +478,115 @@ const updateRecontratacionConfig = async (req, res) => {
   }
 };
 
+const revertirPago = async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { id_liquidacion } = req.params;
+    const { reactivar } = req.body; // boolean
+
+    const [liqRows] = await connection.query(
+      "SELECT id_liquidacion, id_empleado, estado FROM liquidaciones WHERE id_liquidacion = ?",
+      [id_liquidacion]
+    );
+
+    if (liqRows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Liquidación no encontrada' });
+    }
+
+    if (liqRows[0].estado !== 'PAGADA') {
+      return res.status(400).json({ success: false, message: 'Solo se pueden revertir liquidaciones pagadas' });
+    }
+
+    await connection.beginTransaction();
+
+    // Revertir estado a PENDIENTE
+    await connection.query(
+      "UPDATE liquidaciones SET estado = 'PENDIENTE' WHERE id_liquidacion = ?",
+      [id_liquidacion]
+    );
+
+    // Reactivar empleado si se solicita
+    if (reactivar) {
+      await connection.query(
+        "UPDATE empleados SET activo = TRUE, eliminado_en = NULL, fecha_retiro = NULL WHERE id_empleado = ?",
+        [liqRows[0].id_empleado]
+      );
+      // Reactivar usuario si tiene
+      await connection.query(
+        "UPDATE usuarios SET activo = TRUE WHERE id_empleado = ?",
+        [liqRows[0].id_empleado]
+      );
+    }
+
+    await connection.commit();
+
+    return res.json({ 
+      success: true, 
+      message: reactivar 
+        ? 'Pago revertido y empleado reactivado exitosamente' 
+        : 'Pago revertido exitosamente' 
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error revertiendo pago:', error.message);
+    return res.status(500).json({ success: false, message: 'Error al revertir el pago' });
+  } finally {
+    connection.release();
+  }
+};
+
+const revertirAnulacion = async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { id_liquidacion } = req.params;
+
+    const [liqRows] = await connection.query(
+      "SELECT id_liquidacion, id_empleado, estado FROM liquidaciones WHERE id_liquidacion = ?",
+      [id_liquidacion]
+    );
+
+    if (liqRows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Liquidación no encontrada' });
+    }
+
+    if (liqRows[0].estado !== 'ANULADA') {
+      return res.status(400).json({ success: false, message: 'Solo se pueden revertir liquidaciones anuladas' });
+    }
+
+    await connection.beginTransaction();
+
+    // Revertir estado a PENDIENTE
+    await connection.query(
+      "UPDATE liquidaciones SET estado = 'PENDIENTE' WHERE id_liquidacion = ?",
+      [id_liquidacion]
+    );
+
+    // Desactivar empleado (ya que la anulación lo reactivó)
+    await connection.query(
+      "UPDATE empleados SET activo = FALSE, eliminado_en = NOW() WHERE id_empleado = ?",
+      [liqRows[0].id_empleado]
+    );
+    // Desactivar usuario si tiene
+    await connection.query(
+      "UPDATE usuarios SET activo = FALSE WHERE id_empleado = ?",
+      [liqRows[0].id_empleado]
+    );
+
+    await connection.commit();
+
+    return res.json({ 
+      success: true, 
+      message: 'Anulación revertida exitosamente. El empleado ha sido desactivado nuevamente.' 
+    });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error revertiendo anulación:', error.message);
+    return res.status(500).json({ success: false, message: 'Error al revertir la anulación' });
+  } finally {
+    connection.release();
+  }
+};
+
 module.exports = {
   calcularLiquidacion,
   guardarLiquidacion,
@@ -462,5 +596,7 @@ module.exports = {
   marcarPagada,
   downloadLiquidacionPdf,
   getRecontratacionConfig,
-  updateRecontratacionConfig
+  updateRecontratacionConfig,
+  revertirPago,
+  revertirAnulacion
 };
