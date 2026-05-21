@@ -598,9 +598,25 @@ const reactivateEmployee = async (req, res) => {
     }
 
     // Reactivar empleado
+    const { fecha_reingreso } = req.body || {};
+    const nuevaFechaIngreso = fecha_reingreso || new Date();
+
     await pool.query(
-      "UPDATE empleados SET activo = TRUE, eliminado_en = NULL, fecha_retiro = NULL WHERE id_empleado = ?",
-      [id]
+      "UPDATE empleados SET activo = TRUE, eliminado_en = NULL, fecha_retiro = NULL, fecha_ingreso = ? WHERE id_empleado = ?",
+      [nuevaFechaIngreso, id]
+    );
+
+    // Resetear saldo de vacaciones para el año de reingreso
+    const yearReingreso = new Date(nuevaFechaIngreso).getFullYear();
+    await pool.query(
+      `INSERT INTO vacaciones_saldos
+        (id_empleado, periodo_anio, dias_ganados, dias_disfrutados, dias_pendientes)
+       VALUES (?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+        dias_ganados = VALUES(dias_ganados),
+        dias_disfrutados = VALUES(dias_disfrutados),
+        dias_pendientes = VALUES(dias_pendientes)`,
+      [id, yearReingreso, DEFAULT_VACATION_DAYS, 0, DEFAULT_VACATION_DAYS]
     );
 
     // Si tiene usuario asociado, también reactivarlo

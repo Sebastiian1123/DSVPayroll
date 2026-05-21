@@ -34,7 +34,8 @@ const calcularLiquidacion = async (req, res) => {
     const anioRetiro = fechaRetiro.getFullYear();
 
     const inicioAnio = new Date(anioRetiro, 0, 1);
-    const diasTrabajadosAnio = Math.max(0, Math.floor((fechaRetiro - inicioAnio) / (1000 * 60 * 60 * 24)));
+    const fechaInicioCalculo = fechaIngreso > inicioAnio ? fechaIngreso : inicioAnio;
+    const diasTrabajadosAnio = Math.max(0, Math.floor((fechaRetiro - fechaInicioCalculo) / (1000 * 60 * 60 * 24)));
 
     const [prestacionesRows] = await pool.query(
       `SELECT
@@ -113,10 +114,12 @@ const guardarLiquidacion = async (req, res) => {
 
     const emp = empRows[0];
     const salarioBase = Number(emp.sueldo) || 0;
+    const fechaIngreso = new Date(emp.fecha_ingreso);
     const fechaRetiro = new Date(fecha_retiro);
     const anioRetiro = fechaRetiro.getFullYear();
     const inicioAnio = new Date(anioRetiro, 0, 1);
-    const diasTrabajadosAnio = Math.max(0, Math.floor((fechaRetiro - inicioAnio) / (1000 * 60 * 60 * 24)));
+    const fechaInicioCalculo = fechaIngreso > inicioAnio ? fechaIngreso : inicioAnio;
+    const diasTrabajadosAnio = Math.max(0, Math.floor((fechaRetiro - fechaInicioCalculo) / (1000 * 60 * 60 * 24)));
 
     const detalleLiquidacion = Array.isArray(detalle) && detalle.length > 0 ? detalle : [];
 
