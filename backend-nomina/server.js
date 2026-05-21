@@ -15,7 +15,8 @@ const {
   ensureEmployeeWithdrawalColumn,
   ensureDefaultDepartments,
   ensurePayrollSupportTables,
-  ensurePrestacionesLiquidacionTables
+  ensurePrestacionesLiquidacionTables,
+  ensureRehiringParameters
 } = require('./src/config/database.js');
 const { verifyConnection } = require('./src/services/emailService');
 
@@ -120,6 +121,7 @@ const startServer = async () => {
       await ensureDefaultDepartments();
       await ensurePayrollSupportTables();
       await ensurePrestacionesLiquidacionTables();
+      await ensureRehiringParameters();
     }
 
     app.listen(PORT, () => {

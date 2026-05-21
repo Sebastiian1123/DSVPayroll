@@ -576,9 +576,9 @@ const reactivateEmployee = async (req, res) => {
       });
     }
 
-    // Verificar si el empleado existe
+    // Verificar si el empleado existe y obtener su fecha de retiro
     const [existing] = await pool.query(
-      "SELECT id_empleado, activo FROM empleados WHERE id_empleado = ?",
+      "SELECT id_empleado, activo, fecha_retiro FROM empleados WHERE id_empleado = ?",
       [id]
     );
 
@@ -589,12 +589,47 @@ const reactivateEmployee = async (req, res) => {
       });
     }
 
+    const employee = existing[0];
+
     // Si ya está activo
-    if (existing[0].activo) {
+    if (employee.activo) {
       return res.status(400).json({
         success: false,
         message: "El empleado ya está activo",
       });
+    }
+
+    // Verificar restriccion de tiempo de recontratacion
+    if (employee.fecha_retiro) {
+      const [paramRows] = await pool.query(
+        "SELECT meses_espera_recontratacion, dias_espera_recontratacion FROM parametros_nomina LIMIT 1"
+      );
+
+      if (paramRows.length > 0) {
+        const config = paramRows[0];
+        const mesesEspera = config.meses_espera_recontratacion;
+        const diasEspera = config.dias_espera_recontratacion;
+
+        if (mesesEspera > 0 || diasEspera > 0) {
+          const fechaRetiro = new Date(employee.fecha_retiro);
+          const hoy = new Date();
+
+          // Calcular fecha minima permitida
+          const fechaMinima = new Date(fechaRetiro);
+          fechaMinima.setMonth(fechaMinima.getMonth() + mesesEspera);
+          fechaMinima.setDate(fechaMinima.getDate() + diasEspera);
+
+          if (hoy < fechaMinima) {
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            const fechaFormateada = fechaMinima.toLocaleDateString('es-ES', options);
+            
+            return res.status(403).json({
+              success: false,
+              message: `No se puede reactivar al empleado. El tiempo de espera para recontratación no se ha cumplido. Podrá ser reactivado a partir del ${fechaFormateada}.`,
+            });
+          }
+        }
+      }
     }
 
     // Reactivar empleado

@@ -393,6 +393,66 @@ const downloadLiquidacionPdf = async (req, res) => {
   }
 };
 
+const getRecontratacionConfig = async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT meses_espera_recontratacion, dias_espera_recontratacion 
+       FROM parametros_nomina LIMIT 1`
+    );
+
+    const config = rows.length > 0 ? rows[0] : { meses_espera_recontratacion: 0, dias_espera_recontratacion: 0 };
+
+    return res.json({
+      success: true,
+      data: {
+        meses: config.meses_espera_recontratacion,
+        dias: config.dias_espera_recontratacion
+      }
+    });
+  } catch (error) {
+    console.error('Error obteniendo config recontratacion:', error.message);
+    return res.status(500).json({ success: false, message: 'Error obteniendo configuracion' });
+  }
+};
+
+const updateRecontratacionConfig = async (req, res) => {
+  try {
+    const { meses, dias } = req.body;
+
+    if (meses === undefined || dias === undefined) {
+      return res.status(400).json({ success: false, message: 'meses y dias son obligatorios' });
+    }
+
+    const nMeses = Math.max(0, parseInt(meses) || 0);
+    const nDias = Math.max(0, parseInt(dias) || 0);
+
+    const [existing] = await pool.query('SELECT id_parametro FROM parametros_nomina LIMIT 1');
+
+    if (existing.length === 0) {
+      await pool.query(
+        `INSERT INTO parametros_nomina (meses_espera_recontratacion, dias_espera_recontratacion) 
+         VALUES (?, ?)`,
+        [nMeses, nDias]
+      );
+    } else {
+      await pool.query(
+        `UPDATE parametros_nomina SET meses_espera_recontratacion = ?, dias_espera_recontratacion = ? 
+         WHERE id_parametro = ?`,
+        [nMeses, nDias, existing[0].id_parametro]
+      );
+    }
+
+    return res.json({
+      success: true,
+      message: 'Configuracion de recontratacion actualizada exitosamente',
+      data: { meses: nMeses, dias: nDias }
+    });
+  } catch (error) {
+    console.error('Error actualizando config recontratacion:', error.message);
+    return res.status(500).json({ success: false, message: 'Error actualizando configuracion' });
+  }
+};
+
 module.exports = {
   calcularLiquidacion,
   guardarLiquidacion,
@@ -400,5 +460,7 @@ module.exports = {
   getLiquidacionById,
   anularLiquidacion,
   marcarPagada,
-  downloadLiquidacionPdf
+  downloadLiquidacionPdf,
+  getRecontratacionConfig,
+  updateRecontratacionConfig
 };

@@ -23,13 +23,37 @@ const Liquidacion = () => {
   const [calculo, setCalculo] = useState(null)
   const [formData, setFormData] = useState({ id_empleado: '', fecha_retiro: '', motivo_retiro: '' })
   const [employees, setEmployees] = useState([])
+  const [rehireConfig, setRehireConfig] = useState({ meses: 0, dias: 0 })
+  const [updatingConfig, setUpdatingConfig] = useState(false)
 
   useEffect(() => {
     fetchLiquidaciones()
     if (isAdmin()) {
       api.get('/employees').then(r => setEmployees(Array.isArray(r.data?.data) ? r.data.data : [])).catch(() => {})
+      fetchRehireConfig()
     }
   }, [])
+
+  const fetchRehireConfig = async () => {
+    try {
+      const data = await liquidacionService.getRecontratacionConfig()
+      setRehireConfig(data)
+    } catch (e) {
+      console.error('Error fetching rehire config:', e)
+    }
+  }
+
+  const handleUpdateRehireConfig = async () => {
+    try {
+      setUpdatingConfig(true)
+      await liquidacionService.updateRecontratacionConfig(rehireConfig.meses, rehireConfig.dias)
+      alert('Configuración de recontratación actualizada')
+    } catch (e) {
+      alert('Error al actualizar la configuración')
+    } finally {
+      setUpdatingConfig(false)
+    }
+  }
 
   const fetchLiquidaciones = async () => {
     try {
@@ -176,6 +200,44 @@ const Liquidacion = () => {
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {isAdmin() && (
+          <div style={{ background: 'white', borderRadius: '12px', padding: '20px', marginBottom: '24px', border: '1px solid var(--border-color)' }}>
+            <h3 style={{ marginBottom: '8px' }}>Restricción de Recontratación</h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-light)', marginBottom: '16px' }}>
+              Define el tiempo mínimo de espera después del retiro para poder reactivar a un empleado.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '12px', alignItems: 'end', maxWidth: '500px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-light)', marginBottom: '4px' }}>Meses de espera</label>
+                <input 
+                  type="number" 
+                  min="0"
+                  value={rehireConfig.meses} 
+                  onChange={(e) => setRehireConfig({ ...rehireConfig, meses: e.target.value })} 
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)' }} 
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-light)', marginBottom: '4px' }}>Días de espera</label>
+                <input 
+                  type="number" 
+                  min="0"
+                  value={rehireConfig.dias} 
+                  onChange={(e) => setRehireConfig({ ...rehireConfig, dias: e.target.value })} 
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)' }} 
+                />
+              </div>
+              <button 
+                onClick={handleUpdateRehireConfig} 
+                disabled={updatingConfig} 
+                style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', background: 'var(--secondary-color)', color: 'white', cursor: 'pointer', height: '38px', fontWeight: 600 }}
+              >
+                {updatingConfig ? 'Guardando...' : 'Guardar Configuración'}
+              </button>
+            </div>
           </div>
         )}
 

@@ -33,11 +33,23 @@ export const anularLiquidacion = async (idLiquidacion) => {
   return response.data
 }
 
+export const getRecontratacionConfig = async () => {
+  const response = await api.get('/liquidacion/config/recontratacion')
+  return response.data?.data || { meses: 0, dias: 0 }
+}
+
+export const updateRecontratacionConfig = async (meses, dias) => {
+  const response = await api.put('/liquidacion/config/recontratacion', { meses, dias })
+  return response.data
+}
+
 export default {
   getLiquidaciones,
   getLiquidacionById,
   calcularLiquidacion,
   guardarLiquidacion,
   marcarPagada,
-  anularLiquidacion
+  anularLiquidacion,
+  getRecontratacionConfig,
+  updateRecontratacionConfig
 }

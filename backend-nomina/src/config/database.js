@@ -363,6 +363,32 @@ const testConnection = async () => {
     }
 };
 
+const ensureRehiringParameters = async () => {
+    try {
+        const dbName = process.env.DB_NAME || 'sistema_nomina';
+        const [mesesColumn] = await promisePool.query(
+            `SELECT COLUMN_NAME
+             FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = ?
+               AND TABLE_NAME = 'parametros_nomina'
+               AND COLUMN_NAME = 'meses_espera_recontratacion'`,
+            [dbName]
+        );
+
+        if (mesesColumn.length === 0) {
+            await promisePool.query(
+                `ALTER TABLE parametros_nomina
+                 ADD COLUMN meses_espera_recontratacion INT NOT NULL DEFAULT 0,
+                 ADD COLUMN dias_espera_recontratacion INT NOT NULL DEFAULT 0`
+            );
+            console.log('Columnas de espera de recontratacion creadas automaticamente');
+        }
+    } catch (error) {
+        console.error('Error asegurando columnas de espera de recontratacion:', error.message);
+        throw error;
+    }
+};
+
 module.exports = {
     pool: promisePool,
     testConnection,
@@ -370,5 +396,6 @@ module.exports = {
     ensureEmployeeWithdrawalColumn,
     ensureDefaultDepartments,
     ensurePayrollSupportTables,
-    ensurePrestacionesLiquidacionTables
+    ensurePrestacionesLiquidacionTables,
+    ensureRehiringParameters
 };
