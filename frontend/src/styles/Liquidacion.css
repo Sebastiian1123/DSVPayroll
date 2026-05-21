@@ -407,12 +407,210 @@
 }
 
 /* Responsive adjustments */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
+  .liquidacion-container {
+    padding: 20px 14px;
+  }
+
+  .liquidacion-header h1 {
+    font-size: 1.4rem;
+  }
+
   .liquidacion-form-grid {
     grid-template-columns: 1fr;
   }
 
   .liquidacion-rehire-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .liquidacion-table-wrapper {
+    overflow: visible;
+    margin: 0 0 32px;
+    background: transparent;
+    border: 0;
+  }
+
+  .liquidacion-table,
+  .liquidacion-table thead,
+  .liquidacion-table tbody,
+  .liquidacion-table tr,
+  .liquidacion-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .liquidacion-table {
+    min-width: 0;
+    background: transparent;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .liquidacion-table thead {
+    display: none;
+  }
+
+  .liquidacion-table tbody {
+    display: grid;
+    gap: 16px;
+  }
+
+  .liquidacion-table tbody tr {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 38px;
+    gap: 0 14px;
+    padding: 20px 16px 18px;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  }
+
+  .liquidacion-table tbody tr:hover {
+    background: #fff;
+  }
+
+  .liquidacion-table td {
+    border: 0;
+    padding: 0;
+    color: #111827;
+    white-space: normal;
+  }
+
+  .liquidacion-table td:nth-child(1) {
+    grid-column: 1;
+    align-self: center;
+    padding-right: 4px;
+    font-size: 17px;
+    line-height: 1.25;
+    font-weight: 800;
+  }
+
+  .liquidacion-table td:nth-child(2),
+  .liquidacion-table td:nth-child(3),
+  .liquidacion-table td:nth-child(4),
+  .liquidacion-table td:nth-child(5) {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 34px minmax(108px, 0.8fr) minmax(0, 1.2fr);
+    align-items: center;
+    column-gap: 12px;
+    min-height: 46px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 15px;
+    text-align: right;
+  }
+
+  .liquidacion-table td:nth-child(2) {
+    margin-top: 18px;
+  }
+
+  .liquidacion-table td:nth-child(5) {
+    border-bottom: 0;
+  }
+
+  .liquidacion-table td:nth-child(2)::before,
+  .liquidacion-table td:nth-child(3)::before,
+  .liquidacion-table td:nth-child(4)::before,
+  .liquidacion-table td:nth-child(5)::before {
+    grid-column: 2;
+    text-align: left;
+    color: var(--text-light);
+    font-weight: 500;
+  }
+
+  .liquidacion-table td:nth-child(2)::after,
+  .liquidacion-table td:nth-child(3)::after,
+  .liquidacion-table td:nth-child(4)::after,
+  .liquidacion-table td:nth-child(5)::after {
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    grid-column: 1;
+    grid-row: 1;
+    color: var(--text-light);
+    text-align: center;
+    font-size: 17px;
+  }
+
+  .liquidacion-table td:nth-child(2)::before {
+    content: "Documento";
+  }
+
+  .liquidacion-table td:nth-child(2)::after {
+    content: "\f2c2";
+  }
+
+  .liquidacion-table td:nth-child(3)::before {
+    content: "Retiro";
+  }
+
+  .liquidacion-table td:nth-child(3)::after {
+    content: "\f073";
+  }
+
+  .liquidacion-table td:nth-child(4)::before {
+    content: "Total";
+  }
+
+  .liquidacion-table td:nth-child(4)::after {
+    content: "\24";
+  }
+
+  .liquidacion-table td:nth-child(5)::before {
+    content: "Estado";
+  }
+
+  .liquidacion-table td:nth-child(5)::after {
+    content: "\f058";
+  }
+
+  .liquidacion-table td:nth-child(6) {
+    grid-row: 1 / 2;
+    grid-column: 2;
+    align-self: center;
+    justify-self: end;
+    padding: 0;
+    text-align: right;
+    position: static;
+  }
+
+  .liquidacion-actions-cell {
+    display: block;
+    justify-content: initial;
+  }
+
+  .liquidacion-actions-flex {
+    justify-content: flex-end;
+  }
+
+  .liquidacion-menu-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .liquidacion-preview-table {
+    min-width: 400px;
+  }
+
+  .liquidacion-preview-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .liquidacion-section {
+    padding: 14px;
+  }
+
+  .liquidacion-actions-cell {
+    display: flex;
+    justify-content: center;
+  }
+
+  .liquidacion-table td.liquidacion-actions-cell {
+    display: block;
+    justify-content: initial;
   }
 }

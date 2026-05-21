@@ -3,16 +3,75 @@
 // Archivo: src/components/Navbar.jsx
 // ============================================
 
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import '../styles/Navbar.css';
 import logo from '../assets/dsv.png';
 import Swal from 'sweetalert2';
+import api from '../services/api';
 
 
 const Navbar = () => {
-    const { user, logout, isAdmin } = useAuth();
+    const { user, logout, isAdmin, isAdminOrRRHH } = useAuth();
     const navigate = useNavigate();
+    const [menuOpen, setMenuOpen] = React.useState(false);
+    const [userMenuOpen, setUserMenuOpen] = React.useState(false);
+    const [profileName, setProfileName] = React.useState('');
+    const userMenuRef = React.useRef(null);
+
+    React.useEffect(() => {
+        const closeUserMenu = (event) => {
+            if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+                setUserMenuOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', closeUserMenu);
+        return () => document.removeEventListener('mousedown', closeUserMenu);
+    }, []);
+
+    React.useEffect(() => {
+        if (!user?.id_empleado) {
+            setProfileName(user?.username || '');
+            return;
+        }
+
+        let isMounted = true;
+
+        api.get(`/employees/${user.id_empleado}`)
+            .then((res) => {
+                if (!isMounted) return;
+                const employee = res.data?.data;
+                const fullName = `${employee?.nombres || ''} ${employee?.apellidos || ''}`.trim();
+                setProfileName(fullName || user?.username || '');
+            })
+            .catch(() => {
+                if (isMounted) setProfileName(user?.username || '');
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [user?.id_empleado, user?.username]);
+
+    const getInitials = () => {
+        const parts = String(profileName || user?.username || 'U')
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean);
+
+        if (parts.length >= 2) {
+            return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+        }
+
+        return (parts[0] || 'U').slice(0, 2).toUpperCase();
+    };
+
+    const closeMenus = () => {
+        setMenuOpen(false);
+        setUserMenuOpen(false);
+    };
 
     const handleLogout = async () => {
         const result = await Swal.fire({
@@ -44,14 +103,25 @@ const Navbar = () => {
                     <span className="navbar-title">Sistema de Nómina</span>
                 </Link>
 
+                {/* Hamburger toggle */}
+                <button className="navbar-toggle" onClick={() => setMenuOpen(!menuOpen)}>
+                    <i className={`fa-solid ${menuOpen ? 'fa-xmark' : 'fa-bars'}`}></i>
+                </button>
+
                 {/* Links de navegación */}
-                <div className="navbar-menu">
-                    <Link to="/dashboard" className="nav-link">
+                <div className={`navbar-menu${menuOpen ? ' navbar-menu--open' : ''}`}>
+                    <Link to="/mi-perfil" className="nav-link perfil-link">
+                        <i className="fa-solid fa-user"></i> <p>Mi Perfil</p>
+                    </Link>
+                    <Link to="/dashboard" className="nav-link ">
                         <i className="fa-solid fa-house"></i> Dashboard
                     </Link>
-                    <Link to="/employees" className="nav-link">
-                        <i className="fa-solid fa-users"></i> Empleados
-                    </Link>
+                    
+                    {isAdminOrRRHH() && (
+                        <Link to="/employees" className="nav-link">
+                            <i className="fa-solid fa-users"></i> Empleados
+                        </Link>
+                    )}
                     <Link to="/permisos" className="nav-link">
                         <i className="fa-solid fa-clipboard-check"></i> Permisos
                     </Link>
@@ -71,14 +141,49 @@ const Navbar = () => {
                 </div>
 
                 {/* Info de usuario y logout */}
-                <div className="navbar-user">
+                <div className="navbar-user" ref={userMenuRef}>
                     <div className="user-info">
                         <span className="user-name">{user?.username}</span>
                         <span className="user-role">{user?.rol}</span>
                     </div>
-                    <button onClick={handleLogout} className="logout-btn">
-                        <i className="fa-solid fa-right-from-bracket"></i> Salir
+                    <button
+                        type="button"
+                        className={`user-avatar-btn${userMenuOpen ? ' user-avatar-btn--open' : ''}`}
+                        onClick={() => setUserMenuOpen((open) => !open)}
+                        aria-label="Abrir menu de usuario"
+                        aria-expanded={userMenuOpen}
+                    >
+                        {getInitials()}
                     </button>
+
+                    {userMenuOpen && (
+                        <div className="user-dropdown">
+                            <div className="user-dropdown-header">
+                                <div className="user-dropdown-avatar">{getInitials()}</div>
+                                <div>
+                                    <strong>{profileName || user?.username}</strong>
+                                    <span>{user?.email}</span>
+                                </div>
+                            </div>
+
+                            <Link to="/mi-perfil" className="user-dropdown-item" onClick={closeMenus}>
+                                <i className="fa-solid fa-user"></i> Mi Perfil
+                            </Link>
+                            <Link to="/dashboard" className="user-dropdown-item" onClick={closeMenus}>
+                                <i className="fa-solid fa-house"></i> Dashboard
+                            </Link>
+                            <Link to="/reports" className="user-dropdown-item" onClick={closeMenus}>
+                                <i className="fa-solid fa-chart-bar"></i> Reportes
+                            </Link>
+                            <Link to="/permisos" className="user-dropdown-item" onClick={closeMenus}>
+                                <i className="fa-solid fa-clipboard-check"></i> Permisos
+                            </Link>
+
+                            <button type="button" className="user-dropdown-item user-dropdown-item--danger" onClick={handleLogout}>
+                                <i className="fa-solid fa-right-from-bracket"></i> Cerrar sesión
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </nav>

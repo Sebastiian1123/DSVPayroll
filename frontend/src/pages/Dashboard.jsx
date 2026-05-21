@@ -41,13 +41,22 @@ const Dashboard = () => {
                 </div>
 
                 <div className="cards-grid">
-                    {/* Card de Empleados */}
-                    <Link to="/employees" className="dashboard-card">
-                        <div className="card-icon"><i className="fa-solid fa-users"></i></div>
-                        <h3>Empleados</h3>
-                        <p>Gestiona la información de los empleados</p>
-                        <span className="card-action">Ver empleados →</span>
-                    </Link>
+                    {/* Card de Empleados / Mi Perfil */}
+                    {isAdminOrRRHH() ? (
+                        <Link to="/employees" className="dashboard-card">
+                            <div className="card-icon"><i className="fa-solid fa-users"></i></div>
+                            <h3>Empleados</h3>
+                            <p>Gestiona la información de los empleados</p>
+                            <span className="card-action">Ver empleados →</span>
+                        </Link>
+                    ) : (
+                        <Link to="/mi-perfil" className="dashboard-card">
+                            <div className="card-icon"><i className="fa-solid fa-user"></i></div>
+                            <h3>Mi Perfil</h3>
+                            <p>Consulta y actualiza tu información personal</p>
+                            <span className="card-action">Ver mi perfil →</span>
+                        </Link>
+                    )}
 
                     {/* Card de Usuarios - Solo Admin y RRHH */}
                     {isAdmin() && (
@@ -134,9 +143,15 @@ const Dashboard = () => {
                 <div className="quick-actions">
                     <h2><i className="fa-solid fa-bolt"></i> Accesos Rápidos</h2>
                     <div className="actions-grid">
-                        <Link to="/employees" className="quick-action-btn">
-                            <i className="fa-solid fa-users"></i> <p style={{ marginLeft: '10px' }}>Ver empleados</p>
-                        </Link>
+                        {isAdminOrRRHH() ? (
+                            <Link to="/employees" className="quick-action-btn">
+                                <i className="fa-solid fa-users"></i> <p style={{ marginLeft: '10px' }}>Ver empleados</p>
+                            </Link>
+                        ) : (
+                            <Link to="/mi-perfil" className="quick-action-btn">
+                                <i className="fa-solid fa-user"></i> <p style={{ marginLeft: '10px' }}>Mi perfil</p>
+                            </Link>
+                        )}
                         {isAdmin() && (
                             <Link to="/users" className="quick-action-btn">
                                 <i className="fa-solid fa-user-plus"></i> <p style={{ marginLeft: '10px' }}>Registrar usuario</p>

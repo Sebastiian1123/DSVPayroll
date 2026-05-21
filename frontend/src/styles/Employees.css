@@ -259,18 +259,66 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+    .employees-container {
+        padding: 18px 12px 28px;
+    }
+
     .employees-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 16px;
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .employees-header h1 {
+        flex: 1;
+        min-width: 0;
+        font-size: 22px;
+        line-height: 1.15;
+    }
+
+    .employees-header .btn {
+        flex-shrink: 0;
+        padding: 12px 14px;
+        border-radius: 8px;
+        white-space: nowrap;
     }
 
     .search-box {
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
     }
 
     .search-box input {
         width: 100%;
+        min-width: 0;
+        min-height: 48px;
+        border-radius: 8px;
+        background: #fff;
+    }
+
+    .search-box .btn {
+        min-height: 48px;
+        border-radius: 8px;
+    }
+
+    .search-box .btn-secondary {
+        grid-column: 1 / -1;
+    }
+
+    .toggle-inactive {
+        padding: 14px 16px;
+        border-radius: 10px;
+        background: #fff;
+    }
+
+    .toggle-inactive label {
+        font-size: 15px;
+    }
+
+    .toggle-inactive input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
     }
 
     .form-row {
@@ -281,17 +329,396 @@
         margin: 20px;
     }
 
-    .table-container {
-        overflow-x: auto;
+    .employees-container:has(.search-box) .table-container {
+        overflow: visible !important;
+        margin-bottom: 28px !important;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
     }
 
-    table {
+    .employees-container:has(.search-box) .table-container table,
+    .employees-container:has(.search-box) .table-container thead,
+    .employees-container:has(.search-box) .table-container tbody,
+    .employees-container:has(.search-box) .table-container tr,
+    .employees-container:has(.search-box) .table-container td {
+        display: block;
+        width: 100%;
+    }
+
+    .employees-container:has(.search-box) .table-container table {
+        min-width: 0;
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
+        background: transparent;
+    }
+
+    .employees-container:has(.search-box) .table-container thead {
+        display: none;
+    }
+
+    .employees-container:has(.search-box) .table-container tbody {
+        display: grid;
+        gap: 16px;
+    }
+
+    .employees-container:has(.search-box) .table-container tbody tr {
+        position: relative;
+        display: grid;
+        grid-template-columns: 58px minmax(0, 1fr) 38px;
+        gap: 0 14px;
+        padding: 20px 16px 18px;
+        background: #fff;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .employees-container:has(.search-box) .table-container tbody tr:hover {
+        background: #fff;
+    }
+
+    .employees-container:has(.search-box) .table-container td {
+        border: 0;
+        padding: 0;
+        color: #111827;
+        white-space: normal;
+    }
+
+    .employees-container:has(.search-box) .table-container td[colspan] {
+        grid-column: 1 / -1;
+        padding: 24px 10px;
+        text-align: center !important;
+        color: var(--text-light);
+    }
+
+    .employees-container:has(.search-box) .table-container td:first-child {
+        grid-row: 1 / 2;
+        grid-column: 1;
+        width: 58px;
+        height: 58px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        align-self: start;
+        border-radius: 50%;
+        background: #dbeafe;
+        color: #0f4c91;
+        font-size: 18px;
+        font-weight: 800;
+    }
+
+    .employees-container:has(.search-box) .table-container td:nth-child(2) {
+        grid-column: 2;
+        align-self: center;
+        padding-right: 4px;
+        font-size: 17px;
+        line-height: 1.25;
+        font-weight: 800;
+    }
+
+    .employees-container:has(.search-box) .table-container td:nth-child(3),
+    .employees-container:has(.search-box) .table-container td:nth-child(4),
+    .employees-container:has(.search-box) .table-container td:nth-child(5),
+    .employees-container:has(.search-box) .table-container td:nth-child(6) {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: 34px minmax(112px, 0.8fr) minmax(0, 1.2fr);
+        align-items: center;
+        column-gap: 12px;
+        min-height: 46px;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 15px;
+        text-align: right;
+    }
+
+    .employees-container:has(.search-box) .table-container td:nth-child(3) {
+        margin-top: 18px;
+    }
+
+    .employees-container:has(.search-box) .table-container td:nth-child(6) {
+        border-bottom: 0;
+    }
+
+    .employees-container:has(.search-box) .table-container td:nth-child(3)::before,
+    .employees-container:has(.search-box) .table-container td:nth-child(4)::before,
+    .employees-container:has(.search-box) .table-container td:nth-child(5)::before,
+    .employees-container:has(.search-box) .table-container td:nth-child(6)::before {
+        text-align: left;
+        color: var(--text-light);
+        font-weight: 500;
+    }
+
+    .employees-container:has(.search-box) .table-container td:nth-child(3)::after,
+    .employees-container:has(.search-box) .table-container td:nth-child(4)::after,
+    .employees-container:has(.search-box) .table-container td:nth-child(5)::after,
+    .employees-container:has(.search-box) .table-container td:nth-child(6)::after {
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+        grid-column: 1;
+        grid-row: 1;
+        color: var(--text-light);
+        text-align: center;
+        font-size: 17px;
+    }
+
+    .employees-container:has(.search-box) .table-container td:nth-child(3)::before {
+        content: "Identificacion";
+        grid-column: 2;
+    }
+
+    .employees-container:has(.search-box) .table-container td:nth-child(3)::after {
+        content: "\f2c2";
+    }
+
+    .employees-container:has(.search-box) .table-container td:nth-child(4)::before {
+        content: "Sueldo";
+        grid-column: 2;
+    }
+
+    .employees-container:has(.search-box) .table-container td:nth-child(4)::after {
+        content: "\24";
+    }
+
+    .employees-container:has(.search-box) .table-container td:nth-child(5)::before {
+        content: "Cargo";
+        grid-column: 2;
+    }
+
+    .employees-container:has(.search-box) .table-container td:nth-child(5)::after {
+        content: "\f0b1";
+    }
+
+    .employees-container:has(.search-box) .table-container td:nth-child(6)::before {
+        content: "Departamento";
+        grid-column: 2;
+    }
+
+    .employees-container:has(.search-box) .table-container td:nth-child(6)::after {
+        content: "\f1ad";
+    }
+
+    .employees-container:has(.search-box) .table-container td:nth-child(7) {
+        grid-row: 1 / 2;
+        grid-column: 3;
+        align-self: center;
+        justify-self: end;
+        text-align: right !important;
+        position: static !important;
+    }
+
+    .employees-container:has(.search-box) .pagination {
+        justify-content: space-between;
+        gap: 8px;
+        padding: 12px;
+        background: #fff;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+    }
+
+    .employees-container:has(.search-box) .pagination .btn {
+        padding: 10px 12px;
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container {
+        overflow: visible !important;
+        margin-bottom: 28px !important;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container table,
+    .employees-container:not(:has(.search-box)) .table-container thead,
+    .employees-container:not(:has(.search-box)) .table-container tbody,
+    .employees-container:not(:has(.search-box)) .table-container tr,
+    .employees-container:not(:has(.search-box)) .table-container td {
+        display: block;
+        width: 100%;
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container table {
+        min-width: 0;
+        border-collapse: separate !important;
+        border-spacing: 0 !important;
+        background: transparent;
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container thead {
+        display: none;
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container tbody {
+        display: grid;
+        gap: 16px;
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container tbody tr {
+        position: relative;
+        display: grid;
+        grid-template-columns: 58px minmax(0, 1fr) 38px;
+        gap: 0 14px;
+        padding: 20px 16px 18px;
+        background: #fff;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container tbody tr:hover {
+        background: #fff;
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container td {
+        border: 0;
+        padding: 0;
+        color: #111827;
+        white-space: normal;
+        min-width: 0;
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container td[colspan] {
+        grid-column: 1 / -1;
+        padding: 24px 10px;
+        text-align: center !important;
+        color: var(--text-light);
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container td:first-child {
+        grid-row: 1 / 2;
+        grid-column: 1;
+        width: 58px;
+        height: 58px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        align-self: start;
+        border-radius: 50%;
+        background: #f3e8ff;
+        color: #6d28d9;
+        font-size: 18px;
+        font-weight: 800;
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(2) {
+        grid-column: 2;
+        align-self: center;
+        padding-right: 4px;
+        font-size: 17px;
+        line-height: 1.25;
+        font-weight: 800;
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(3),
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(4),
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(5),
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(6) {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: 34px minmax(112px, 0.8fr) minmax(0, 1.2fr);
+        align-items: center;
+        column-gap: 12px;
+        min-height: 46px;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 15px;
+        text-align: right;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(3) {
+        grid-template-columns: 34px 48px minmax(0, 1fr);
         font-size: 13px;
+        line-height: 1.35;
+        white-space: nowrap;
+        overflow-wrap: normal;
+        word-break: normal;
     }
 
-    th,
-    td {
-        padding: 8px;
-        white-space: nowrap;
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(3) {
+        margin-top: 18px;
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(6) {
+        border-bottom: 0;
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(3)::before,
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(4)::before,
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(5)::before,
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(6)::before {
+        grid-column: 2;
+        text-align: left;
+        color: var(--text-light);
+        font-weight: 500;
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(3)::after,
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(4)::after,
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(5)::after,
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(6)::after {
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+        grid-column: 1;
+        grid-row: 1;
+        color: var(--text-light);
+        text-align: center;
+        font-size: 17px;
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(3)::before {
+        content: "Email";
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(3)::after {
+        content: "\f0e0";
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(4)::before {
+        content: "Rol";
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(4)::after {
+        content: "\f505";
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(5)::before {
+        content: "Empleado";
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(5)::after {
+        content: "\f007";
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(6)::before {
+        content: "Estado";
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(6)::after {
+        content: "\f058";
+    }
+
+    .employees-container:not(:has(.search-box)) .table-container td:nth-child(7) {
+        grid-row: 1 / 2;
+        grid-column: 3;
+        align-self: center;
+        justify-self: end;
+        text-align: right !important;
+        position: static !important;
+    }
+
+    .employees-container:not(:has(.search-box)) .pagination {
+        justify-content: space-between;
+        gap: 8px;
+        padding: 12px;
+        background: #fff;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+    }
+
+    .employees-container:not(:has(.search-box)) .pagination .btn {
+        padding: 10px 12px;
     }
 }

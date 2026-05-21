@@ -20,6 +20,7 @@ import ReportsPage from './features/reports';
 import { Parametros } from './pages/Parametros.jsx';
 import Prestaciones from './pages/Prestaciones.jsx';
 import Liquidacion from './pages/Liquidacion.jsx';
+import MiPerfil from './pages/MiPerfil.jsx';
 
 
 function App() {
@@ -152,6 +153,15 @@ function App() {
         element={
           <PrivateRoute>
             <Liquidacion />
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/mi-perfil"
+        element={
+          <PrivateRoute>
+            <MiPerfil />
           </PrivateRoute>
         }
       />

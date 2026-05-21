@@ -197,3 +197,203 @@
 .prestaciones-month-cell {
   font-weight: 500;
 }
+
+@media (max-width: 1024px) {
+  .prestaciones-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .prestaciones-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .prestaciones-header-actions {
+    width: 100%;
+  }
+
+  .prestaciones-btn-acumular {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .prestaciones-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .prestaciones-page {
+    padding: 0 0 20px;
+  }
+
+  .prestaciones-employee-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .prestaciones-employee-card {
+    padding: 14px;
+  }
+
+  .prestaciones-detail-table,
+  .prestaciones-detail-table thead,
+  .prestaciones-detail-table tbody,
+  .prestaciones-detail-table tr,
+  .prestaciones-detail-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .prestaciones-detail-table {
+    min-width: 0;
+    background: transparent;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .prestaciones-detail-table thead {
+    display: none;
+  }
+
+  .prestaciones-detail-table tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .prestaciones-detail-table tbody tr {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 0 14px;
+    padding: 16px 14px;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.07);
+  }
+
+  .prestaciones-detail-table td {
+    border: 0;
+    padding: 0;
+    color: #111827;
+    white-space: normal;
+  }
+
+  .prestaciones-detail-table td:first-child {
+    grid-row: 1 / 2;
+    grid-column: 1;
+    width: 58px;
+    height: 58px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: start;
+    border-radius: 50%;
+    background: #f0f9ff;
+    color: #0369a1;
+    font-size: 18px;
+    font-weight: 800;
+  }
+
+  .prestaciones-detail-table td:nth-child(2),
+  .prestaciones-detail-table td:nth-child(3),
+  .prestaciones-detail-table td:nth-child(4),
+  .prestaciones-detail-table td:nth-child(5),
+  .prestaciones-detail-table td:nth-child(6),
+  .prestaciones-detail-table td:nth-child(7) {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 34px minmax(118px, 0.9fr) minmax(0, 1.1fr);
+    align-items: center;
+    column-gap: 12px;
+    min-height: 44px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 15px;
+    text-align: right;
+  }
+
+  .prestaciones-detail-table td:nth-child(2) {
+    margin-top: 16px;
+  }
+
+  .prestaciones-detail-table td:nth-child(7) {
+    border-bottom: 0;
+  }
+
+  .prestaciones-detail-table td:nth-child(2)::before,
+  .prestaciones-detail-table td:nth-child(3)::before,
+  .prestaciones-detail-table td:nth-child(4)::before,
+  .prestaciones-detail-table td:nth-child(5)::before,
+  .prestaciones-detail-table td:nth-child(6)::before,
+  .prestaciones-detail-table td:nth-child(7)::before {
+    grid-column: 2;
+    text-align: left;
+    color: var(--text-light);
+    font-weight: 500;
+  }
+
+  .prestaciones-detail-table td:nth-child(2)::after,
+  .prestaciones-detail-table td:nth-child(3)::after,
+  .prestaciones-detail-table td:nth-child(4)::after,
+  .prestaciones-detail-table td:nth-child(5)::after,
+  .prestaciones-detail-table td:nth-child(6)::after,
+  .prestaciones-detail-table td:nth-child(7)::after {
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    grid-column: 1;
+    grid-row: 1;
+    color: var(--text-light);
+    text-align: center;
+    font-size: 16px;
+  }
+
+  .prestaciones-detail-table td:nth-child(2)::before {
+    content: "Salario base";
+  }
+
+  .prestaciones-detail-table td:nth-child(2)::after {
+    content: "\24";
+  }
+
+  .prestaciones-detail-table td:nth-child(3)::before {
+    content: "Dias acum.";
+  }
+
+  .prestaciones-detail-table td:nth-child(3)::after {
+    content: "\f017";
+  }
+
+  .prestaciones-detail-table td:nth-child(4)::before {
+    content: "Prima";
+  }
+
+  .prestaciones-detail-table td:nth-child(4)::after {
+    content: "\f53a";
+  }
+
+  .prestaciones-detail-table td:nth-child(5)::before {
+    content: "Cesantias";
+  }
+
+  .prestaciones-detail-table td:nth-child(5)::after {
+    content: "\f4c0";
+  }
+
+  .prestaciones-detail-table td:nth-child(6)::before {
+    content: "Intereses";
+  }
+
+  .prestaciones-detail-table td:nth-child(6)::after {
+    content: "\25";
+  }
+
+  .prestaciones-detail-table td:nth-child(7)::before {
+    content: "Vacaciones";
+  }
+
+  .prestaciones-detail-table td:nth-child(7)::after {
+    content: "\f5ca";
+  }
+}

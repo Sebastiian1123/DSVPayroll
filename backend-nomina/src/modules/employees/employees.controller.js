@@ -738,6 +738,84 @@ const searchEmployees = async (req, res) => {
   }
 };
 
+const updateMyProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = Number(req.user.id_empleado);
+    const targetId = Number(id);
+
+    if (!userId || userId !== targetId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Solo puedes modificar tu propio perfil',
+      });
+    }
+
+    const { nombres, apellidos, tipo_identificacion, numero_identificacion, fecha_nacimiento } = req.body;
+
+    const [existing] = await pool.query(
+      `SELECT id_empleado FROM empleados WHERE id_empleado = ? AND activo = TRUE`,
+      [targetId]
+    );
+
+    if (existing.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Empleado no encontrado o inactivo',
+      });
+    }
+
+    if (numero_identificacion) {
+      const [duplicate] = await pool.query(
+        `SELECT id_empleado FROM empleados WHERE numero_identificacion = ? AND id_empleado != ?`,
+        [numero_identificacion, targetId]
+      );
+
+      if (duplicate.length > 0) {
+        return res.status(409).json({
+          success: false,
+          message: 'Ese numero de identificacion ya esta registrado',
+        });
+      }
+    }
+
+    await pool.query(
+      `UPDATE empleados
+       SET nombres = COALESCE(?, nombres),
+           apellidos = COALESCE(?, apellidos),
+           tipo_identificacion = COALESCE(?, tipo_identificacion),
+           numero_identificacion = COALESCE(?, numero_identificacion),
+           fecha_nacimiento = COALESCE(?, fecha_nacimiento)
+       WHERE id_empleado = ?`,
+      [nombres, apellidos, tipo_identificacion, numero_identificacion, fecha_nacimiento, targetId]
+    );
+
+    const [updated] = await pool.query(
+      `SELECT
+        e.id_empleado, e.nombres, e.apellidos, e.tipo_identificacion,
+        e.numero_identificacion, e.fecha_nacimiento, e.fecha_ingreso, e.sueldo,
+        c.nombre_cargo, d.nombre_departamento
+      FROM empleados e
+      LEFT JOIN cargos c ON e.id_cargo = c.id_cargo
+      LEFT JOIN departamentos d ON e.id_departamento = d.id_departamento
+      WHERE e.id_empleado = ?`,
+      [targetId]
+    );
+
+    return res.json({
+      success: true,
+      message: 'Perfil actualizado exitosamente',
+      data: updated[0],
+    });
+  } catch (error) {
+    console.error('Error en updateMyProfile:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al actualizar perfil',
+    });
+  }
+};
+
 module.exports = {
   getAllEmployees,
   getEmployeeById,
@@ -746,4 +824,5 @@ module.exports = {
   deleteEmployee,
   reactivateEmployee,
   searchEmployees,
+  updateMyProfile,
 };

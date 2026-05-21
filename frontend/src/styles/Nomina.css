@@ -419,3 +419,80 @@
   font-size: 0.9rem;
   min-width: 180px;
 }
+
+@media (max-width: 768px) {
+  .nomina-container {
+    padding: 20px 14px;
+  }
+
+  .nomina-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .nomina-header h1 {
+    font-size: 1.3rem;
+  }
+
+  .nomina-header-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .nomina-date-range {
+    justify-content: center;
+  }
+
+  .btn-generar-nomina {
+    justify-content: center;
+  }
+
+  .nomina-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nomina-card {
+    padding: 14px;
+  }
+
+  .nomina-card-value {
+    font-size: 1.2rem;
+  }
+
+  .nomina-chart-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 14px 16px;
+  }
+
+  .nomina-chart-body {
+    padding: 14px 16px;
+  }
+
+  .nomina-payday-card {
+    padding: 20px;
+  }
+
+  .nomina-payday-count {
+    font-size: 1.4rem;
+  }
+
+  .nomina-activity-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 14px 16px;
+  }
+
+  .nomina-activity-item {
+    padding: 12px;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .nomina-filter-input {
+    min-width: 100%;
+  }
+}

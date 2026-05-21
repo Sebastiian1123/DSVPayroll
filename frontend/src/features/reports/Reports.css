@@ -943,6 +943,33 @@
 }
 
 @media (max-width: 768px) {
+    .reports-container {
+        padding: 16px;
+    }
+
+    .reports-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .reports-header h1 {
+        font-size: 20px;
+    }
+
+    .months-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .month-card {
+        padding: 14px;
+    }
+
+    .month-amount {
+        font-size: 16px;
+    }
+
     .admin-payroll-report__header {
         flex-direction: column;
         align-items: stretch;
@@ -965,5 +992,687 @@
     .admin-payroll-floating-btn {
         right: 20px;
         bottom: 20px;
+    }
+
+    .admin-payroll-table-card {
+        overflow: visible;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+    }
+
+    .admin-payroll-table-wrapper {
+        overflow: visible;
+    }
+
+    .admin-payroll-table,
+    .admin-payroll-table thead,
+    .admin-payroll-table tbody,
+    .admin-payroll-table tfoot,
+    .admin-payroll-table tr,
+    .admin-payroll-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .admin-payroll-table {
+        min-width: 0;
+        background: transparent;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .admin-payroll-table thead {
+        display: none;
+    }
+
+    .admin-payroll-table tbody {
+        display: grid;
+        gap: 16px;
+    }
+
+    .admin-payroll-table tbody tr {
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0 14px;
+        padding: 20px 16px 18px;
+        background: #fff;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .admin-payroll-table tbody tr:hover {
+        background: #fff;
+    }
+
+    .admin-payroll-table tbody td {
+        border: 0;
+        padding: 0;
+        color: #111827;
+        white-space: normal;
+    }
+
+    .admin-payroll-table tbody td[colspan] {
+        grid-column: 1 / -1;
+        padding: 24px 10px;
+        text-align: center !important;
+        color: var(--text-light);
+    }
+
+    .admin-payroll-table__employee-col,
+    .admin-payroll-table__employee-cell {
+        min-width: 0;
+    }
+
+    .admin-payroll-table tbody td:nth-child(1) {
+        grid-column: 1;
+        padding-right: 4px;
+    }
+
+    .admin-payroll-employee {
+        align-items: center;
+    }
+
+    .admin-payroll-employee__avatar {
+        width: 58px;
+        height: 58px;
+        border-radius: 50%;
+    }
+
+    .admin-payroll-employee__name {
+        font-size: 17px;
+        line-height: 1.25;
+    }
+
+    .admin-payroll-table tbody td:nth-child(2),
+    .admin-payroll-table tbody td:nth-child(3),
+    .admin-payroll-table tbody td:nth-child(4),
+    .admin-payroll-table tbody td:nth-child(5),
+    .admin-payroll-table tbody td:nth-child(6),
+    .admin-payroll-table tbody td:nth-child(7),
+    .admin-payroll-table tbody td:nth-child(8),
+    .admin-payroll-table tbody td:nth-child(9),
+    .admin-payroll-table tbody td:nth-child(10) {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: 34px minmax(118px, 0.9fr) minmax(0, 1.1fr);
+        align-items: center;
+        column-gap: 12px;
+        min-height: 44px;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 15px;
+        text-align: right;
+    }
+
+    .admin-payroll-table tbody td:nth-child(2) {
+        margin-top: 18px;
+    }
+
+    .admin-payroll-table tbody td:nth-child(10) {
+        border-bottom: 0;
+    }
+
+    .admin-payroll-table tbody td:nth-child(2)::before,
+    .admin-payroll-table tbody td:nth-child(3)::before,
+    .admin-payroll-table tbody td:nth-child(4)::before,
+    .admin-payroll-table tbody td:nth-child(5)::before,
+    .admin-payroll-table tbody td:nth-child(6)::before,
+    .admin-payroll-table tbody td:nth-child(7)::before,
+    .admin-payroll-table tbody td:nth-child(8)::before,
+    .admin-payroll-table tbody td:nth-child(9)::before,
+    .admin-payroll-table tbody td:nth-child(10)::before {
+        grid-column: 2;
+        text-align: left;
+        color: var(--text-light);
+        font-weight: 500;
+    }
+
+    .admin-payroll-table tbody td:nth-child(2)::after,
+    .admin-payroll-table tbody td:nth-child(3)::after,
+    .admin-payroll-table tbody td:nth-child(4)::after,
+    .admin-payroll-table tbody td:nth-child(5)::after,
+    .admin-payroll-table tbody td:nth-child(6)::after,
+    .admin-payroll-table tbody td:nth-child(7)::after,
+    .admin-payroll-table tbody td:nth-child(8)::after,
+    .admin-payroll-table tbody td:nth-child(9)::after,
+    .admin-payroll-table tbody td:nth-child(10)::after {
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+        grid-column: 1;
+        grid-row: 1;
+        color: var(--text-light);
+        text-align: center;
+        font-size: 16px;
+    }
+
+    .admin-payroll-table tbody td:nth-child(2)::before { content: "Salario"; }
+    .admin-payroll-table tbody td:nth-child(2)::after { content: "\24"; }
+    .admin-payroll-table tbody td:nth-child(3)::before { content: "HEO"; }
+    .admin-payroll-table tbody td:nth-child(3)::after { content: "\f017"; }
+    .admin-payroll-table tbody td:nth-child(4)::before { content: "HEF"; }
+    .admin-payroll-table tbody td:nth-child(4)::after { content: "\f017"; }
+    .admin-payroll-table tbody td:nth-child(5)::before { content: "HEN"; }
+    .admin-payroll-table tbody td:nth-child(5)::after { content: "\f186"; }
+    .admin-payroll-table tbody td:nth-child(6)::before { content: "HEFN"; }
+    .admin-payroll-table tbody td:nth-child(6)::after { content: "\f186"; }
+    .admin-payroll-table tbody td:nth-child(7)::before { content: "Salud"; }
+    .admin-payroll-table tbody td:nth-child(7)::after { content: "\f0fa"; }
+    .admin-payroll-table tbody td:nth-child(8)::before { content: "ARL"; }
+    .admin-payroll-table tbody td:nth-child(8)::after { content: "\f0f1"; }
+    .admin-payroll-table tbody td:nth-child(9)::before { content: "Pension"; }
+    .admin-payroll-table tbody td:nth-child(9)::after { content: "\f4d3"; }
+    .admin-payroll-table tbody td:nth-child(10)::before { content: "Neto"; }
+    .admin-payroll-table tbody td:nth-child(10)::after { content: "\f53a"; }
+
+    .admin-payroll-table tbody td:nth-child(11) {
+        grid-row: 1 / 2;
+        grid-column: 2;
+        align-self: center;
+        justify-self: end;
+        padding: 0;
+    }
+
+    .admin-payroll-row-actions {
+        justify-content: flex-end;
+    }
+
+    .admin-payroll-table tfoot {
+        margin-top: 16px;
+    }
+
+    .admin-payroll-table tfoot tr {
+        display: grid;
+        gap: 8px;
+        padding: 16px;
+        background: #fff;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+    }
+
+    .admin-payroll-table tfoot td {
+        padding: 0;
+        border: 0;
+        background: transparent;
+    }
+
+    .detail-header {
+        flex-direction: column;
+        gap: 16px;
+        padding: 16px;
+    }
+
+    .period-info {
+        width: 100%;
+        justify-content: flex-start;
+        gap: 16px;
+    }
+
+    .detail-footer {
+        flex-direction: column;
+        gap: 16px;
+        padding: 16px;
+    }
+
+    .accumulated-info {
+        flex-wrap: wrap;
+    }
+
+    .net-total h2 {
+        font-size: 28px;
+    }
+
+    .acc-box {
+        min-width: 100px;
+        padding: 8px 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .months-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .years-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .year-btn {
+        min-width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .reports-container {
+        width: 100%;
+        padding: 18px 12px 28px;
+        overflow-x: hidden;
+    }
+
+    .reports-header,
+    .employee-report-detail .reports-header,
+    .admin-reports-dashboard .reports-header {
+        align-items: stretch !important;
+        gap: 14px;
+        margin-bottom: 20px !important;
+    }
+
+    .reports-header h1,
+    .admin-payroll-report__header h1 {
+        font-size: 24px;
+        line-height: 1.15;
+    }
+
+    .reports-header p,
+    .admin-payroll-report__header p {
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .employee-reports-list .reports-header > div:last-child,
+    .employee-report-detail .reports-header > div:last-child {
+        width: 100%;
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px !important;
+        border-radius: 10px !important;
+    }
+
+    .employee-reports-list .reports-header > div:last-child button {
+        min-width: 0;
+        padding: 10px 8px !important;
+        text-align: center;
+    }
+
+    .employee-report-detail .reports-header > div:last-child {
+        grid-template-columns: 1fr;
+    }
+
+    .employee-report-detail .reports-header .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .year-selector-container {
+        padding: 14px;
+        border-radius: 12px;
+    }
+
+    .years-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        overflow: visible;
+    }
+
+    .year-btn {
+        min-width: 0;
+        width: 100%;
+        padding: 12px;
+    }
+
+    .cycles-container > div:first-child {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 10px;
+    }
+
+    .cycles-container > div:first-child > div {
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 10px !important;
+    }
+
+    .months-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    .month-card {
+        min-height: 128px !important;
+        padding: 14px !important;
+        border-radius: 12px;
+    }
+
+    .month-title {
+        font-size: 15px !important;
+        line-height: 1.25;
+    }
+
+    .month-subtitle {
+        font-size: 11px !important;
+        line-height: 1.35;
+        margin-bottom: 8px;
+    }
+
+    .month-amount {
+        align-items: flex-start !important;
+        gap: 8px;
+    }
+
+    .month-amount span {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        line-height: 1.2;
+    }
+
+    .admin-reports-layout {
+        gap: 16px;
+    }
+
+    .info-card,
+    .compliance-card,
+    .sidebar-panel > div {
+        border-radius: 12px !important;
+        padding: 16px !important;
+    }
+
+    .info-stat-value {
+        font-size: 24px;
+        overflow-wrap: anywhere;
+    }
+
+    .compliance-item {
+        gap: 10px;
+    }
+
+    .admin-payroll-filters {
+        padding: 12px;
+        border-radius: 14px;
+        gap: 12px;
+        margin-bottom: 22px;
+    }
+
+    .admin-payroll-search,
+    .admin-payroll-select select {
+        min-height: 48px;
+    }
+
+    .admin-payroll-select {
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr);
+        gap: 8px;
+        padding-left: 0;
+        border-left: 0;
+    }
+
+    .admin-payroll-departments {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        padding-left: 0;
+        border-left: 0;
+    }
+
+    .admin-payroll-departments span {
+        grid-column: 1 / -1;
+    }
+
+    .admin-department-pill {
+        width: 100%;
+        min-height: 38px;
+        padding: 8px 10px;
+        background: #f8fafc;
+        border: 1px solid var(--border-color);
+        text-align: center;
+        overflow-wrap: anywhere;
+    }
+
+    .admin-payroll-table tbody tr {
+        grid-template-columns: minmax(0, 1fr) 82px;
+    }
+
+    .admin-payroll-employee {
+        min-width: 0;
+    }
+
+    .admin-payroll-employee > div:last-child {
+        min-width: 0;
+    }
+
+    .admin-payroll-employee__name,
+    .admin-payroll-employee__role {
+        overflow-wrap: anywhere;
+    }
+
+    .admin-payroll-row-actions {
+        gap: 6px;
+    }
+
+    .admin-payroll-row-action {
+        width: 34px;
+        height: 34px;
+    }
+
+    .admin-payroll-table tfoot tr {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-payroll-table tfoot td {
+        display: grid;
+        grid-template-columns: minmax(120px, 1fr) minmax(0, 1fr);
+        gap: 10px;
+        font-size: 14px;
+        text-align: right;
+    }
+
+    .admin-payroll-table tfoot td:first-child {
+        display: block;
+        text-align: left;
+        margin-bottom: 4px;
+    }
+
+    .admin-payroll-table tfoot td:nth-child(2)::before { content: "Salario"; }
+    .admin-payroll-table tfoot td:nth-child(3)::before { content: "HEO"; }
+    .admin-payroll-table tfoot td:nth-child(4)::before { content: "HEF"; }
+    .admin-payroll-table tfoot td:nth-child(5)::before { content: "HEN"; }
+    .admin-payroll-table tfoot td:nth-child(6)::before { content: "HEFN"; }
+    .admin-payroll-table tfoot td:nth-child(7)::before { content: "Salud"; }
+    .admin-payroll-table tfoot td:nth-child(8)::before { content: "ARL"; }
+    .admin-payroll-table tfoot td:nth-child(9)::before { content: "Pension"; }
+    .admin-payroll-table tfoot td:nth-child(10)::before { content: "Neto"; }
+
+    .admin-payroll-table tfoot td::before {
+        text-align: left;
+        color: var(--text-light);
+        font-weight: 600;
+    }
+
+    .report-detail-card {
+        border-radius: 12px;
+    }
+
+    .detail-header {
+        padding: 16px;
+    }
+
+    .company-info {
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .company-logo {
+        width: 42px;
+        height: 42px;
+        flex-shrink: 0;
+    }
+
+    .company-details {
+        min-width: 0;
+    }
+
+    .company-details h3,
+    .company-details p {
+        overflow-wrap: anywhere;
+    }
+
+    .period-info {
+        display: grid;
+        grid-template-columns: 1fr;
+        text-align: left;
+    }
+
+    .period-col,
+    .period-col[style] {
+        text-align: left !important;
+    }
+
+    .detail-section {
+        padding: 16px;
+    }
+
+    .concept-item {
+        gap: 12px;
+    }
+
+    .concept-name {
+        min-width: 0;
+    }
+
+    .concept-name h4,
+    .concept-name p {
+        overflow-wrap: anywhere;
+    }
+
+    .concept-amount {
+        flex-shrink: 0;
+        max-width: 48%;
+        text-align: right;
+    }
+
+    .section-total {
+        gap: 12px;
+    }
+
+    .section-total span:first-child {
+        min-width: 0;
+    }
+
+    .section-total .amount {
+        text-align: right;
+        overflow-wrap: anywhere;
+    }
+
+    .detail-footer {
+        align-items: stretch;
+    }
+
+    .accumulated-info {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .acc-box {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .net-total {
+        text-align: left;
+    }
+
+    .net-total h2 {
+        overflow-wrap: anywhere;
+    }
+
+    .detail-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 14px 16px;
+    }
+
+    .detail-actions-btn {
+        justify-content: center;
+        min-height: 38px;
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        background: #fff;
+    }
+
+    .info-banner {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 14px;
+        padding: 16px !important;
+    }
+
+    .banner-content {
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .info-banner .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .reports-container {
+        padding: 14px 10px 24px;
+    }
+
+    .reports-header h1,
+    .admin-payroll-report__header h1 {
+        font-size: 22px;
+    }
+
+    .employee-reports-list .reports-header > div:last-child {
+        grid-template-columns: 1fr;
+    }
+
+    .years-row,
+    .months-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .month-card {
+        min-height: 112px !important;
+    }
+
+    .admin-payroll-departments {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-payroll-table tbody tr {
+        grid-template-columns: minmax(0, 1fr) 78px;
+        padding: 18px 14px 16px;
+    }
+
+    .admin-payroll-table tbody td:nth-child(2),
+    .admin-payroll-table tbody td:nth-child(3),
+    .admin-payroll-table tbody td:nth-child(4),
+    .admin-payroll-table tbody td:nth-child(5),
+    .admin-payroll-table tbody td:nth-child(6),
+    .admin-payroll-table tbody td:nth-child(7),
+    .admin-payroll-table tbody td:nth-child(8),
+    .admin-payroll-table tbody td:nth-child(9),
+    .admin-payroll-table tbody td:nth-child(10) {
+        grid-template-columns: 30px minmax(88px, 0.75fr) minmax(0, 1.25fr);
+        column-gap: 10px;
+        font-size: 14px;
+    }
+
+    .admin-payroll-employee__avatar {
+        width: 50px;
+        height: 50px;
+    }
+
+    .admin-payroll-employee__name {
+        font-size: 15px;
+    }
+
+    .concept-item,
+    .section-total {
+        align-items: flex-start;
+    }
+
+    .concept-amount {
+        max-width: 44%;
+        font-size: 13px;
     }
 }
