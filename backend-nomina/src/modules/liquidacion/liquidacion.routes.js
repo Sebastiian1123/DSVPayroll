@@ -11,6 +11,8 @@ const {
   downloadLiquidacionPdf,
   getRecontratacionConfig,
   updateRecontratacionConfig,
+  getJornadaLaboralConfig,
+  updateJornadaLaboralConfig,
   revertirPago,
   revertirAnulacion,
   deleteLiquidacion
@@ -34,5 +36,9 @@ router.get('/:id_liquidacion/pdf', verifyAdminORRRHH, downloadLiquidacionPdf);
 // Configuracion de recontratacion
 router.get('/config/recontratacion', verifyAdminORRRHH, getRecontratacionConfig);
 router.put('/config/recontratacion', verifyAdminORRRHH, updateRecontratacionConfig);
+
+// Configuracion de jornada laboral global
+router.get('/config/jornada-laboral', verifyAdminORRRHH, getJornadaLaboralConfig);
+router.put('/config/jornada-laboral', verifyAdminORRRHH, updateJornadaLaboralConfig);
 
 module.exports = router;

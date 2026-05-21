@@ -478,6 +478,58 @@ const updateRecontratacionConfig = async (req, res) => {
   }
 };
 
+const getJornadaLaboralConfig = async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT jornada_laboral_defecto
+       FROM parametros_nomina LIMIT 1`
+    );
+
+    const jornada = rows.length > 0 ? rows[0].jornada_laboral_defecto : 'LUNES_VIERNES';
+
+    return res.json({
+      success: true,
+      data: { jornada_laboral: jornada }
+    });
+  } catch (error) {
+    console.error('Error obteniendo jornada laboral:', error.message);
+    return res.status(500).json({ success: false, message: 'Error obteniendo configuracion' });
+  }
+};
+
+const updateJornadaLaboralConfig = async (req, res) => {
+  try {
+    const { jornada_laboral } = req.body;
+
+    if (!jornada_laboral || !['LUNES_VIERNES', 'LUNES_SABADO'].includes(jornada_laboral)) {
+      return res.status(400).json({ success: false, message: 'jornada_laboral debe ser LUNES_VIERNES o LUNES_SABADO' });
+    }
+
+    const [existing] = await pool.query('SELECT id_parametro FROM parametros_nomina LIMIT 1');
+
+    if (existing.length === 0) {
+      await pool.query(
+        `INSERT INTO parametros_nomina (jornada_laboral_defecto) VALUES (?)`,
+        [jornada_laboral]
+      );
+    } else {
+      await pool.query(
+        `UPDATE parametros_nomina SET jornada_laboral_defecto = ? WHERE id_parametro = ?`,
+        [jornada_laboral, existing[0].id_parametro]
+      );
+    }
+
+    return res.json({
+      success: true,
+      message: 'Configuracion de jornada laboral actualizada exitosamente',
+      data: { jornada_laboral }
+    });
+  } catch (error) {
+    console.error('Error actualizando jornada laboral:', error.message);
+    return res.status(500).json({ success: false, message: 'Error actualizando configuracion' });
+  }
+};
+
 const revertirPago = async (req, res) => {
   const connection = await pool.getConnection();
   try {
@@ -642,6 +694,8 @@ module.exports = {
   downloadLiquidacionPdf,
   getRecontratacionConfig,
   updateRecontratacionConfig,
+  getJornadaLaboralConfig,
+  updateJornadaLaboralConfig,
   revertirPago,
   revertirAnulacion,
   deleteLiquidacion

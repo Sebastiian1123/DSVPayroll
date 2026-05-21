@@ -49,6 +49,7 @@ const getAllEmployees = async (req, res) => {
         e.tipo_identificacion,
         e.numero_identificacion,
         e.sueldo,
+        e.jornada_laboral,
         e.fecha_nacimiento,
         e.fecha_ingreso,
         e.fecha_retiro,

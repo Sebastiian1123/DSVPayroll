@@ -1,5 +1,75 @@
+import { useState, useEffect } from 'react';
+import api from '../../../services/api';
+import { showSuccess, showError } from '../../../utils/alerts';
 import { formatDate, getStatusClass, getSupportFileUrl } from '../utils/requestHelpers';
 import { REQUEST_TYPE_OPTIONS } from '../utils/requestTypeOptions';
+
+const JORNADA_LUNES_VIERNES = 'LUNES_VIERNES';
+const JORNADA_LUNES_SABADO = 'LUNES_SABADO';
+
+const JornadaToggle = () => {
+  const [jornada, setJornada] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const res = await api.get('/liquidacion/config/jornada-laboral');
+        setJornada(res.data.data.jornada_laboral || JORNADA_LUNES_VIERNES);
+      } catch {
+        setJornada(JORNADA_LUNES_VIERNES);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchConfig();
+  }, []);
+
+  const handleToggle = async (value) => {
+    if (value === jornada || saving) return;
+    setSaving(true);
+    try {
+      await api.put('/liquidacion/config/jornada-laboral', { jornada_laboral: value });
+      setJornada(value);
+      showSuccess('Configuracion actualizada', value === JORNADA_LUNES_SABADO
+        ? 'La empresa ahora trabaja de lunes a sabado'
+        : 'La empresa ahora trabaja de lunes a viernes');
+    } catch (error) {
+      showError('Error', error.response?.data?.message || 'No se pudo actualizar la configuracion');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="permisos-jornada-loader">Cargando configuracion...</div>;
+  }
+
+  return (
+    <div className="permisos-jornada-selector">
+      <span className="permisos-jornada-label">Jornada laboral de la empresa:</span>
+      <div className="permisos-jornada-options">
+        <button
+          type="button"
+          className={`permisos-jornada-btn ${jornada === JORNADA_LUNES_VIERNES ? 'is-active' : ''}`}
+          onClick={() => handleToggle(JORNADA_LUNES_VIERNES)}
+          disabled={saving}
+        >
+          Lunes a Viernes
+        </button>
+        <button
+          type="button"
+          className={`permisos-jornada-btn ${jornada === JORNADA_LUNES_SABADO ? 'is-active' : ''}`}
+          onClick={() => handleToggle(JORNADA_LUNES_SABADO)}
+          disabled={saving}
+        >
+          Lunes a Sábado
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const AdminRequestsSection = ({
   adminFilters,
@@ -51,6 +121,8 @@ const AdminRequestsSection = ({
         />
       </div>
     </div>
+
+    <JornadaToggle />
 
     {adminRequestsError && <div className="permisos-alert permisos-alert--error">{adminRequestsError}</div>}
 
@@ -165,5 +237,3 @@ const AdminRequestsSection = ({
 );
 
 export default AdminRequestsSection;
-
-

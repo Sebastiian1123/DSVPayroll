@@ -389,6 +389,57 @@ const ensureRehiringParameters = async () => {
     }
 };
 
+const ensureJornadaLaboralColumn = async () => {
+  try {
+    const dbName = process.env.DB_NAME || 'sistema_nomina';
+    const [columns] = await promisePool.query(
+      `SELECT COLUMN_NAME
+       FROM INFORMATION_SCHEMA.COLUMNS
+       WHERE TABLE_SCHEMA = ?
+         AND TABLE_NAME = 'empleados'
+         AND COLUMN_NAME = 'jornada_laboral'`,
+      [dbName]
+    );
+
+    if (columns.length === 0) {
+      await promisePool.query(
+        `ALTER TABLE empleados
+         ADD COLUMN jornada_laboral ENUM('LUNES_VIERNES','LUNES_SABADO') NOT NULL DEFAULT 'LUNES_VIERNES'
+         AFTER sueldo`
+      );
+      console.log('Columna empleados.jornada_laboral creada automaticamente');
+    }
+  } catch (error) {
+    console.error('Error asegurando columna empleados.jornada_laboral:', error.message);
+    throw error;
+  }
+};
+
+const ensureGlobalJornadaLaboralColumn = async () => {
+  try {
+    const dbName = process.env.DB_NAME || 'sistema_nomina';
+    const [columns] = await promisePool.query(
+      `SELECT COLUMN_NAME
+       FROM INFORMATION_SCHEMA.COLUMNS
+       WHERE TABLE_SCHEMA = ?
+         AND TABLE_NAME = 'parametros_nomina'
+         AND COLUMN_NAME = 'jornada_laboral_defecto'`,
+      [dbName]
+    );
+
+    if (columns.length === 0) {
+      await promisePool.query(
+        `ALTER TABLE parametros_nomina
+         ADD COLUMN jornada_laboral_defecto ENUM('LUNES_VIERNES','LUNES_SABADO') NOT NULL DEFAULT 'LUNES_VIERNES'`
+      );
+      console.log('Columna parametros_nomina.jornada_laboral_defecto creada automaticamente');
+    }
+  } catch (error) {
+    console.error('Error asegurando columna parametros_nomina.jornada_laboral_defecto:', error.message);
+    throw error;
+  }
+};
+
 const ensureNominaStatusColumn = async () => {
     try {
         const dbName = process.env.DB_NAME || 'sistema_nomina';
@@ -423,5 +474,7 @@ module.exports = {
     ensurePayrollSupportTables,
     ensurePrestacionesLiquidacionTables,
     ensureRehiringParameters,
+    ensureJornadaLaboralColumn,
+    ensureGlobalJornadaLaboralColumn,
     ensureNominaStatusColumn
 };

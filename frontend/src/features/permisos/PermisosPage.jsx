@@ -16,7 +16,7 @@ import {
   getInitialForm,
   getDefaultPayrollValuesByType
 } from './utils/requestTypeOptions';
-import { toBase64, calculateDays } from './utils/requestHelpers';
+import { toBase64, contarDiasHabilesEnRango, fetchGlobalJornada } from './utils/requestHelpers';
 
 const PermisosPage = () => {
   const { user, isAdminOrRRHH } = useAuth();
@@ -41,6 +41,7 @@ const PermisosPage = () => {
     id_empleado: ''
   });
   const [supportFile, setSupportFile] = useState(null);
+  const [jornadaLaboral, setJornadaLaboral] = useState('LUNES_VIERNES');
 
   const selectedOption = REQUEST_TYPE_OPTIONS[selectedRequestType];
 
@@ -140,6 +141,10 @@ const PermisosPage = () => {
     fetchAdminRequests();
   }, [user?.rol, adminFilters.tipo, adminFilters.estado, adminFilters.id_empleado]);
 
+  useEffect(() => {
+    fetchGlobalJornada().then(setJornadaLaboral);
+  }, []);
+
   const handleChange = (event) => {
     const { name, value } = event.target;
 
@@ -149,13 +154,14 @@ const PermisosPage = () => {
         [name]: value
       };
 
-      // Si cambian las fechas en vacaciones, recalculamos dias_disfrutar.
+      // Si cambian las fechas en vacaciones, recalculamos dias_disfrutar en dias habiles.
       if (selectedRequestType === REQUEST_TYPE_OPTIONS.VACACIONES.key && (name === 'fecha_inicio' || name === 'fecha_fin')) {
-        const days = calculateDays(
+        const { habiles } = contarDiasHabilesEnRango(
           name === 'fecha_inicio' ? value : prev.fecha_inicio,
-          name === 'fecha_fin' ? value : prev.fecha_fin
+          name === 'fecha_fin' ? value : prev.fecha_fin,
+          jornadaLaboral
         );
-        nextState.dias_disfrutar = String(days);
+        nextState.dias_disfrutar = String(habiles);
       }
 
       // Mantiene sincronizados los campos que luego usara nomina.
@@ -218,8 +224,19 @@ const PermisosPage = () => {
       const dDinero = Number(formData.dias_dinero || 0);
       const total = dDisfrutar + dDinero;
 
-      if (dDisfrutar < 7) {
-        showError('Validacion de vacaciones', 'Es obligatorio disfrutar al menos 7 dias de descanso.');
+      // Permite bloques menores de 6 dias si el empleado ya tiene un bloque aprobado de 6+ dias en este periodo
+      const minRestDays = (() => {
+        const currentPeriod = new Date(formData.fecha_inicio || Date.now()).getFullYear();
+        const hasBlock = requests.some(r =>
+          r.estado === 'APROBADA' &&
+          new Date(r.fecha_inicio).getFullYear() === currentPeriod &&
+          Number(r.dias_disfrutar || 0) >= 6
+        );
+        return hasBlock ? 0 : 6;
+      })();
+
+      if (dDisfrutar > 0 && dDisfrutar < minRestDays) {
+        showError('Validacion de vacaciones', 'Debes disfrutar al menos 6 dias de descanso en tu primer bloque del periodo.');
         return;
       }
 
@@ -409,11 +426,41 @@ const PermisosPage = () => {
         {selectedRequestType === REQUEST_TYPE_OPTIONS.VACACIONES.key && (
           <>
             <RequestSummaryCards loadingBalance={loadingBalance} balance={balance} />
-            {balanceError && <div className="permisos-alert permisos-alert--error">{balanceError}</div>}
+            {user?.id_empleado && balanceError && <div className="permisos-alert permisos-alert--error">{balanceError}</div>}
           </>
         )}
 
-        {requestsError && <div className="permisos-alert permisos-alert--error">{requestsError}</div>}
+        {user?.id_empleado && requestsError && <div className="permisos-alert permisos-alert--error">{requestsError}</div>}
+
+        {user?.id_empleado ? (
+          <div className="permisos-layout">
+            <RequestFormSection
+              selectedOption={selectedOption}
+              formData={formData}
+              supportFile={supportFile}
+              submitting={submitting}
+              hasEmployee={!!user?.id_empleado}
+              canManagePayrollFields={isAdminOrRRHH()}
+              onSubmit={handleSubmit}
+              onChange={handleChange}
+              onSupportFileChange={handleSupportFileChange}
+              requests={requests}
+              jornadaLaboral={jornadaLaboral}
+            />
+
+            <RequestHistorySection
+              selectedOption={selectedOption}
+              loadingRequests={loadingRequests}
+              requests={requests}
+              onDelete={handleDeleteRequest}
+              processingRequestId={processingRequestId}
+            />
+          </div>
+        ) : (
+          <div className="permisos-empty-state">
+            Tu usuario no tiene un empleado asociado en el sistema. No puedes generar solicitudes personales.
+          </div>
+        )}
         {isAdminOrRRHH() && (
           <AdminRequestsSection
             adminFilters={adminFilters}
@@ -426,28 +473,6 @@ const PermisosPage = () => {
             onDelete={handleDeleteRequest}
           />
         )}
-        <div className="permisos-layout">
-          <RequestFormSection
-            selectedOption={selectedOption}
-            formData={formData}
-            supportFile={supportFile}
-            submitting={submitting}
-            hasEmployee={!!user?.id_empleado}
-            canManagePayrollFields={isAdminOrRRHH()}
-            onSubmit={handleSubmit}
-            onChange={handleChange}
-            onSupportFileChange={handleSupportFileChange}
-          />
-
-          <RequestHistorySection
-            selectedOption={selectedOption}
-            loadingRequests={loadingRequests}
-            requests={requests}
-            onDelete={handleDeleteRequest}
-            processingRequestId={processingRequestId}
-          />
-        </div>
-
 
       </div>
     </>

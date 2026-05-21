@@ -17,6 +17,8 @@ const {
   ensurePayrollSupportTables,
   ensurePrestacionesLiquidacionTables,
   ensureRehiringParameters,
+  ensureJornadaLaboralColumn,
+  ensureGlobalJornadaLaboralColumn,
   ensureNominaStatusColumn
 } = require('./src/config/database.js');
 const { verifyConnection } = require('./src/services/emailService');
@@ -123,6 +125,8 @@ const startServer = async () => {
       await ensurePayrollSupportTables();
       await ensurePrestacionesLiquidacionTables();
       await ensureRehiringParameters();
+      await ensureJornadaLaboralColumn();
+      await ensureGlobalJornadaLaboralColumn();
       await ensureNominaStatusColumn();
     }
 

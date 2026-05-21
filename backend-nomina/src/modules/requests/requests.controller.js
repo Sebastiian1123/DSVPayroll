@@ -15,6 +15,7 @@ const {
   getEmployeeIdForRequest,
   saveSupportFile
 } = require('./requests.helpers');
+const { contarDiasHabilesEnRango, JORNADA } = require('../../utils/businessDays');
 
 // Obtiene una solicitud por id para centralizar la validacion previa
 // antes de aprobarla o rechazarla.
@@ -350,22 +351,6 @@ const createVacationRequest = async (req, res) => {
       });
     }
 
-    const totalSolicitado = dDisfrutar + dDinero;
-
-    if (totalSolicitado > 15) {
-      return res.status(400).json({
-        success: false,
-        message: 'El total de dias (disfrutar + dinero) no puede exceder los 15 dias'
-      });
-    }
-
-    if (totalSolicitado <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Debes solicitar al menos un dia de vacaciones (ya sea a disfrutar o en dinero)'
-      });
-    }
-
     if (req.user?.rol === 'EMPLEADO' && !req.user?.id_empleado) {
       return res.status(403).json({
         success: false,
@@ -378,9 +363,6 @@ const createVacationRequest = async (req, res) => {
       body: req.body
     });
 
-    // Los dias solicitados totales para efectos de saldo son la suma de ambos.
-    const requestedDays = totalSolicitado;
-
     if (new Date(fecha_fin) < new Date(fecha_inicio)) {
       return res.status(400).json({
         success: false,
@@ -389,7 +371,7 @@ const createVacationRequest = async (req, res) => {
     }
 
     const [employeeRows] = await pool.query(
-      `SELECT id_empleado FROM empleados WHERE id_empleado = ?`,
+      `SELECT id_empleado, jornada_laboral FROM empleados WHERE id_empleado = ?`,
       [idEmpleado]
     );
 
@@ -397,6 +379,30 @@ const createVacationRequest = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Empleado no encontrado'
+      });
+    }
+
+    const jornadaLaboral = employeeRows[0].jornada_laboral || 'LUNES_VIERNES';
+
+    // Calcular los dias habiles reales dentro del rango de fechas.
+    const { habiles: businessDays, calendario: calendarDays } = contarDiasHabilesEnRango(
+      fecha_inicio, fecha_fin, jornadaLaboral
+    );
+
+    const dDisfrutarFinal = businessDays;
+    const totalSolicitadoFinal = dDisfrutarFinal + dDinero;
+
+    if (totalSolicitadoFinal > 15) {
+      return res.status(400).json({
+        success: false,
+        message: `El total de dias habiles (${dDisfrutarFinal}) mas los dias en dinero (${dDinero}) no puede exceder los 15 dias`
+      });
+    }
+
+    if (totalSolicitadoFinal <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Debes solicitar al menos un dia de vacaciones'
       });
     }
 
@@ -430,14 +436,36 @@ const createVacationRequest = async (req, res) => {
     const balance = balanceRows[0];
 
     // Se bloquea la creacion si el empleado no tiene dias suficientes.
-    if (Number(balance.dias_pendientes) < requestedDays) {
+    if (Number(balance.dias_pendientes) < totalSolicitadoFinal) {
       return res.status(400).json({
         success: false,
         message: 'El empleado no tiene saldo suficiente para esta solicitud',
         data: {
           dias_pendientes: Number(balance.dias_pendientes),
-          dias_solicitados: requestedDays
+          dias_solicitados: totalSolicitadoFinal
         }
+      });
+    }
+
+    // Se verifica si el empleado YA tiene un bloque de 6+ dias disfrutados en el periodo,
+    // para permitirle fraccionar el saldo restante en bloques menores (ej: 5 dias).
+    const [periodHistory] = await pool.query(
+      `SELECT COALESCE(SUM(dias_disfrutar), 0) AS total_disfrutado,
+              MAX(dias_disfrutar) AS max_bloque
+       FROM solicitudes_laborales
+       WHERE id_empleado = ?
+         AND tipo = ?
+         AND estado IN ('APROBADA', 'PENDIENTE')
+         AND YEAR(fecha_inicio) = ?`,
+      [idEmpleado, VACATION_TYPE, periodYear]
+    );
+    const tieneBloqueGrande = Number(periodHistory[0]?.max_bloque || 0) >= 6;
+    const yaDisfrutoBloque = Number(periodHistory[0]?.total_disfrutado || 0) >= 6;
+
+    if (dDisfrutarFinal > 0 && dDisfrutarFinal < 6 && !tieneBloqueGrande && !yaDisfrutoBloque) {
+      return res.status(400).json({
+        success: false,
+        message: 'El bloque de descanso debe ser de al menos 6 dias habiles, a menos que ya tengas un bloque aprobado de 6+ dias en este periodo.'
       });
     }
 
@@ -472,8 +500,8 @@ const createVacationRequest = async (req, res) => {
         sub_tipo || null,
         fecha_inicio,
         fecha_fin,
-        requestedDays,
-        dDisfrutar,
+        totalSolicitadoFinal,
+        dDisfrutarFinal,
         dDinero,
         payrollImpactData.horasSolicitadas,
         payrollImpactData.esRemunerado,
