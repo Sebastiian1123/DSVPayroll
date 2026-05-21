@@ -3,6 +3,8 @@ import Navbar from '../components/Navbar'
 import { useAuth } from '../context/AuthContext'
 import prestacionesService from '../services/prestacionesService'
 import '../styles/Nomina.css'
+import '../styles/Prestaciones.css'
+import { showSuccess, showError } from '../utils/alerts.js'
 
 const formatPeso = (value) => {
   const num = Number(value)
@@ -27,6 +29,7 @@ const Prestaciones = () => {
         const data = await prestacionesService.getPrestacionesResumen({ anio: selectedYear })
         setEmpleados(Array.isArray(data.empleados) ? data.empleados : [])
       } catch (e) {
+        showError('No se pudieron cargar las prestaciones', e)
         setError('No se pudieron cargar las prestaciones')
         setEmpleados([])
       } finally {
@@ -44,11 +47,11 @@ const Prestaciones = () => {
         anio: selectedYear,
         mes: now.getMonth() + 1
       })
-      alert(result.message || 'Prestaciones acumuladas')
+      showSuccess(result.message || 'Prestaciones acumuladas')
       const data = await prestacionesService.getPrestacionesResumen({ anio: selectedYear })
       setEmpleados(Array.isArray(data.empleados) ? data.empleados : [])
     } catch (e) {
-      alert('Error acumulando prestaciones')
+      showError('Error acumulando prestaciones', e)
     } finally {
       setAcumulando(false)
     }
@@ -58,83 +61,83 @@ const Prestaciones = () => {
   for (let y = currentYear - 3; y <= currentYear + 1; y++) years.push(y)
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-light)' }}>
+    <div className="prestaciones-page">
       <Navbar />
       <div className="nomina-container">
-        <div className="page-header">
+        <div className="prestaciones-header">
           <div>
             <h1>Prestaciones Sociales</h1>
             <p>Consulta y acumulación de prima, cesantías, intereses y vacaciones</p>
           </div>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} className="form-select" style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+          <div className="prestaciones-header-actions">
+            <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} className="prestaciones-year-select">
               {years.map((y) => <option key={y} value={y}>{y}</option>)}
             </select>
             {isAdmin() && (
-              <button onClick={handleAcumularMasivo} disabled={acumulando} className="btn-primary" style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: 'var(--primary-color)', color: 'white', cursor: 'pointer' }}>
+              <button onClick={handleAcumularMasivo} disabled={acumulando} className="prestaciones-btn-acumular">
                 {acumulando ? 'Acumulando...' : 'Acumular Mes Actual'}
               </button>
             )}
           </div>
         </div>
 
-        {error && <p style={{ color: 'var(--danger-color)', marginBottom: '16px' }}>{error}</p>}
-        {loading && <p style={{ color: 'var(--text-light)' }}>Cargando...</p>}
+        {error && <p className="prestaciones-error">{error}</p>}
+        {loading && <p className="prestaciones-loading">Cargando...</p>}
 
         {!loading && empleados.length === 0 && !error && (
-          <p style={{ color: 'var(--text-light)', textAlign: 'center', padding: '40px' }}>
+          <p className="prestaciones-empty">
             No hay datos de prestaciones para {selectedYear}. Usa "Acumular Mes Actual" para generar.
           </p>
         )}
 
         {empleados.map((emp) => (
-          <div key={emp.id_empleado} style={{ background: 'white', borderRadius: '12px', padding: '20px', marginBottom: '20px', border: '1px solid var(--border-color)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0 }}>{emp.empleado}</h3>
-              <span style={{ fontSize: '14px', color: 'var(--text-light)' }}>Salario: {formatPeso(emp.salario_actual)}</span>
+          <div key={emp.id_empleado} className="prestaciones-employee-card">
+            <div className="prestaciones-employee-header">
+              <h3 className="prestaciones-employee-name">{emp.empleado}</h3>
+              <span className="prestaciones-employee-salary">Salario: {formatPeso(emp.salario_actual)}</span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
-              <div style={{ background: '#f0f9ff', padding: '12px', borderRadius: '8px' }}>
-                <div style={{ fontSize: '12px', color: 'var(--text-light)' }}>Prima</div>
-                <div style={{ fontSize: '18px', fontWeight: 600, color: '#0369a1' }}>{formatPeso(emp.totales.prima)}</div>
+            <div className="prestaciones-summary-grid">
+              <div className="prestaciones-summary-card prestaciones-summary-card--prima">
+                <div className="prestaciones-summary-label">Prima</div>
+                <div className="prestaciones-summary-value prestaciones-summary-value--prima">{formatPeso(emp.totales.prima)}</div>
               </div>
-              <div style={{ background: '#f0fdf4', padding: '12px', borderRadius: '8px' }}>
-                <div style={{ fontSize: '12px', color: 'var(--text-light)' }}>Cesantías</div>
-                <div style={{ fontSize: '18px', fontWeight: 600, color: '#15803d' }}>{formatPeso(emp.totales.cesantias)}</div>
+              <div className="prestaciones-summary-card prestaciones-summary-card--cesantias">
+                <div className="prestaciones-summary-label">Cesantías</div>
+                <div className="prestaciones-summary-value prestaciones-summary-value--cesantias">{formatPeso(emp.totales.cesantias)}</div>
               </div>
-              <div style={{ background: '#fffbeb', padding: '12px', borderRadius: '8px' }}>
-                <div style={{ fontSize: '12px', color: 'var(--text-light)' }}>Intereses Cesantías</div>
-                <div style={{ fontSize: '18px', fontWeight: 600, color: '#b45309' }}>{formatPeso(emp.totales.intereses)}</div>
+              <div className="prestaciones-summary-card prestaciones-summary-card--intereses">
+                <div className="prestaciones-summary-label">Intereses Cesantías</div>
+                <div className="prestaciones-summary-value prestaciones-summary-value--intereses">{formatPeso(emp.totales.intereses)}</div>
               </div>
-              <div style={{ background: '#f5f3ff', padding: '12px', borderRadius: '8px' }}>
-                <div style={{ fontSize: '12px', color: 'var(--text-light)' }}>Vacaciones</div>
-                <div style={{ fontSize: '18px', fontWeight: 600, color: '#6d28d9' }}>{formatPeso(emp.totales.vacaciones)}</div>
+              <div className="prestaciones-summary-card prestaciones-summary-card--vacaciones">
+                <div className="prestaciones-summary-label">Vacaciones</div>
+                <div className="prestaciones-summary-value prestaciones-summary-value--vacaciones">{formatPeso(emp.totales.vacaciones)}</div>
               </div>
             </div>
 
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+            <table className="prestaciones-detail-table">
               <thead>
-                <tr style={{ borderBottom: '2px solid var(--border-color)', color: 'var(--text-light)' }}>
-                  <th style={{ textAlign: 'left', padding: '8px' }}>Mes</th>
-                  <th style={{ textAlign: 'right', padding: '8px' }}>Salario Base</th>
-                  <th style={{ textAlign: 'right', padding: '8px' }}>Días Acum.</th>
-                  <th style={{ textAlign: 'right', padding: '8px' }}>Prima</th>
-                  <th style={{ textAlign: 'right', padding: '8px' }}>Cesantías</th>
-                  <th style={{ textAlign: 'right', padding: '8px' }}>Intereses</th>
-                  <th style={{ textAlign: 'right', padding: '8px' }}>Vacaciones</th>
+                <tr>
+                  <th>Mes</th>
+                  <th className="prestaciones-cell-right">Salario Base</th>
+                  <th className="prestaciones-cell-right">Días Acum.</th>
+                  <th className="prestaciones-cell-right">Prima</th>
+                  <th className="prestaciones-cell-right">Cesantías</th>
+                  <th className="prestaciones-cell-right">Intereses</th>
+                  <th className="prestaciones-cell-right">Vacaciones</th>
                 </tr>
               </thead>
               <tbody>
                 {emp.meses.map((m) => (
-                  <tr key={m.id_prestacion} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <td style={{ padding: '8px' }}>{String(m.mes).padStart(2, '0')}</td>
-                    <td style={{ textAlign: 'right', padding: '8px' }}>{formatPeso(m.salario_base)}</td>
-                    <td style={{ textAlign: 'right', padding: '8px' }}>{m.dias_acumulados}</td>
-                    <td style={{ textAlign: 'right', padding: '8px' }}>{formatPeso(m.prima_servicios)}</td>
-                    <td style={{ textAlign: 'right', padding: '8px' }}>{formatPeso(m.cesantias)}</td>
-                    <td style={{ textAlign: 'right', padding: '8px' }}>{formatPeso(m.intereses_cesantias)}</td>
-                    <td style={{ textAlign: 'right', padding: '8px' }}>{formatPeso(m.vacaciones)}</td>
+                  <tr key={m.id_prestacion}>
+                    <td className="prestaciones-month-cell">{String(m.mes).padStart(2, '0')}</td>
+                    <td className="prestaciones-cell-right">{formatPeso(m.salario_base)}</td>
+                    <td className="prestaciones-cell-right">{m.dias_acumulados}</td>
+                    <td className="prestaciones-cell-right">{formatPeso(m.prima_servicios)}</td>
+                    <td className="prestaciones-cell-right">{formatPeso(m.cesantias)}</td>
+                    <td className="prestaciones-cell-right">{formatPeso(m.intereses_cesantias)}</td>
+                    <td className="prestaciones-cell-right">{formatPeso(m.vacaciones)}</td>
                   </tr>
                 ))}
               </tbody>

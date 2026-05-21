@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext'
 import liquidacionService from '../services/liquidacionService'
 import api from '../services/api'
 import '../styles/Nomina.css'
+import '../styles/Liquidacion.css'
+import {showSuccess, showError, showConfirmDelete} from '../utils/alerts.js'
 
 const formatPeso = (value) => {
   const num = Number(value)
@@ -52,9 +54,9 @@ const Liquidacion = () => {
     try {
       setUpdatingConfig(true)
       await liquidacionService.updateRecontratacionConfig(rehireConfig.meses, rehireConfig.dias)
-      alert('Configuración de recontratación actualizada')
+      showSuccess('Configuración de recontratación actualizada')
     } catch (e) {
-      alert('Error al actualizar la configuración')
+      showError('Error al actualizar la configuración', e)
     } finally {
       setUpdatingConfig(false)
     }
@@ -67,24 +69,24 @@ const Liquidacion = () => {
       const data = await liquidacionService.getLiquidaciones()
       setLiquidaciones(Array.isArray(data) ? data : [])
     } catch (e) {
-      setError('No se pudieron cargar las liquidaciones')
+      setError('No se pudieron cargar las liquidaciones', e)
     } finally {
       setLoading(false)
     }
   }
 
   const handleCalcular = async () => {
-    if (!formData.id_empleado || !formData.fecha_retiro) return alert('Selecciona empleado y fecha de retiro')
+    if (!formData.id_empleado || !formData.fecha_retiro) return showError('Selecciona empleado y fecha de retiro')
     setCalculando(true)
     try {
       const result = await liquidacionService.calcularLiquidacion(formData)
       if (result.success) {
         setCalculo(result.data)
       } else {
-        alert(result.message || 'Error calculando')
+        showError(result.message || 'Error calculando')
       }
     } catch (e) {
-      alert('Error al calcular liquidación')
+      showError('Error al calcular liquidación', e)
     } finally {
       setCalculando(false)
     }
@@ -100,15 +102,15 @@ const Liquidacion = () => {
         detalle: calculo.detalle
       })
       if (result.success) {
-        alert('Liquidación guardada exitosamente. Empleado desactivado.')
+        showSuccess('Liquidación guardada exitosamente. Empleado desactivado.')
         setCalculo(null)
         setFormData({ id_empleado: '', fecha_retiro: '', motivo_retiro: '' })
         fetchLiquidaciones()
       } else {
-        alert(result.message || 'Error guardando')
+        showError(result.message || 'Error guardando')
       }
     } catch (e) {
-      alert('Error al guardar liquidación')
+      showError('Error al guardar liquidación', e)
     }
   }
 
@@ -117,7 +119,7 @@ const Liquidacion = () => {
       await liquidacionService.marcarPagada(id)
       fetchLiquidaciones()
     } catch (e) {
-      alert('Error al marcar como pagada')
+      showError('Error al marcar como pagada', e)
     }
   }
 
@@ -127,7 +129,7 @@ const Liquidacion = () => {
       await liquidacionService.anularLiquidacion(id)
       fetchLiquidaciones()
     } catch (e) {
-      alert('Error al anular liquidación')
+      showError('Error al anular liquidación', e)
     }
   }
 
@@ -136,59 +138,59 @@ const Liquidacion = () => {
     try {
       const result = await liquidacionService.revertirPago(id, reactivar)
       if (result.success) {
-        alert(result.message)
+        showSuccess(result.message)
         fetchLiquidaciones()
       } else {
-        alert(result.message || 'Error al revertir pago')
+        showError(result.message || 'Error al revertir pago')
       }
     } catch (e) {
-      alert('Error al revertir pago')
+      showError('Error al revertir pago', e)
     }
   }
 
   const handleRevertirAnulacion = async (id) => {
-    if (!window.confirm('¿Desea revertir la anulación? La liquidación volverá a estar PENDIENTE y el empleado será desactivado nuevamente.')) return
+    if (!showConfirmDelete('¿Desea revertir la anulación? La liquidación volverá a estar PENDIENTE y el empleado será desactivado nuevamente.')) return
     try {
       const result = await liquidacionService.revertirAnulacion(id)
       if (result.success) {
-        alert(result.message)
+        showSuccess(result.message)
         fetchLiquidaciones()
       } else {
-        alert(result.message || 'Error al revertir anulación')
+        showError(result.message || 'Error al revertir anulación')
       }
     } catch (e) {
-      alert('Error al revertir anulación')
+      showError('Error al revertir anulación', e)
     }
   }
 
   const handleDelete = async (id) => {
-    if (!window.confirm('¿Eliminar definitivamente esta liquidación? El empleado será reactivado si no estaba anulada.')) return
+    if (!showConfirmDelete('¿Eliminar definitivamente esta liquidación? El empleado será reactivado si no estaba anulada.')) return
     try {
       await liquidacionService.deleteLiquidacion(id)
       fetchLiquidaciones()
     } catch (e) {
-      alert('Error al eliminar liquidación')
+      showError('Error al eliminar liquidación', e)
     }
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-light)' }}>
+    <div className="liquidacion-page">
       <Navbar />
       <div className="nomina-container">
-        <div className="page-header">
+        <div className="liquidacion-header">
           <h1>Liquidación de Contrato</h1>
           <p>Cálculo y gestión de liquidaciones por retiro de empleados</p>
         </div>
 
-        {error && <p style={{ color: 'var(--danger-color)' }}>{error}</p>}
+        {error && <p className="liquidacion-error">{error}</p>}
 
         {isAdmin() && (
-          <div style={{ background: 'white', borderRadius: '12px', padding: '20px', marginBottom: '24px', border: '1px solid var(--border-color)' }}>
-            <h3 style={{ marginBottom: '16px' }}>Calcular Liquidación</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '12px', alignItems: 'end' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-light)', marginBottom: '4px' }}>Empleado</label>
-                <select value={formData.id_empleado} onChange={(e) => setFormData({ ...formData, id_empleado: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+          <div className="liquidacion-section">
+            <h3 className="liquidacion-section-title">Calcular Liquidación</h3>
+            <div className="liquidacion-form-grid">
+              <div className="liquidacion-form-group">
+                <label>Empleado</label>
+                <select value={formData.id_empleado} onChange={(e) => setFormData({ ...formData, id_empleado: e.target.value })}>
                   <option value="">Seleccionar...</option>
                   {employees.filter(e => e.activo !== 0).map((emp) => (
                     <option key={emp.id_empleado} value={emp.id_empleado}>
@@ -197,50 +199,50 @@ const Liquidacion = () => {
                   ))}
                 </select>
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-light)', marginBottom: '4px' }}>Fecha de Retiro</label>
-                <input type="date" value={formData.fecha_retiro} onChange={(e) => setFormData({ ...formData, fecha_retiro: e.target.value })} style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)' }} />
+              <div className="liquidacion-form-group">
+                <label>Fecha de Retiro</label>
+                <input type="date" value={formData.fecha_retiro} onChange={(e) => setFormData({ ...formData, fecha_retiro: e.target.value })} />
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-light)', marginBottom: '4px' }}>Motivo</label>
-                <input type="text" value={formData.motivo_retiro} onChange={(e) => setFormData({ ...formData, motivo_retiro: e.target.value })} placeholder="Renuncia voluntaria..." style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)' }} />
+              <div className="liquidacion-form-group">
+                <label>Motivo</label>
+                <input type="text" value={formData.motivo_retiro} onChange={(e) => setFormData({ ...formData, motivo_retiro: e.target.value })} placeholder="Renuncia voluntaria..." />
               </div>
-              <button onClick={handleCalcular} disabled={calculando} style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', background: 'var(--primary-color)', color: 'white', cursor: 'pointer', height: '38px' }}>
+              <button onClick={handleCalcular} disabled={calculando} className="liquidacion-btn liquidacion-btn--primary">
                 {calculando ? 'Calculando...' : 'Calcular'}
               </button>
             </div>
 
             {calculo && (
-              <div style={{ marginTop: '20px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                <h4 style={{ marginBottom: '8px' }}>{calculo.empleado}</h4>
-                <p style={{ fontSize: '13px', color: 'var(--text-light)', marginBottom: '12px' }}>
+              <div className="liquidacion-preview">
+                <h4 className="liquidacion-preview-title">{calculo.empleado}</h4>
+                <p className="liquidacion-preview-meta">
                   Ingreso: {calculo.fecha_ingreso?.split('T')[0]} — Retiro: {calculo.fecha_retiro?.split('T')[0]} — Días año: {calculo.dias_trabajados_anio}
                 </p>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <table className="liquidacion-preview-table">
                   <thead>
-                    <tr style={{ borderBottom: '2px solid var(--border-color)' }}>
-                      <th style={{ textAlign: 'left', padding: '8px' }}>Concepto</th>
-                      <th style={{ textAlign: 'right', padding: '8px' }}>Valor</th>
+                    <tr>
+                      <th>Concepto</th>
+                      <th className="liquidacion-cell-right">Valor</th>
                     </tr>
                   </thead>
                   <tbody>
                     {calculo.detalle.map((d, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                        <td style={{ padding: '8px' }}>{d.concepto}</td>
-                        <td style={{ textAlign: 'right', padding: '8px', color: d.tipo === 'DEDUCCION' ? '#dc2626' : '#16a34a' }}>
+                      <tr key={i}>
+                        <td>{d.concepto}</td>
+                        <td className={`liquidacion-cell-right ${d.tipo === 'DEDUCCION' ? 'liquidacion-value-deduccion' : 'liquidacion-value-devengado'}`}>
                           {d.tipo === 'DEDUCCION' ? '- ' : ''}{formatPeso(d.valor)}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr style={{ fontWeight: 700, fontSize: '15px' }}>
-                      <td style={{ padding: '8px' }}>Total Liquidación</td>
-                      <td style={{ textAlign: 'right', padding: '8px', color: '#2563eb' }}>{formatPeso(calculo.total_liquidacion)}</td>
+                    <tr className="liquidacion-total-row">
+                      <td>Total Liquidación</td>
+                      <td className="liquidacion-total-value">{formatPeso(calculo.total_liquidacion)}</td>
                     </tr>
                   </tfoot>
                 </table>
-                <button onClick={handleGuardar} style={{ marginTop: '16px', padding: '10px 24px', borderRadius: '8px', border: 'none', background: '#16a34a', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
+                <button onClick={handleGuardar} className="liquidacion-btn liquidacion-btn--success mt-2">
                   Guardar Liquidación y Desactivar Empleado
                 </button>
               </div>
@@ -249,36 +251,34 @@ const Liquidacion = () => {
         )}
 
         {isAdmin() && (
-          <div style={{ background: 'white', borderRadius: '12px', padding: '20px', marginBottom: '24px', border: '1px solid var(--border-color)' }}>
-            <h3 style={{ marginBottom: '8px' }}>Restricción de Recontratación</h3>
-            <p style={{ fontSize: '13px', color: 'var(--text-light)', marginBottom: '16px' }}>
+          <div className="liquidacion-section">
+            <h3 className="liquidacion-section-title mb-1">Restricción de Recontratación</h3>
+            <p className="liquidacion-section-desc">
               Define el tiempo mínimo de espera después del retiro para poder reactivar a un empleado.
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '12px', alignItems: 'end', maxWidth: '500px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-light)', marginBottom: '4px' }}>Meses de espera</label>
+            <div className="liquidacion-rehire-grid">
+              <div className="liquidacion-rehire-group">
+                <label>Meses de espera</label>
                 <input 
                   type="number" 
                   min="0"
                   value={rehireConfig.meses} 
                   onChange={(e) => setRehireConfig({ ...rehireConfig, meses: e.target.value })} 
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)' }} 
                 />
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-light)', marginBottom: '4px' }}>Días de espera</label>
+              <div className="liquidacion-rehire-group">
+                <label>Días de espera</label>
                 <input 
                   type="number" 
                   min="0"
                   value={rehireConfig.dias} 
                   onChange={(e) => setRehireConfig({ ...rehireConfig, dias: e.target.value })} 
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)' }} 
                 />
               </div>
               <button 
                 onClick={handleUpdateRehireConfig} 
                 disabled={updatingConfig} 
-                style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', background: 'var(--secondary-color)', color: 'white', cursor: 'pointer', height: '38px', fontWeight: 600 }}
+                className="liquidacion-btn liquidacion-btn--secondary"
               >
                 {updatingConfig ? 'Guardando...' : 'Guardar Configuración'}
               </button>
@@ -286,38 +286,36 @@ const Liquidacion = () => {
           </div>
         )}
 
-        <h3 style={{ marginBottom: '16px' }}>Historial de Liquidaciones</h3>
+        <h3 className="liquidacion-history-title">Historial de Liquidaciones</h3>
         {loading && <p>Cargando...</p>}
-        {!loading && liquidaciones.length === 0 && <p style={{ color: 'var(--text-light)' }}>No hay liquidaciones registradas</p>}
+        {!loading && liquidaciones.length === 0 && <p className="liquidacion-empty">No hay liquidaciones registradas</p>}
 
         {liquidaciones.length > 0 && (
-          <div style={{ background: 'white', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '100px' }}>
-            <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: '13px' }}>
+          <div className="liquidacion-table-wrapper">
+            <table className="liquidacion-table">
               <thead>
-                <tr style={{ background: '#f8fafc' }}>
-                  <th style={{ textAlign: 'left', padding: '12px', borderBottom: '2px solid var(--border-color)', borderTopLeftRadius: '12px' }}>Empleado</th>
-                  <th style={{ textAlign: 'left', padding: '12px', borderBottom: '2px solid var(--border-color)' }}>Documento</th>
-                  <th style={{ textAlign: 'left', padding: '12px', borderBottom: '2px solid var(--border-color)' }}>Retiro</th>
-                  <th style={{ textAlign: 'right', padding: '12px', borderBottom: '2px solid var(--border-color)' }}>Total</th>
-                  <th style={{ textAlign: 'center', padding: '12px', borderBottom: '2px solid var(--border-color)' }}>Estado</th>
-                  <th style={{ textAlign: 'center', padding: '12px', borderBottom: '2px solid var(--border-color)', borderTopRightRadius: '12px' }}>Acciones</th>
+                <tr>
+                  <th>Empleado</th>
+                  <th>Documento</th>
+                  <th>Retiro</th>
+                  <th className="liquidacion-cell-right">Total</th>
+                  <th className="liquidacion-cell-center">Estado</th>
+                  <th className="liquidacion-actions-cell">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {liquidaciones.map((liq) => (
-                  <tr key={liq.id_liquidacion} style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }} onClick={() => setSelectedLiq(selectedLiq?.id_liquidacion === liq.id_liquidacion ? null : liq)}>
-                    <td style={{ padding: '12px' }}>{liq.empleado}</td>
-                    <td style={{ padding: '12px', color: 'var(--text-light)' }}>{liq.numero_identificacion}</td>
-                    <td style={{ padding: '12px' }}>{liq.fecha_retiro?.split('T')[0]}</td>
-                    <td style={{ textAlign: 'right', padding: '12px', fontWeight: 600 }}>{formatPeso(liq.total_liquidacion)}</td>
-                    <td style={{ textAlign: 'center', padding: '12px' }}>
-                      <span style={{
-                        padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
-                        background: liq.estado === 'PAGADA' ? '#dcfce7' : liq.estado === 'ANULADA' ? '#fef2f2' : '#fef3c7',
-                        color: liq.estado === 'PAGADA' ? '#15803d' : liq.estado === 'ANULADA' ? '#dc2626' : '#b45309'
-                      }}>{estados[liq.estado] || liq.estado}</span>
+                  <tr key={liq.id_liquidacion} onClick={() => setSelectedLiq(selectedLiq?.id_liquidacion === liq.id_liquidacion ? null : liq)}>
+                    <td>{liq.empleado}</td>
+                    <td className="liquidacion-doc-cell">{liq.numero_identificacion}</td>
+                    <td>{liq.fecha_retiro?.split('T')[0]}</td>
+                    <td className="liquidacion-total-cell">{formatPeso(liq.total_liquidacion)}</td>
+                    <td className="liquidacion-cell-center">
+                      <span className={`liquidacion-status-badge liquidacion-status-badge--${liq.estado.toLowerCase()}`}>
+                        {estados[liq.estado] || liq.estado}
+                      </span>
                     </td>
-                    <td style={{ textAlign: 'center', padding: '12px', position: 'relative', zIndex: activeMenu === liq.id_liquidacion ? 101 : 1 }}>
+                    <td className="liquidacion-actions-cell" style={{ zIndex: activeMenu === liq.id_liquidacion ? 101 : 1 }}>
                       {isAdmin() && (
                         <div style={{ position: 'relative', display: 'inline-block' }}>
                           <button 
@@ -325,42 +323,38 @@ const Liquidacion = () => {
                               e.stopPropagation(); 
                               setActiveMenu(activeMenu === liq.id_liquidacion ? null : liq.id_liquidacion);
                             }} 
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', color: 'var(--text-light)', fontSize: '18px' }}
+                            className="liquidacion-menu-btn"
                           >
                             <i className="fa-solid fa-ellipsis-vertical"></i>
                           </button>
                           
                           {activeMenu === liq.id_liquidacion && (
-                            <div style={{ 
-                              position: 'absolute', right: '0', top: '30px', zIndex: 1000, background: 'white', 
-                              borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', 
-                              minWidth: '180px', overflow: 'hidden' 
-                            }}>
+                            <div className="liquidacion-dropdown-menu">
                               {liq.estado === 'PENDIENTE' && (
                                 <>
-                                  <button onClick={() => handlePagar(liq.id_liquidacion)} style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', borderBottom: '1px solid #f1f5f9' }}>
-                                    <i className="fa-solid fa-check" style={{ color: '#16a34a', marginRight: '8px' }}></i> Pagar
+                                  <button onClick={() => handlePagar(liq.id_liquidacion)} className="liquidacion-dropdown-item">
+                                    <i className="fa-solid fa-check" style={{ color: '#16a34a' }}></i> Pagar
                                   </button>
-                                  <button onClick={() => handleAnular(liq.id_liquidacion)} style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', borderBottom: '1px solid #f1f5f9' }}>
-                                    <i className="fa-solid fa-ban" style={{ color: '#dc2626', marginRight: '8px' }}></i> Anular
+                                  <button onClick={() => handleAnular(liq.id_liquidacion)} className="liquidacion-dropdown-item">
+                                    <i className="fa-solid fa-ban" style={{ color: '#dc2626' }}></i> Anular
                                   </button>
                                 </>
                               )}
                               
                               {liq.estado === 'PAGADA' && (
-                                <button onClick={() => handleRevertirPago(liq.id_liquidacion)} style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', borderBottom: '1px solid #f1f5f9' }}>
-                                  <i className="fa-solid fa-rotate-left" style={{ color: '#6366f1', marginRight: '8px' }}></i> Revertir Pago
+                                <button onClick={() => handleRevertirPago(liq.id_liquidacion)} className="liquidacion-dropdown-item">
+                                  <i className="fa-solid fa-rotate-left" style={{ color: '#6366f1' }}></i> Revertir Pago
                                 </button>
                               )}
                               
                               {liq.estado === 'ANULADA' && (
-                                <button onClick={() => handleRevertirAnulacion(liq.id_liquidacion)} style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', borderBottom: '1px solid #f1f5f9' }}>
-                                  <i className="fa-solid fa-rotate-left" style={{ color: '#6366f1', marginRight: '8px' }}></i> Revertir Anulación
+                                <button onClick={() => handleRevertirAnulacion(liq.id_liquidacion)} className="liquidacion-dropdown-item">
+                                  <i className="fa-solid fa-rotate-left" style={{ color: '#6366f1' }}></i> Revertir Anulación
                                 </button>
                               )}
                               
-                              <button onClick={() => handleDelete(liq.id_liquidacion)} style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#dc2626' }}>
-                                <i className="fa-solid fa-trash" style={{ marginRight: '8px' }}></i> Eliminar
+                              <button onClick={() => handleDelete(liq.id_liquidacion)} className="liquidacion-dropdown-item liquidacion-dropdown-item--danger">
+                                <i className="fa-solid fa-trash"></i> Eliminar
                               </button>
                             </div>
                           )}

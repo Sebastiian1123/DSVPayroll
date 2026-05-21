@@ -117,7 +117,7 @@ const Dashboard = () => {
                      {isAdminOrRRHH() && (
                         <Link to="/parametros">
                         <div className="dashboard-card">
-                            <div className="card-icon"><i class="fa-solid fa-percent"></i></div>
+                            <div className="card-icon"><i className="fa-solid fa-percent"></i></div>
                             <h3>Parámetros</h3>
                             <p>Configuración del sistema</p>
                             <span className="card-action">Gestionar Parámetros →</span>
