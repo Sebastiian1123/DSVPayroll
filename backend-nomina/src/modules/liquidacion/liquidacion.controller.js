@@ -162,7 +162,7 @@ const guardarLiquidacion = async (req, res) => {
     );
 
     await connection.query(
-      `UPDATE empleados SET activo = 0, fecha_retiro = ? WHERE id_empleado = ?`,
+      `UPDATE empleados SET activo = 0, fecha_retiro = ?, eliminado_en = NOW() WHERE id_empleado = ?`,
       [fecha_retiro, id_empleado]
     );
 
@@ -304,7 +304,7 @@ const anularLiquidacion = async (req, res) => {
     );
 
     await connection.query(
-      `UPDATE empleados SET activo = 1, fecha_retiro = NULL WHERE id_empleado = ?`,
+      `UPDATE empleados SET activo = 1, fecha_retiro = NULL, eliminado_en = NULL WHERE id_empleado = ?`,
       [liqRows[0].id_empleado]
     );
 

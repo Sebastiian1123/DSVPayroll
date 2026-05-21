@@ -51,6 +51,7 @@ const getAllEmployees = async (req, res) => {
         e.sueldo,
         e.fecha_nacimiento,
         e.fecha_ingreso,
+        e.fecha_retiro,
         e.activo,
         c.nombre_cargo,
         d.nombre_departamento,
@@ -598,7 +599,7 @@ const reactivateEmployee = async (req, res) => {
 
     // Reactivar empleado
     await pool.query(
-      "UPDATE empleados SET activo = TRUE, eliminado_en = NULL WHERE id_empleado = ?",
+      "UPDATE empleados SET activo = TRUE, eliminado_en = NULL, fecha_retiro = NULL WHERE id_empleado = ?",
       [id]
     );
 

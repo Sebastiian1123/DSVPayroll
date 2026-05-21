@@ -106,6 +106,32 @@ const ensureEmployeeSalaryColumn = async () => {
     }
 };
 
+const ensureEmployeeWithdrawalColumn = async () => {
+    try {
+        const dbName = process.env.DB_NAME || 'sistema_nomina';
+        const [columns] = await promisePool.query(
+            `SELECT COLUMN_NAME
+             FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = ?
+               AND TABLE_NAME = 'empleados'
+               AND COLUMN_NAME = 'fecha_retiro'`,
+            [dbName]
+        );
+
+        if (columns.length === 0) {
+            await promisePool.query(
+                `ALTER TABLE empleados
+                 ADD COLUMN fecha_retiro DATE NULL
+                 AFTER activo`
+            );
+            console.log('Columna empleados.fecha_retiro creada automaticamente');
+        }
+    } catch (error) {
+        console.error('Error asegurando columna empleados.fecha_retiro:', error.message);
+        throw error;
+    }
+};
+
 const ensurePayrollSupportTables = async () => {
     try {
         await promisePool.query(`
@@ -341,6 +367,7 @@ module.exports = {
     pool: promisePool,
     testConnection,
     ensureEmployeeSalaryColumn,
+    ensureEmployeeWithdrawalColumn,
     ensureDefaultDepartments,
     ensurePayrollSupportTables,
     ensurePrestacionesLiquidacionTables

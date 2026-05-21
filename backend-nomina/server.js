@@ -12,6 +12,7 @@ const path = require('path');
 const {
   testConnection,
   ensureEmployeeSalaryColumn,
+  ensureEmployeeWithdrawalColumn,
   ensureDefaultDepartments,
   ensurePayrollSupportTables,
   ensurePrestacionesLiquidacionTables
@@ -115,6 +116,7 @@ const startServer = async () => {
     if (dbConnected) {
       console.log('Verificando migraciones minimas de base de datos...');
       await ensureEmployeeSalaryColumn();
+      await ensureEmployeeWithdrawalColumn();
       await ensureDefaultDepartments();
       await ensurePayrollSupportTables();
       await ensurePrestacionesLiquidacionTables();
