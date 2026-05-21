@@ -380,6 +380,12 @@ const marcarPagada = async (req, res) => {
 const downloadLiquidacionPdf = async (req, res) => {
   try {
     const { id_liquidacion } = req.params;
+    const isAdminOrRRHH = req.user?.rol === 'ADMINISTRADOR' || req.user?.rol === 'RRHH';
+    const isEmployee = req.user?.rol === 'EMPLEADO';
+
+    if (!isAdminOrRRHH && !isEmployee) {
+      return res.status(403).json({ success: false, message: 'Sin permisos' });
+    }
 
     const [liqRows] = await pool.query(
       `SELECT l.*, CONCAT(e.nombres, ' ', e.apellidos) AS empleado,
@@ -395,6 +401,10 @@ const downloadLiquidacionPdf = async (req, res) => {
 
     if (liqRows.length === 0) {
       return res.status(404).json({ success: false, message: 'Liquidacion no encontrada' });
+    }
+
+    if (isEmployee && Number(req.user.id_empleado) !== Number(liqRows[0].id_empleado)) {
+      return res.status(403).json({ success: false, message: 'No puedes descargar una liquidacion que no te pertenece' });
     }
 
     const [detalleRows] = await pool.query(

@@ -383,6 +383,29 @@
   color: #dc2626;
 }
 
+.liquidacion-actions-flex {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.liquidacion-pdf-btn {
+  background: #dbeafe;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1d4ed8;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.liquidacion-pdf-btn:hover {
+  background: #93c5fd;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .liquidacion-form-grid {

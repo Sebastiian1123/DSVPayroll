@@ -58,6 +58,20 @@ export const deleteLiquidacion = async (idLiquidacion) => {
   return response.data
 }
 
+export const downloadPdf = async (idLiquidacion) => {
+  const response = await api.get(`/liquidacion/${idLiquidacion}/pdf`, {
+    responseType: 'blob'
+  })
+  const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }))
+  const link = document.createElement('a')
+  link.href = url
+  link.setAttribute('download', `liquidacion-${idLiquidacion}.pdf`)
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.URL.revokeObjectURL(url)
+}
+
 export default {
   getLiquidaciones,
   getLiquidacionById,
@@ -69,5 +83,6 @@ export default {
   updateRecontratacionConfig,
   revertirPago,
   revertirAnulacion,
-  deleteLiquidacion
+  deleteLiquidacion,
+  downloadPdf
 }

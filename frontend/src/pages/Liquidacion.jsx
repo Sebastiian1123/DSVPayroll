@@ -163,6 +163,14 @@ const Liquidacion = () => {
     }
   }
 
+  const handleDownloadPdf = async (id) => {
+    try {
+      await liquidacionService.downloadPdf(id)
+    } catch (e) {
+      showError('Error al descargar PDF', e)
+    }
+  }
+
   const handleDelete = async (id) => {
     if (!showConfirmDelete('¿Eliminar definitivamente esta liquidación? El empleado será reactivado si no estaba anulada.')) return
     try {
@@ -315,51 +323,62 @@ const Liquidacion = () => {
                         {estados[liq.estado] || liq.estado}
                       </span>
                     </td>
-                    <td className="liquidacion-actions-cell" style={{ zIndex: activeMenu === liq.id_liquidacion ? 101 : 1 }}>
-                      {isAdmin() && (
-                        <div style={{ position: 'relative', display: 'inline-block' }}>
-                          <button 
-                            onClick={(e) => { 
-                              e.stopPropagation(); 
-                              setActiveMenu(activeMenu === liq.id_liquidacion ? null : liq.id_liquidacion);
-                            }} 
-                            className="liquidacion-menu-btn"
-                          >
-                            <i className="fa-solid fa-ellipsis-vertical"></i>
+                    <td className="liquidacion-actions-cell">
+                      <div className="liquidacion-actions-flex">
+                        {isAdmin() && (
+                          <div style={{ position: 'relative', display: 'inline-block' }}>
+                            <button 
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                setActiveMenu(activeMenu === liq.id_liquidacion ? null : liq.id_liquidacion);
+                              }} 
+                              className="liquidacion-menu-btn"
+                            >
+                              <i className="fa-solid fa-ellipsis-vertical"></i>
+                            </button>
+                            
+                            {activeMenu === liq.id_liquidacion && (
+                              <div className="liquidacion-dropdown-menu">
+                                <button onClick={() => handleDownloadPdf(liq.id_liquidacion)} className="liquidacion-dropdown-item">
+                                  <i className="fa-solid fa-download" style={{ color: '#2563eb' }}></i> Descargar PDF
+                                </button>
+
+                                {liq.estado === 'PENDIENTE' && (
+                                  <>
+                                    <button onClick={() => handlePagar(liq.id_liquidacion)} className="liquidacion-dropdown-item">
+                                      <i className="fa-solid fa-check" style={{ color: '#16a34a' }}></i> Pagar
+                                    </button>
+                                    <button onClick={() => handleAnular(liq.id_liquidacion)} className="liquidacion-dropdown-item">
+                                      <i className="fa-solid fa-ban" style={{ color: '#dc2626' }}></i> Anular
+                                    </button>
+                                  </>
+                                )}
+                                
+                                {liq.estado === 'PAGADA' && (
+                                  <button onClick={() => handleRevertirPago(liq.id_liquidacion)} className="liquidacion-dropdown-item">
+                                    <i className="fa-solid fa-rotate-left" style={{ color: '#6366f1' }}></i> Revertir Pago
+                                  </button>
+                                )}
+                                
+                                {liq.estado === 'ANULADA' && (
+                                  <button onClick={() => handleRevertirAnulacion(liq.id_liquidacion)} className="liquidacion-dropdown-item">
+                                    <i className="fa-solid fa-rotate-left" style={{ color: '#6366f1' }}></i> Revertir Anulación
+                                  </button>
+                                )}
+                                
+                                <button onClick={() => handleDelete(liq.id_liquidacion)} className="liquidacion-dropdown-item liquidacion-dropdown-item--danger">
+                                  <i className="fa-solid fa-trash"></i> Eliminar
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {!isAdmin() && (
+                          <button onClick={() => handleDownloadPdf(liq.id_liquidacion)} className="liquidacion-pdf-btn" title="Descargar PDF">
+                            <i className="fa-solid fa-download"></i> PDF
                           </button>
-                          
-                          {activeMenu === liq.id_liquidacion && (
-                            <div className="liquidacion-dropdown-menu">
-                              {liq.estado === 'PENDIENTE' && (
-                                <>
-                                  <button onClick={() => handlePagar(liq.id_liquidacion)} className="liquidacion-dropdown-item">
-                                    <i className="fa-solid fa-check" style={{ color: '#16a34a' }}></i> Pagar
-                                  </button>
-                                  <button onClick={() => handleAnular(liq.id_liquidacion)} className="liquidacion-dropdown-item">
-                                    <i className="fa-solid fa-ban" style={{ color: '#dc2626' }}></i> Anular
-                                  </button>
-                                </>
-                              )}
-                              
-                              {liq.estado === 'PAGADA' && (
-                                <button onClick={() => handleRevertirPago(liq.id_liquidacion)} className="liquidacion-dropdown-item">
-                                  <i className="fa-solid fa-rotate-left" style={{ color: '#6366f1' }}></i> Revertir Pago
-                                </button>
-                              )}
-                              
-                              {liq.estado === 'ANULADA' && (
-                                <button onClick={() => handleRevertirAnulacion(liq.id_liquidacion)} className="liquidacion-dropdown-item">
-                                  <i className="fa-solid fa-rotate-left" style={{ color: '#6366f1' }}></i> Revertir Anulación
-                                </button>
-                              )}
-                              
-                              <button onClick={() => handleDelete(liq.id_liquidacion)} className="liquidacion-dropdown-item liquidacion-dropdown-item--danger">
-                                <i className="fa-solid fa-trash"></i> Eliminar
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

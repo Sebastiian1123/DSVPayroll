@@ -31,7 +31,7 @@ router.put('/:id_liquidacion/anular', verifyAdminORRRHH, anularLiquidacion);
 router.put('/:id_liquidacion/revertir-pago', verifyAdminORRRHH, revertirPago);
 router.put('/:id_liquidacion/revertir-anulacion', verifyAdminORRRHH, revertirAnulacion);
 router.delete('/:id_liquidacion', verifyAdminORRRHH, deleteLiquidacion);
-router.get('/:id_liquidacion/pdf', verifyAdminORRRHH, downloadLiquidacionPdf);
+router.get('/:id_liquidacion/pdf', downloadLiquidacionPdf);
 
 // Configuracion de recontratacion
 router.get('/config/recontratacion', verifyAdminORRRHH, getRecontratacionConfig);
