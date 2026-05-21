@@ -53,6 +53,11 @@ export const revertirAnulacion = async (idLiquidacion) => {
   return response.data
 }
 
+export const deleteLiquidacion = async (idLiquidacion) => {
+  const response = await api.delete(`/liquidacion/${idLiquidacion}`)
+  return response.data
+}
+
 export default {
   getLiquidaciones,
   getLiquidacionById,
@@ -63,5 +68,6 @@ export default {
   getRecontratacionConfig,
   updateRecontratacionConfig,
   revertirPago,
-  revertirAnulacion
+  revertirAnulacion,
+  deleteLiquidacion
 }

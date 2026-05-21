@@ -90,6 +90,30 @@ const Dashboard = () => {
                         <span className="card-action">Abrir modulo</span>
                     </Link>
 
+                    {/* Card de Prestaciones - Solo Admin */}
+                    {isAdmin() && (
+                        <Link to="/prestaciones">
+                            <div className="dashboard-card">
+                                <div className="card-icon"><i className="fa-solid fa-hand-holding-dollar"></i></div>
+                                <h3>Prestaciones</h3>
+                                <p>Gestión de prestaciones sociales</p>
+                                <span className="card-action">Ver prestaciones →</span>
+                            </div>
+                        </Link>
+                    )}
+
+                    {/* Card de Liquidación - Solo Admin */}
+                    {isAdmin() && (
+                        <Link to="/liquidacion">
+                            <div className="dashboard-card">
+                                <div className="card-icon"><i className="fa-solid fa-file-contract"></i></div>
+                                <h3>Liquidación</h3>
+                                <p>Gestión de liquidación de contratos</p>
+                                <span className="card-action">Ir a liquidación →</span>
+                            </div>
+                        </Link>
+                    )}
+
                      {isAdminOrRRHH() && (
                         <Link to="/parametros">
                         <div className="dashboard-card">

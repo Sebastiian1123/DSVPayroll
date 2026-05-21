@@ -8,7 +8,7 @@
     margin: 0 auto;
     padding: 30px 20px;
 }
-.fa-money-bill:before, .fa-chart-bar:before, .fa-percent:before {
+.fa-money-bill:before, .fa-chart-bar:before, .fa-percent:before, .fa-hand-holding-dollar:before, .fa-file-contract:before {
     color: #1f2937;
 }
 

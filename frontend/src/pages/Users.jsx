@@ -21,11 +21,16 @@ const Users = () => {
     const [formData, setFormData] = useState(getDefaultUserFormData());
     const [editFormData, setEditFormData] = useState(getDefaultEditUserFormData());
     const [currentPage, setCurrentPage] = useState(1);
+    const [activeMenu, setActiveMenu] = useState(null);
     const ITEMS_PER_PAGE = 10;
 
     useEffect(() => {
         fetchUsers();
         fetchEmployees();
+
+        const closeMenu = () => setActiveMenu(null);
+        window.addEventListener('click', closeMenu);
+        return () => window.removeEventListener('click', closeMenu);
     }, []);
 
     const fetchUsers = async () => {
@@ -183,17 +188,17 @@ const Users = () => {
                         <div className="spinner"></div>
                     </div>
                 ) : (
-                    <div className="table-container">
-                        <table>
+                    <div className="table-container" style={{ overflow: 'visible', marginBottom: '100px' }}>
+                        <table style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
                             <thead>
                                 <tr>
-                                    <th>ID</th>
+                                    <th style={{ borderTopLeftRadius: '12px' }}>ID</th>
                                     <th>Usuario</th>
                                     <th>Email</th>
                                     <th>Rol</th>
                                     <th>Empleado Asociado</th>
                                     <th>Estado</th>
-                                    <th>Acciones</th>
+                                    <th style={{ borderTopRightRadius: '12px' }}>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -225,22 +230,35 @@ const Users = () => {
                                                     {user.activo ? 'Activo' : 'Inactivo'}
                                                 </span>
                                             </td>
-                                            <td>
-                                                <div className="action-buttons">
-                                                    <button
-                                                        onClick={() => openEditModal(user)}
-                                                        className="btn-action btn-edit"
-                                                        title="Editar"
+                                            <td style={{ textAlign: 'center', position: 'relative', zIndex: activeMenu === user.id_usuario ? 101 : 1 }}>
+                                                <div style={{ position: 'relative', display: 'inline-block' }}>
+                                                    <button 
+                                                        onClick={(e) => { 
+                                                            e.stopPropagation(); 
+                                                            setActiveMenu(activeMenu === user.id_usuario ? null : user.id_usuario);
+                                                        }} 
+                                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', color: 'var(--text-light)', fontSize: '18px' }}
                                                     >
-                                                        <i className="fa-solid fa-pen-to-square"></i>
+                                                        <i className="fa-solid fa-ellipsis-vertical"></i>
                                                     </button>
-                                                    <button
-                                                        onClick={() => handleDelete(user.id_usuario)}
-                                                        className="btn-action btn-delete"
-                                                        title="Eliminar"
-                                                    >
-                                                        <i className="fa-solid fa-trash"></i>
-                                                    </button>
+                                                    
+                                                    {activeMenu === user.id_usuario && (
+                                                        <div style={{ 
+                                                            position: 'absolute', right: '0', top: '30px', zIndex: 1000, background: 'white', 
+                                                            borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.2)', border: '1px solid #e5e7eb', 
+                                                            minWidth: '160px', overflow: 'hidden' 
+                                                        }}>
+                                                            <button onClick={() => openEditModal(user)} style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', borderBottom: '1px solid #f1f5f9' }}>
+                                                                <i className="fa-solid fa-pen-to-square" style={{ color: '#6366f1', marginRight: '8px' }}></i> Editar
+                                                            </button>
+                                                            <button onClick={() => handleToggleStatus(user.id_usuario)} style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', borderBottom: '1px solid #f1f5f9' }}>
+                                                                <i className={`fa-solid ${user.activo ? 'fa-user-slash' : 'fa-user-check'}`} style={{ color: user.activo ? '#f59e0b' : '#16a34a', marginRight: '8px' }}></i> {user.activo ? 'Desactivar' : 'Activar'}
+                                                            </button>
+                                                            <button onClick={() => handleDelete(user.id_usuario)} style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#dc2626' }}>
+                                                                <i className="fa-solid fa-trash" style={{ marginRight: '8px' }}></i> Eliminar
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>

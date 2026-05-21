@@ -12,7 +12,8 @@ const {
   getRecontratacionConfig,
   updateRecontratacionConfig,
   revertirPago,
-  revertirAnulacion
+  revertirAnulacion,
+  deleteLiquidacion
 } = require('./liquidacion.controller');
 
 const { verifyToken, verifyAdminORRRHH } = require('../../middleware/authMiddleware');
@@ -27,6 +28,7 @@ router.put('/:id_liquidacion/pagar', verifyAdminORRRHH, marcarPagada);
 router.put('/:id_liquidacion/anular', verifyAdminORRRHH, anularLiquidacion);
 router.put('/:id_liquidacion/revertir-pago', verifyAdminORRRHH, revertirPago);
 router.put('/:id_liquidacion/revertir-anulacion', verifyAdminORRRHH, revertirAnulacion);
+router.delete('/:id_liquidacion', verifyAdminORRRHH, deleteLiquidacion);
 router.get('/:id_liquidacion/pdf', verifyAdminORRRHH, downloadLiquidacionPdf);
 
 // Configuracion de recontratacion

@@ -25,11 +25,16 @@ const Employees = () => {
     const [formData, setFormData] = useState(getDefaultEmployeeFormData());
     const [currentPage, setCurrentPage] = useState(1);
     const [showInactive, setShowInactive] = useState(false);
+    const [activeMenu, setActiveMenu] = useState(null);
     const ITEMS_PER_PAGE = 10;
 
     useEffect(() => {
         fetchEmployees();
         fetchDepartments();
+
+        const closeMenu = () => setActiveMenu(null);
+        window.addEventListener('click', closeMenu);
+        return () => window.removeEventListener('click', closeMenu);
     }, [showInactive]);
 
     const fetchEmployees = async () => {
@@ -220,17 +225,17 @@ const Employees = () => {
                         <div className="spinner"></div>
                     </div>
                 ) : (
-                    <div className="table-container">
-                        <table>
+                    <div className="table-container" style={{ overflow: 'visible', marginBottom: '100px' }}>
+                        <table style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
                             <thead>
                                 <tr>
-                                    <th>ID</th>
+                                    <th style={{ borderTopLeftRadius: '12px' }}>ID</th>
                                     <th>Nombre Completo</th>
                                     <th>Identificación</th>
                                     <th>Sueldo</th>
                                     <th>Cargo</th>
                                     <th>Departamento</th>
-                                    {isAdminOrRRHH() && <th>Acciones</th>}
+                                    {isAdminOrRRHH() && <th style={{ borderTopRightRadius: '12px' }}>Acciones</th>}
                                 </tr>
                             </thead>
                             <tbody>
@@ -250,50 +255,45 @@ const Employees = () => {
                                             <td>{employee.nombre_cargo || 'Sin cargo'}</td>
                                             <td>{employee.nombre_departamento || 'Sin departamento'}</td>
                                             {isAdminOrRRHH() && (
-                                                <td>
-                                                    <div className="action-buttons">
-                                                        <button
-                                                            onClick={() => openModal(employee)}
-                                                            className="btn-action btn-edit"
-                                                            title="Editar"
+                                                <td style={{ textAlign: 'center', position: 'relative', zIndex: activeMenu === employee.id_empleado ? 101 : 1 }}>
+                                                    <div style={{ position: 'relative', display: 'inline-block' }}>
+                                                        <button 
+                                                            onClick={(e) => { 
+                                                                e.stopPropagation(); 
+                                                                setActiveMenu(activeMenu === employee.id_empleado ? null : employee.id_empleado);
+                                                            }} 
+                                                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', color: 'var(--text-light)', fontSize: '18px' }}
                                                         >
-                                                            <i className="fa-solid fa-pen-to-square"></i>
+                                                            <i className="fa-solid fa-ellipsis-vertical"></i>
                                                         </button>
-                                                        {employee.activo ? (
-                                                            isAdmin() ? (
-                                                                <>
-                                                                    <button
-                                                                        onClick={() => handleDelete(employee.id_empleado, false)}
-                                                                        className="btn-action btn-deactivate"
-                                                                        title="Desactivar"
-                                                                    >
-                                                                        <i className="fa-solid fa-user-slash"></i>
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => handleDelete(employee.id_empleado, true)}
-                                                                        className="btn-action btn-delete"
-                                                                        title="Eliminar Permanentemente"
-                                                                    >
-                                                                        <i className="fa-solid fa-trash"></i>
-                                                                    </button>
-                                                                </>
-                                                            ) : (
-                                                                <button
-                                                                    onClick={() => handleDelete(employee.id_empleado, false)}
-                                                                    className="btn-action btn-deactivate"
-                                                                    title="Desactivar"
-                                                                >
-                                                                    <i className="fa-solid fa-user-slash"></i>
+                                                        
+                                                        {activeMenu === employee.id_empleado && (
+                                                            <div style={{ 
+                                                                position: 'absolute', right: '0', top: '30px', zIndex: 1000, background: 'white', 
+                                                                borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.2)', border: '1px solid #e5e7eb', 
+                                                                minWidth: '160px', overflow: 'hidden' 
+                                                            }}>
+                                                                <button onClick={() => openModal(employee)} style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', borderBottom: '1px solid #f1f5f9' }}>
+                                                                    <i className="fa-solid fa-pen-to-square" style={{ color: '#6366f1', marginRight: '8px' }}></i> Editar
                                                                 </button>
-                                                            )
-                                                        ) : (
-                                                            <button
-                                                                onClick={() => handleReactivate(employee.id_empleado)}
-                                                                className="btn-action btn-reactivate"
-                                                                title="Reactivar"
-                                                            >
-                                                                <i className="fa-solid fa-user-check"></i>
-                                                            </button>
+                                                                
+                                                                {employee.activo ? (
+                                                                    <>
+                                                                        <button onClick={() => handleDelete(employee.id_empleado, false)} style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', borderBottom: isAdmin() ? '1px solid #f1f5f9' : 'none' }}>
+                                                                            <i className="fa-solid fa-user-slash" style={{ color: '#f59e0b', marginRight: '8px' }}></i> Desactivar
+                                                                        </button>
+                                                                        {isAdmin() && (
+                                                                            <button onClick={() => handleDelete(employee.id_empleado, true)} style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#dc2626' }}>
+                                                                                <i className="fa-solid fa-trash" style={{ marginRight: '8px' }}></i> Eliminar
+                                                                            </button>
+                                                                        )}
+                                                                    </>
+                                                                ) : (
+                                                                    <button onClick={() => handleReactivate(employee.id_empleado)} style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#16a34a' }}>
+                                                                        <i className="fa-solid fa-user-check" style={{ marginRight: '8px' }}></i> Reactivar
+                                                                    </button>
+                                                                )}
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </td>

@@ -25,6 +25,7 @@ const Liquidacion = () => {
   const [employees, setEmployees] = useState([])
   const [rehireConfig, setRehireConfig] = useState({ meses: 0, dias: 0 })
   const [updatingConfig, setUpdatingConfig] = useState(false)
+  const [activeMenu, setActiveMenu] = useState(null)
 
   useEffect(() => {
     fetchLiquidaciones()
@@ -32,6 +33,10 @@ const Liquidacion = () => {
       api.get('/employees').then(r => setEmployees(Array.isArray(r.data?.data) ? r.data.data : [])).catch(() => {})
       fetchRehireConfig()
     }
+
+    const closeMenu = () => setActiveMenu(null)
+    window.addEventListener('click', closeMenu)
+    return () => window.removeEventListener('click', closeMenu)
   }, [])
 
   const fetchRehireConfig = async () => {
@@ -156,6 +161,16 @@ const Liquidacion = () => {
     }
   }
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('¿Eliminar definitivamente esta liquidación? El empleado será reactivado si no estaba anulada.')) return
+    try {
+      await liquidacionService.deleteLiquidacion(id)
+      fetchLiquidaciones()
+    } catch (e) {
+      alert('Error al eliminar liquidación')
+    }
+  }
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-light)' }}>
       <Navbar />
@@ -276,16 +291,16 @@ const Liquidacion = () => {
         {!loading && liquidaciones.length === 0 && <p style={{ color: 'var(--text-light)' }}>No hay liquidaciones registradas</p>}
 
         {liquidaciones.length > 0 && (
-          <div style={{ background: 'white', borderRadius: '12px', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+          <div style={{ background: 'white', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '100px' }}>
+            <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: '13px' }}>
               <thead>
-                <tr style={{ borderBottom: '2px solid var(--border-color)', background: '#f8fafc' }}>
-                  <th style={{ textAlign: 'left', padding: '12px' }}>Empleado</th>
-                  <th style={{ textAlign: 'left', padding: '12px' }}>Documento</th>
-                  <th style={{ textAlign: 'left', padding: '12px' }}>Retiro</th>
-                  <th style={{ textAlign: 'right', padding: '12px' }}>Total</th>
-                  <th style={{ textAlign: 'center', padding: '12px' }}>Estado</th>
-                  <th style={{ textAlign: 'center', padding: '12px' }}>Acciones</th>
+                <tr style={{ background: '#f8fafc' }}>
+                  <th style={{ textAlign: 'left', padding: '12px', borderBottom: '2px solid var(--border-color)', borderTopLeftRadius: '12px' }}>Empleado</th>
+                  <th style={{ textAlign: 'left', padding: '12px', borderBottom: '2px solid var(--border-color)' }}>Documento</th>
+                  <th style={{ textAlign: 'left', padding: '12px', borderBottom: '2px solid var(--border-color)' }}>Retiro</th>
+                  <th style={{ textAlign: 'right', padding: '12px', borderBottom: '2px solid var(--border-color)' }}>Total</th>
+                  <th style={{ textAlign: 'center', padding: '12px', borderBottom: '2px solid var(--border-color)' }}>Estado</th>
+                  <th style={{ textAlign: 'center', padding: '12px', borderBottom: '2px solid var(--border-color)', borderTopRightRadius: '12px' }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -302,18 +317,54 @@ const Liquidacion = () => {
                         color: liq.estado === 'PAGADA' ? '#15803d' : liq.estado === 'ANULADA' ? '#dc2626' : '#b45309'
                       }}>{estados[liq.estado] || liq.estado}</span>
                     </td>
-                    <td style={{ textAlign: 'center', padding: '12px' }}>
-                      {liq.estado === 'PENDIENTE' && isAdmin() && (
-                        <>
-                          <button onClick={(e) => { e.stopPropagation(); handlePagar(liq.id_liquidacion) }} style={{ padding: '4px 12px', borderRadius: '6px', border: 'none', background: '#16a34a', color: 'white', cursor: 'pointer', marginRight: '6px', fontSize: '12px' }}>Pagar</button>
-                          <button onClick={(e) => { e.stopPropagation(); handleAnular(liq.id_liquidacion) }} style={{ padding: '4px 12px', borderRadius: '6px', border: 'none', background: '#dc2626', color: 'white', cursor: 'pointer', fontSize: '12px' }}>Anular</button>
-                        </>
-                      )}
-                      {liq.estado === 'PAGADA' && isAdmin() && (
-                        <button onClick={(e) => { e.stopPropagation(); handleRevertirPago(liq.id_liquidacion) }} style={{ padding: '4px 12px', borderRadius: '6px', border: 'none', background: '#6366f1', color: 'white', cursor: 'pointer', fontSize: '12px' }}>Revertir Pago</button>
-                      )}
-                      {liq.estado === 'ANULADA' && isAdmin() && (
-                        <button onClick={(e) => { e.stopPropagation(); handleRevertirAnulacion(liq.id_liquidacion) }} style={{ padding: '4px 12px', borderRadius: '6px', border: 'none', background: '#6366f1', color: 'white', cursor: 'pointer', fontSize: '12px' }}>Revertir Anulación</button>
+                    <td style={{ textAlign: 'center', padding: '12px', position: 'relative', zIndex: activeMenu === liq.id_liquidacion ? 101 : 1 }}>
+                      {isAdmin() && (
+                        <div style={{ position: 'relative', display: 'inline-block' }}>
+                          <button 
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              setActiveMenu(activeMenu === liq.id_liquidacion ? null : liq.id_liquidacion);
+                            }} 
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', color: 'var(--text-light)', fontSize: '18px' }}
+                          >
+                            <i className="fa-solid fa-ellipsis-vertical"></i>
+                          </button>
+                          
+                          {activeMenu === liq.id_liquidacion && (
+                            <div style={{ 
+                              position: 'absolute', right: '0', top: '30px', zIndex: 1000, background: 'white', 
+                              borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', 
+                              minWidth: '180px', overflow: 'hidden' 
+                            }}>
+                              {liq.estado === 'PENDIENTE' && (
+                                <>
+                                  <button onClick={() => handlePagar(liq.id_liquidacion)} style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', borderBottom: '1px solid #f1f5f9' }}>
+                                    <i className="fa-solid fa-check" style={{ color: '#16a34a', marginRight: '8px' }}></i> Pagar
+                                  </button>
+                                  <button onClick={() => handleAnular(liq.id_liquidacion)} style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', borderBottom: '1px solid #f1f5f9' }}>
+                                    <i className="fa-solid fa-ban" style={{ color: '#dc2626', marginRight: '8px' }}></i> Anular
+                                  </button>
+                                </>
+                              )}
+                              
+                              {liq.estado === 'PAGADA' && (
+                                <button onClick={() => handleRevertirPago(liq.id_liquidacion)} style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', borderBottom: '1px solid #f1f5f9' }}>
+                                  <i className="fa-solid fa-rotate-left" style={{ color: '#6366f1', marginRight: '8px' }}></i> Revertir Pago
+                                </button>
+                              )}
+                              
+                              {liq.estado === 'ANULADA' && (
+                                <button onClick={() => handleRevertirAnulacion(liq.id_liquidacion)} style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', borderBottom: '1px solid #f1f5f9' }}>
+                                  <i className="fa-solid fa-rotate-left" style={{ color: '#6366f1', marginRight: '8px' }}></i> Revertir Anulación
+                                </button>
+                              )}
+                              
+                              <button onClick={() => handleDelete(liq.id_liquidacion)} style={{ display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#dc2626' }}>
+                                <i className="fa-solid fa-trash" style={{ marginRight: '8px' }}></i> Eliminar
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       )}
                     </td>
                   </tr>

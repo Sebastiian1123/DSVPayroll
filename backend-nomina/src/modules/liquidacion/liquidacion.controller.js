@@ -587,6 +587,51 @@ const revertirAnulacion = async (req, res) => {
   }
 };
 
+const deleteLiquidacion = async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { id_liquidacion } = req.params;
+
+    const [liqRows] = await connection.query(
+      "SELECT id_liquidacion, id_empleado, estado FROM liquidaciones WHERE id_liquidacion = ?",
+      [id_liquidacion]
+    );
+
+    if (liqRows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Liquidación no encontrada' });
+    }
+
+    const { id_empleado, estado } = liqRows[0];
+
+    await connection.beginTransaction();
+
+    // Si la liquidación estaba PENDIENTE o PAGADA, al eliminarla reactivamos al empleado
+    // para que no quede en el limbo (ya que guardar liquidación lo desactiva).
+    if (estado !== 'ANULADA') {
+      await connection.query(
+        "UPDATE empleados SET activo = TRUE, eliminado_en = NULL, fecha_retiro = NULL WHERE id_empleado = ?",
+        [id_empleado]
+      );
+      await connection.query(
+        "UPDATE usuarios SET activo = TRUE WHERE id_empleado = ?",
+        [id_empleado]
+      );
+    }
+
+    await connection.query("DELETE FROM liquidaciones WHERE id_liquidacion = ?", [id_liquidacion]);
+
+    await connection.commit();
+
+    return res.json({ success: true, message: 'Liquidación eliminada exitosamente' });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Error eliminando liquidación:', error.message);
+    return res.status(500).json({ success: false, message: 'Error al eliminar la liquidación' });
+  } finally {
+    connection.release();
+  }
+};
+
 module.exports = {
   calcularLiquidacion,
   guardarLiquidacion,
@@ -598,5 +643,6 @@ module.exports = {
   getRecontratacionConfig,
   updateRecontratacionConfig,
   revertirPago,
-  revertirAnulacion
+  revertirAnulacion,
+  deleteLiquidacion
 };
