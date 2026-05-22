@@ -192,13 +192,14 @@ const AdminDetailPayroll = ({ period, onBack }) => {
                                 <th className="is-danger">Deduc. ARL</th>
                                 <th className="is-danger">Deduc. pension</th>
                                 <th className="is-primary">Neto a pagar</th>
+                                <th>Estado HE</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredRows.length === 0 ? (
                                 <tr>
-                                    <td colSpan={11} style={{ textAlign: 'center', padding: '28px 24px', color: 'var(--text-light)' }}>
+                                    <td colSpan={12} style={{ textAlign: 'center', padding: '28px 24px', color: 'var(--text-light)' }}>
                                         No hay empleados para el filtro seleccionado.
                                     </td>
                                 </tr>
@@ -223,6 +224,9 @@ const AdminDetailPayroll = ({ period, onBack }) => {
                                         <td className="is-danger">{formatReportCurrency(row.deduccion_arl)}</td>
                                         <td className="is-danger">{formatReportCurrency(row.deduccion_pension)}</td>
                                         <td className="is-primary is-strong">{formatReportCurrency(row.total_pagar)}</td>
+                                        <td>
+                                            {Number(row.overtime_data_complete) === 1 ? 'Completo' : 'Inconsistente'}
+                                        </td>
                                         <td>
                                             <div className="admin-payroll-row-actions">
                                                 <button

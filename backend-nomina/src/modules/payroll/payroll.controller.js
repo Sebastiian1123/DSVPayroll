@@ -466,26 +466,43 @@ const createPayroll = async (req, res) => {
     const valorDia = salarioBase / 30;
     const valorHoraBase = salarioBase / horasMensualesReferencia;
 
-    const overtimeRows = Array.isArray(horas_extras)
-      ? horas_extras
-        .filter((item) => item && VALID_OVERTIME_TYPES.has(item.tipo_hora))
-        .map((item) => {
-          const horas = Number(item.horas) || 0;
-          const porcentajeRecargo = parseParameterNumber(overtimePercentages[item.tipo_hora], 0);
-          const valorHoraExtra = Number((valorHoraBase * (1 + (porcentajeRecargo / 100))).toFixed(2));
-          const valorTotal = Number((horas * valorHoraExtra).toFixed(2));
+    const overtimeInputRows = Array.isArray(horas_extras) ? horas_extras : [];
+    const invalidOvertimeType = overtimeInputRows.find(
+      (item) => item && !VALID_OVERTIME_TYPES.has(item.tipo_hora)
+    );
+    if (invalidOvertimeType) {
+      return res.status(400).json({
+        success: false,
+        message: `Tipo de hora extra invalido: ${invalidOvertimeType.tipo_hora}`
+      });
+    }
 
-          return {
-            tipo_hora: item.tipo_hora,
-            porcentaje_recargo: porcentajeRecargo,
-            horas,
-            valor_hora_base: Number(valorHoraBase.toFixed(2)),
-            valor_hora_extra: valorHoraExtra,
-            valor_total: valorTotal
-          };
-        })
-        .filter((item) => item.horas > 0 && item.valor_total >= 0)
-      : [];
+    const invalidOvertimeHours = overtimeInputRows.find((item) => item && (Number(item.horas) || 0) < 0);
+    if (invalidOvertimeHours) {
+      return res.status(400).json({
+        success: false,
+        message: 'Las horas extra no pueden ser negativas'
+      });
+    }
+
+    const overtimeRows = overtimeInputRows
+      .filter((item) => item)
+      .map((item) => {
+        const horas = Number(item.horas) || 0;
+        const porcentajeRecargo = parseParameterNumber(overtimePercentages[item.tipo_hora], 0);
+        const valorHoraExtra = Number((valorHoraBase * (1 + (porcentajeRecargo / 100))).toFixed(2));
+        const valorTotal = Number((horas * valorHoraExtra).toFixed(2));
+
+        return {
+          tipo_hora: item.tipo_hora,
+          porcentaje_recargo: porcentajeRecargo,
+          horas,
+          valor_hora_base: Number(valorHoraBase.toFixed(2)),
+          valor_hora_extra: valorHoraExtra,
+          valor_total: valorTotal
+        };
+      })
+      .filter((item) => item.horas > 0 && item.valor_total >= 0);
 
     const totalHorasExtra = overtimeRows.reduce((acc, row) => acc + row.horas, 0);
     const valorHorasExtra = overtimeRows.reduce((acc, row) => acc + row.valor_total, 0);
@@ -998,10 +1015,14 @@ const getPayrollReportRows = async ({ anio, mes, id_empleado }) => {
       n.total_devengado,
       n.total_deducciones,
       n.total_pagar,
-      COALESCE(he.heo, 0) AS heo,
-      COALESCE(he.hef, 0) AS hef,
-      COALESCE(he.hen, 0) AS hen,
-      COALESCE(he.hefn, 0) AS hefn,
+      COALESCE(he.heo, hd.heo_detalle, 0) AS heo,
+      COALESCE(he.hef, hd.hef_detalle, 0) AS hef,
+      COALESCE(he.hen, hd.hen_detalle, 0) AS hen,
+      COALESCE(he.hefn, hd.hefn_detalle, 0) AS hefn,
+      CASE
+        WHEN COALESCE(hd.extra_detail_count, 0) > 0 AND COALESCE(he.total_registros, 0) = 0 THEN 0
+        ELSE 1
+      END AS overtime_data_complete,
       COALESCE(dd.salud, 0) AS deduccion_salud,
       COALESCE(dd.arl, 0) AS deduccion_arl,
       COALESCE(dd.pension, 0) AS deduccion_pension
@@ -1015,10 +1036,66 @@ const getPayrollReportRows = async ({ anio, mes, id_empleado }) => {
         SUM(CASE WHEN tipo_hora = 'EXTRA_DIURNA' THEN horas ELSE 0 END) AS heo,
         SUM(CASE WHEN tipo_hora = 'EXTRA_DIURNA_DOMINICAL_FESTIVO' THEN horas ELSE 0 END) AS hef,
         SUM(CASE WHEN tipo_hora = 'EXTRA_NOCTURNA' THEN horas ELSE 0 END) AS hen,
-        SUM(CASE WHEN tipo_hora = 'EXTRA_NOCTURNA_DOMINICAL_FESTIVO' THEN horas ELSE 0 END) AS hefn
+        SUM(CASE WHEN tipo_hora = 'EXTRA_NOCTURNA_DOMINICAL_FESTIVO' THEN horas ELSE 0 END) AS hefn,
+        COUNT(*) AS total_registros
       FROM horas_extra_nomina
       GROUP BY id_nomina
     ) he ON he.id_nomina = n.id_nomina
+    LEFT JOIN (
+      SELECT
+        id_nomina,
+        SUM(CASE WHEN UPPER(concepto) LIKE 'EXTRA_%' OR LOWER(concepto) LIKE 'extra %' THEN 1 ELSE 0 END) AS extra_detail_count,
+        SUM(
+          CASE
+            WHEN REPLACE(LOWER(concepto), '_', ' ') LIKE '%extra diurna en domingo/festivo%'
+              OR REPLACE(LOWER(concepto), '_', ' ') LIKE '%extra diurna dominical festivo%'
+              OR REPLACE(LOWER(concepto), '_', ' ') LIKE '%extra diurna dominical/festivo%'
+            THEN CAST(
+              COALESCE(NULLIF(REPLACE(SUBSTRING_INDEX(SUBSTRING_INDEX(concepto, '(', -1), 'h', 1), ')', ''), ''), '0')
+              AS DECIMAL(10, 2)
+            )
+            ELSE 0
+          END
+        ) AS hef_detalle,
+        SUM(
+          CASE
+            WHEN REPLACE(LOWER(concepto), '_', ' ') LIKE '%extra nocturna en domingo/festivo%'
+              OR REPLACE(LOWER(concepto), '_', ' ') LIKE '%extra nocturna dominical festivo%'
+              OR REPLACE(LOWER(concepto), '_', ' ') LIKE '%extra nocturna dominical/festivo%'
+            THEN CAST(
+              COALESCE(NULLIF(REPLACE(SUBSTRING_INDEX(SUBSTRING_INDEX(concepto, '(', -1), 'h', 1), ')', ''), ''), '0')
+              AS DECIMAL(10, 2)
+            )
+            ELSE 0
+          END
+        ) AS hefn_detalle,
+        SUM(
+          CASE
+            WHEN REPLACE(LOWER(concepto), '_', ' ') LIKE '%extra nocturna%'
+              AND REPLACE(LOWER(concepto), '_', ' ') NOT LIKE '%domingo/festivo%'
+              AND REPLACE(LOWER(concepto), '_', ' ') NOT LIKE '%dominical%'
+            THEN CAST(
+              COALESCE(NULLIF(REPLACE(SUBSTRING_INDEX(SUBSTRING_INDEX(concepto, '(', -1), 'h', 1), ')', ''), ''), '0')
+              AS DECIMAL(10, 2)
+            )
+            ELSE 0
+          END
+        ) AS hen_detalle,
+        SUM(
+          CASE
+            WHEN REPLACE(LOWER(concepto), '_', ' ') LIKE '%extra diurna%'
+              AND REPLACE(LOWER(concepto), '_', ' ') NOT LIKE '%domingo/festivo%'
+              AND REPLACE(LOWER(concepto), '_', ' ') NOT LIKE '%dominical%'
+            THEN CAST(
+              COALESCE(NULLIF(REPLACE(SUBSTRING_INDEX(SUBSTRING_INDEX(concepto, '(', -1), 'h', 1), ')', ''), ''), '0')
+              AS DECIMAL(10, 2)
+            )
+            ELSE 0
+          END
+        ) AS heo_detalle
+      FROM detalle_nomina
+      GROUP BY id_nomina
+    ) hd ON hd.id_nomina = n.id_nomina
     LEFT JOIN (
       SELECT
         id_nomina,
