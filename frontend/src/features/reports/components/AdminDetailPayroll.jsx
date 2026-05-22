@@ -184,10 +184,10 @@ const AdminDetailPayroll = ({ period, onBack }) => {
                             <tr>
                                 <th className="admin-payroll-table__employee-col">Empleado</th>
                                 <th>Salario basico</th>
-                                <th>HEO</th>
-                                <th>HEF</th>
-                                <th>HEN</th>
-                                <th>HEFN</th>
+                                <th>HEO $</th>
+                                <th>HEF $</th>
+                                <th>HEN $</th>
+                                <th>HEFN $</th>
                                 <th className="is-danger">Deduc. salud</th>
                                 <th className="is-danger">Deduc. ARL</th>
                                 <th className="is-danger">Deduc. pension</th>
@@ -216,10 +216,10 @@ const AdminDetailPayroll = ({ period, onBack }) => {
                                             </div>
                                         </td>
                                         <td>{formatReportCurrency(row.salario_basico)}</td>
-                                        <td>{row.heo}</td>
-                                        <td>{row.hef}</td>
-                                        <td>{row.hen}</td>
-                                        <td>{row.hefn}</td>
+                                        <td>{formatReportCurrency(row.heo_valor)}</td>
+                                        <td>{formatReportCurrency(row.hef_valor)}</td>
+                                        <td>{formatReportCurrency(row.hen_valor)}</td>
+                                        <td>{formatReportCurrency(row.hefn_valor)}</td>
                                         <td className="is-danger">{formatReportCurrency(row.deduccion_salud)}</td>
                                         <td className="is-danger">{formatReportCurrency(row.deduccion_arl)}</td>
                                         <td className="is-danger">{formatReportCurrency(row.deduccion_pension)}</td>
@@ -257,10 +257,10 @@ const AdminDetailPayroll = ({ period, onBack }) => {
                             <tr>
                                 <td className="admin-payroll-table__totals-title">Totales del periodo</td>
                                 <td>{formatReportCurrency(totals.salario)}</td>
-                                <td>{totals.heo}</td>
-                                <td>{totals.hef}</td>
-                                <td>{totals.hen}</td>
-                                <td>{totals.hefn}</td>
+                                <td>{formatReportCurrency(totals.heoValor)}</td>
+                                <td>{formatReportCurrency(totals.hefValor)}</td>
+                                <td>{formatReportCurrency(totals.henValor)}</td>
+                                <td>{formatReportCurrency(totals.hefnValor)}</td>
                                 <td className="is-danger">{formatReportCurrency(totals.salud)}</td>
                                 <td className="is-danger">{formatReportCurrency(totals.arl)}</td>
                                 <td className="is-danger">{formatReportCurrency(totals.pension)}</td>

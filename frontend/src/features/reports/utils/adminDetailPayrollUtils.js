@@ -22,6 +22,10 @@ export const calculateAdminPayrollTotals = (rows) => (
       acc.hef += Number(row.hef) || 0
       acc.hen += Number(row.hen) || 0
       acc.hefn += Number(row.hefn) || 0
+      acc.heoValor += Number(row.heo_valor) || 0
+      acc.hefValor += Number(row.hef_valor) || 0
+      acc.henValor += Number(row.hen_valor) || 0
+      acc.hefnValor += Number(row.hefn_valor) || 0
       acc.salud += Number(row.deduccion_salud) || 0
       acc.arl += Number(row.deduccion_arl) || 0
       acc.pension += Number(row.deduccion_pension) || 0
@@ -34,6 +38,10 @@ export const calculateAdminPayrollTotals = (rows) => (
       hef: 0,
       hen: 0,
       hefn: 0,
+      heoValor: 0,
+      hefValor: 0,
+      henValor: 0,
+      hefnValor: 0,
       salud: 0,
       arl: 0,
       pension: 0,
