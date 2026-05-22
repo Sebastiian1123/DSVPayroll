@@ -1,7 +1,3 @@
-// ============================================
-// COMPONENTE PRINCIPAL - APP
-// Archivo: src/App.jsx
-// ============================================
 
 import { Routes, Route, Navigate, Link } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
@@ -28,9 +24,6 @@ function App() {
 
   return (
     <Routes>
-      {/* ========================================
-          RUTAS PÚBLICAS
-          ========================================== */}
 
       {/* Ruta raíz - Redirige según autenticación */}
       <Route
@@ -50,9 +43,6 @@ function App() {
       {/* Recuperar contraseña */}
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
-      {/* ========================================
-          RUTAS PRIVADAS
-          ========================================== */}
 
       {/* Dashboard - Todos los usuarios autenticados */}
       <Route
@@ -167,9 +157,6 @@ function App() {
       />
 
       
-      {/* ========================================
-          RUTA 404 - NO ENCONTRADA
-          ========================================== */}
       <Route
         path="*"
         element={
@@ -185,44 +172,3 @@ function App() {
 }
 
 export default App;
-
-// ============================================
-// NOTAS
-// ============================================
-
-/*
-ESTRUCTURA DE RUTAS:
-
-PÚBLICAS (sin autenticación):
-- / → Redirige a /login o /dashboard según autenticación
-- /login → Página de inicio de sesión
-- /forgot-password → Recuperación de contraseña
-
-PRIVADAS (requieren autenticación):
-- /dashboard → Panel principal (todos)
-- /employees → Gestión de empleados (todos)
-- /users → Gestión de usuarios (solo Admin y RRHH)
-
-404:
-- * → Cualquier ruta no definida muestra error 404
-
-CÓMO FUNCIONA:
-1. Usuario accede a una URL
-2. <Routes> busca la ruta que coincida
-3. Si es privada, <PrivateRoute> verifica autenticación
-4. Si no está autenticado, redirige a /login
-5. Si está autenticado pero no tiene el rol, muestra error
-6. Si todo OK, muestra el componente
-
-NAVEGACIÓN:
-- Usa <Link to="/ruta"> en lugar de <a href="/ruta">
-- Usa navigate('/ruta') para redirección programática
-- El historial del navegador funciona correctamente
-
-PRÓXIMAS PÁGINAS A CREAR:
-✅ Login.jsx (ya creado)
-⏳ Dashboard.jsx
-⏳ Employees.jsx
-⏳ Users.jsx
-⏳ ForgotPassword.jsx
-*/

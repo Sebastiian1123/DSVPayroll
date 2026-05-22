@@ -40,7 +40,7 @@ const Login = () => {
                 setError(result.error || 'Error al iniciar sesion');
             }
         } catch (err) {
-            setError('Error al conectar con el servidor');
+            setError('Error al conectar con el servidor', err);
         } finally {
             setLoading(false);
         }

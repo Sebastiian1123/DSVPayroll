@@ -16,7 +16,7 @@ const formatPeso = (value) => {
 const estados = { PENDIENTE: 'Pendiente', PAGADA: 'Pagada', ANULADA: 'Anulada' }
 
 const Liquidacion = () => {
-  const { user, isAdmin } = useAuth()
+  const { isAdmin } = useAuth()
   const [liquidaciones, setLiquidaciones] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -115,8 +115,11 @@ const Liquidacion = () => {
   }
 
   const handlePagar = async (id) => {
+    const result = await showConfirmDelete('¿Marcar esta liquidación como pagada?')
+    if (!result.isConfirmed) return
     try {
       await liquidacionService.marcarPagada(id)
+      showSuccess('Liquidación marcada como pagada')
       fetchLiquidaciones()
     } catch (e) {
       showError('Error al marcar como pagada', e)
@@ -124,9 +127,11 @@ const Liquidacion = () => {
   }
 
   const handleAnular = async (id) => {
-    if (!window.confirm('¿Anular esta liquidación? El empleado será reactivado.')) return
+    const result = await showConfirmDelete('¿Anular esta liquidación? El empleado será reactivado.')
+    if (!result.isConfirmed) return
     try {
       await liquidacionService.anularLiquidacion(id)
+      showSuccess('Liquidación anulada correctamente')
       fetchLiquidaciones()
     } catch (e) {
       showError('Error al anular liquidación', e)
@@ -134,14 +139,16 @@ const Liquidacion = () => {
   }
 
   const handleRevertirPago = async (id) => {
-    const reactivar = window.confirm('¿Desea reactivar al empleado al revertir el pago?')
+    const result = await showConfirmDelete('¿Desea reactivar al empleado al revertir el pago?')
+    if (!result.isConfirmed) return
+    const reactivar = result.isConfirmed
     try {
-      const result = await liquidacionService.revertirPago(id, reactivar)
-      if (result.success) {
-        showSuccess(result.message)
+      const serviceResult = await liquidacionService.revertirPago(id, reactivar)
+      if (serviceResult.success) {
+        showSuccess(serviceResult.message)
         fetchLiquidaciones()
       } else {
-        showError(result.message || 'Error al revertir pago')
+        showError(serviceResult.message || 'Error al revertir pago')
       }
     } catch (e) {
       showError('Error al revertir pago', e)
@@ -149,7 +156,8 @@ const Liquidacion = () => {
   }
 
   const handleRevertirAnulacion = async (id) => {
-    if (!showConfirmDelete('¿Desea revertir la anulación? La liquidación volverá a estar PENDIENTE y el empleado será desactivado nuevamente.')) return
+    const confirmResult = await showConfirmDelete('¿Desea revertir la anulación? La liquidación volverá a estar PENDIENTE y el empleado será desactivado nuevamente.')
+    if (!confirmResult.isConfirmed) return
     try {
       const result = await liquidacionService.revertirAnulacion(id)
       if (result.success) {
@@ -172,9 +180,11 @@ const Liquidacion = () => {
   }
 
   const handleDelete = async (id) => {
-    if (!showConfirmDelete('¿Eliminar definitivamente esta liquidación? El empleado será reactivado si no estaba anulada.')) return
+    const result = await showConfirmDelete('¿Eliminar definitivamente esta liquidación? El empleado será reactivado si no estaba anulada.')
+    if (!result.isConfirmed) return
     try {
       await liquidacionService.deleteLiquidacion(id)
+      showSuccess('Liquidación eliminada correctamente')
       fetchLiquidaciones()
     } catch (e) {
       showError('Error al eliminar liquidación', e)
