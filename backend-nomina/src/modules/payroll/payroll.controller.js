@@ -1019,6 +1019,10 @@ const getPayrollReportRows = async ({ anio, mes, id_empleado }) => {
       COALESCE(he.hef, hd.hef_detalle, 0) AS hef,
       COALESCE(he.hen, hd.hen_detalle, 0) AS hen,
       COALESCE(he.hefn, hd.hefn_detalle, 0) AS hefn,
+      COALESCE(he_val.heo_valor, 0) AS heo_valor,
+      COALESCE(he_val.hef_valor, 0) AS hef_valor,
+      COALESCE(he_val.hen_valor, 0) AS hen_valor,
+      COALESCE(he_val.hefn_valor, 0) AS hefn_valor,
       CASE
         WHEN COALESCE(hd.extra_detail_count, 0) > 0 AND COALESCE(he.total_registros, 0) = 0 THEN 0
         ELSE 1
@@ -1041,6 +1045,16 @@ const getPayrollReportRows = async ({ anio, mes, id_empleado }) => {
       FROM horas_extra_nomina
       GROUP BY id_nomina
     ) he ON he.id_nomina = n.id_nomina
+    LEFT JOIN (
+      SELECT
+        id_nomina,
+        SUM(CASE WHEN tipo_hora = 'EXTRA_DIURNA' THEN valor_total ELSE 0 END) AS heo_valor,
+        SUM(CASE WHEN tipo_hora = 'EXTRA_DIURNA_DOMINICAL_FESTIVO' THEN valor_total ELSE 0 END) AS hef_valor,
+        SUM(CASE WHEN tipo_hora = 'EXTRA_NOCTURNA' THEN valor_total ELSE 0 END) AS hen_valor,
+        SUM(CASE WHEN tipo_hora = 'EXTRA_NOCTURNA_DOMINICAL_FESTIVO' THEN valor_total ELSE 0 END) AS hefn_valor
+      FROM horas_extra_nomina
+      GROUP BY id_nomina
+    ) he_val ON he_val.id_nomina = n.id_nomina
     LEFT JOIN (
       SELECT
         id_nomina,
