@@ -184,10 +184,10 @@ const AdminDetailPayroll = ({ period, onBack }) => {
                             <tr>
                                 <th className="admin-payroll-table__employee-col">Empleado</th>
                                 <th>Salario basico</th>
-                                <th>HEO</th>
-                                <th>HEF</th>
-                                <th>HEN</th>
-                                <th>HEFN</th>
+                                <th>HEO $</th>
+                                <th>HEF $</th>
+                                <th>HEN $</th>
+                                <th>HEFN $</th>
                                 <th className="is-danger">Deduc. salud</th>
                                 <th className="is-danger">Deduc. ARL</th>
                                 <th className="is-danger">Deduc. pension</th>
