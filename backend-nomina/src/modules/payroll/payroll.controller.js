@@ -974,12 +974,32 @@ const buildPayrollReportSummary = (rows) => (
     totalNominas: acc.totalNominas + 1,
     totalDevengado: acc.totalDevengado + (Number(row.total_devengado) || 0),
     totalDeducciones: acc.totalDeducciones + (Number(row.total_deducciones) || 0),
-    totalPagado: acc.totalPagado + (Number(row.total_pagar) || 0)
+    totalPagado: acc.totalPagado + (Number(row.total_pagar) || 0),
+    totalHorasExtra: acc.totalHorasExtra + (Number(row.heo) || 0) + (Number(row.hef) || 0) + (Number(row.hen) || 0) + (Number(row.hefn) || 0),
+    valorHorasExtra: acc.valorHorasExtra + (Number(row.heo_valor) || 0) + (Number(row.hef_valor) || 0) + (Number(row.hen_valor) || 0) + (Number(row.hefn_valor) || 0),
+    totalHeo: acc.totalHeo + (Number(row.heo) || 0),
+    totalHef: acc.totalHef + (Number(row.hef) || 0),
+    totalHen: acc.totalHen + (Number(row.hen) || 0),
+    totalHefn: acc.totalHefn + (Number(row.hefn) || 0),
+    valorHeo: acc.valorHeo + (Number(row.heo_valor) || 0),
+    valorHef: acc.valorHef + (Number(row.hef_valor) || 0),
+    valorHen: acc.valorHen + (Number(row.hen_valor) || 0),
+    valorHefn: acc.valorHefn + (Number(row.hefn_valor) || 0)
   }), {
     totalNominas: 0,
     totalDevengado: 0,
     totalDeducciones: 0,
-    totalPagado: 0
+    totalPagado: 0,
+    totalHorasExtra: 0,
+    valorHorasExtra: 0,
+    totalHeo: 0,
+    totalHef: 0,
+    totalHen: 0,
+    totalHefn: 0,
+    valorHeo: 0,
+    valorHef: 0,
+    valorHen: 0,
+    valorHefn: 0
   })
 );
 

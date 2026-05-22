@@ -71,39 +71,3 @@ api.interceptors.response.use(
 
 export default api;
 
-// ============================================
-// NOTAS DE USO
-// ============================================
-
-/*
-CÓMO USAR ESTE ARCHIVO:
-
-1. Importar en otros archivos:
-import api from './services/api';
-
-2. Hacer peticiones:
- 
-// GET
-const response = await api.get('/employees');
- 
-// POST
-const response = await api.post('/auth/login', { username, password });
- 
-// PUT
-const response = await api.put('/employees/5', { nombres: 'Juan' });
- 
-// DELETE
-const response = await api.delete('/employees/5');
-
-3. Los interceptors automáticamente:
-✅ Agregan el token a cada petición
-✅ Manejan errores de autenticación
-✅ Redirigen al login si el token expira
-✅ Muestran logs en consola
-
-VENTAJAS:
-- No necesitas agregar el token manualmente en cada petición
-- Manejo centralizado de errores
-- Redirección automática si el token expira
-- Logs para debugging
-*/

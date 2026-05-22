@@ -7,8 +7,23 @@ import {
   getEmployeeReportPeriodMeta
 } from '../utils/employeeReportDetailUtils';
 
+const OVERTIME_TYPE_LABELS = {
+  'EXTRA_DIURNA': 'Extra diurna',
+  'EXTRA_NOCTURNA': 'Extra nocturna',
+  'EXTRA_DIURNA_DOMINICAL_FESTIVO': 'Extra diurna domingos/festivos',
+  'EXTRA_NOCTURNA_DOMINICAL_FESTIVO': 'Extra nocturna domingos/festivos'
+};
+
+const isOvertimeConcept = (concept) => {
+  const c = String(concept || '').trim().toUpperCase();
+  return c.startsWith('EXTRA_') || c.startsWith('EXTRA ');
+};
+
 const classifyDetailRow = (concept) => {
   const c = String(concept || '').trim().toUpperCase();
+  if (isOvertimeConcept(concept)) {
+    return 'HORA_EXTRA';
+  }
   if (
     c.includes('SALUD') ||
     c.includes('PENSION') ||
@@ -35,6 +50,7 @@ const EmployeeReportDetail = ({ report, onBack }) => {
   const [payroll, setPayroll] = useState(null);
   const [incomes, setIncomes] = useState([]);
   const [deductions, setDeductions] = useState([]);
+  const [overtime, setOvertime] = useState([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -52,15 +68,17 @@ const EmployeeReportDetail = ({ report, onBack }) => {
           return;
         }
         setPayroll(data.payroll);
+        setOvertime(data.overtimeRows || []);
 
         const inc = [];
         const ded = [];
 
         for (const row of (data.detailRows || [])) {
           const valor = Number(row.valor) || 0;
-          if (classifyDetailRow(row.concepto) === 'DEDUCCION') {
+          const category = classifyDetailRow(row.concepto);
+          if (category === 'DEDUCCION') {
             ded.push(row);
-          } else {
+          } else if (category === 'DEVENGADO' || category === 'NOVEDAD') {
             inc.push({ ...row, valor });
           }
         }
@@ -80,6 +98,8 @@ const EmployeeReportDetail = ({ report, onBack }) => {
 
   const totalDevengado = payroll ? Number(payroll.total_devengado) || 0 : 0;
   const totalDeducciones = payroll ? Number(payroll.total_deducciones) || 0 : 0;
+  const totalHorasExtra = overtime.reduce((acc, item) => acc + (Number(item.horas) || 0), 0);
+  const totalValorHorasExtra = overtime.reduce((acc, item) => acc + (Number(item.valor_total) || 0), 0);
 
   const handleDownloadPdf = async () => {
     try {
@@ -194,13 +214,41 @@ const EmployeeReportDetail = ({ report, onBack }) => {
                   )}
                 </div>
 
-                <div className="section-total">
-                  <span>TOTAL BRUTO</span>
-                  <span className="amount">{formatReportCurrency(totalDevengado)}</span>
-                </div>
-              </div>
+                 <div className="section-total">
+                   <span>TOTAL BRUTO</span>
+                   <span className="amount">{formatReportCurrency(totalDevengado)}</span>
+                 </div>
+               </div>
 
-              <div className="detail-section deductions ded">
+               {overtime.length > 0 && (
+                 <div className="detail-section inc">
+                   <div className="section-title inc">
+                     <i className="fa-solid fa-clock"></i> Horas Extra
+                   </div>
+
+                   <div className="concept-list">
+                     {overtime.map((item, idx) => (
+                       <div className="concept-item" key={idx}>
+                         <div className="concept-name">
+                           <h4>{OVERTIME_TYPE_LABELS[item.tipo_hora] || item.tipo_hora}</h4>
+                           <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0, marginTop: '4px' }}>
+                             {Number(item.horas) || 0} horas × {formatReportCurrency(Number(item.valor_hora_extra) || 0)} / hora
+                             {item.porcentaje_recargo && ` (${(Number(item.porcentaje_recargo) * 100).toFixed(0)}%)`}
+                           </p>
+                         </div>
+                         <div className="concept-amount">{formatReportCurrency(Number(item.valor_total) || 0)}</div>
+                       </div>
+                     ))}
+                   </div>
+
+                   <div className="section-total">
+                     <span>TOTAL HORAS EXTRA ({totalHorasExtra}h)</span>
+                     <span className="amount">{formatReportCurrency(totalValorHorasExtra)}</span>
+                   </div>
+                 </div>
+               )}
+
+               <div className="detail-section deductions ded">
                 <div className="section-title ded" style={{ color: 'var(--danger-color)' }}>
                   <i className="fa-solid fa-circle-minus"></i> Deducciones
                 </div>

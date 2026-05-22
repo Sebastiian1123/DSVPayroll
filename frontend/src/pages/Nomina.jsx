@@ -28,7 +28,22 @@ export const Nomina = () => {
   const [selectedEmployee, setSelectedEmployee] = useState('')
   const [employees, setEmployees] = useState([])
   const [reportData, setReportData] = useState([])
-  const [reportSummary, setReportSummary] = useState({ totalNominas: 0, totalDevengado: 0, totalDeducciones: 0, totalPagado: 0 })
+  const [reportSummary, setReportSummary] = useState({ 
+    totalNominas: 0, 
+    totalDevengado: 0, 
+    totalDeducciones: 0, 
+    totalPagado: 0,
+    totalHorasExtra: 0,
+    valorHorasExtra: 0,
+    totalHeo: 0,
+    totalHef: 0,
+    totalHen: 0,
+    totalHefn: 0,
+    valorHeo: 0,
+    valorHef: 0,
+    valorHen: 0,
+    valorHefn: 0
+  })
   const [loading, setLoading] = useState(false)
   const [deletingPayrolls, setDeletingPayrolls] = useState(false)
 
@@ -61,8 +76,15 @@ export const Nomina = () => {
           }
         })
 
-        setReportData(response.data?.data?.nominas || [])
-        setReportSummary(response.data?.data?.resumen || { totalNominas: 0, totalDevengado: 0, totalDeducciones: 0, totalPagado: 0 })
+         setReportData(response.data?.data?.nominas || [])
+         setReportSummary(response.data?.data?.resumen || { 
+           totalNominas: 0, 
+           totalDevengado: 0, 
+           totalDeducciones: 0, 
+           totalPagado: 0,
+           totalHorasExtra: 0,
+           valorHorasExtra: 0
+         })
       } catch (error) {
         console.error('Error cargando reporte de nómina:', error)
         setReportData([])
@@ -115,8 +137,15 @@ export const Nomina = () => {
             }
           })
 
-          setReportData(response.data?.data?.nominas || [])
-          setReportSummary(response.data?.data?.resumen || { totalNominas: 0, totalDevengado: 0, totalDeducciones: 0, totalPagado: 0 })
+           setReportData(response.data?.data?.nominas || [])
+           setReportSummary(response.data?.data?.resumen || { 
+             totalNominas: 0, 
+             totalDevengado: 0, 
+             totalDeducciones: 0, 
+             totalPagado: 0,
+             totalHorasExtra: 0,
+             valorHorasExtra: 0
+           })
           showSuccess('Nóminas eliminadas correctamente.')
         } catch (error) {
           console.error('Error eliminando nóminas del empleado:', error)
@@ -195,14 +224,32 @@ export const Nomina = () => {
               <p className="nomina-card-value">{formatPesoColombiano(reportSummary.totalDevengado)}</p>
             </div>
           </div>
-          <div className="nomina-card">
-            <div className="nomina-card-icon nomina-card-icon--red"><i className="fa-solid fa-file-circle-minus"></i></div>
-            <div>
-              <p className="nomina-card-label">TOTAL DEDUCCIONES</p>
-              <p className="nomina-card-value">{formatPesoColombiano(reportSummary.totalDeducciones)}</p>
-            </div>
-          </div>
-        </div>
+           <div className="nomina-card">
+             <div className="nomina-card-icon nomina-card-icon--red"><i className="fa-solid fa-file-circle-minus"></i></div>
+             <div>
+               <p className="nomina-card-label">TOTAL DEDUCCIONES</p>
+               <p className="nomina-card-value">{formatPesoColombiano(reportSummary.totalDeducciones)}</p>
+             </div>
+           </div>
+           {reportSummary.totalHorasExtra > 0 && (
+             <div className="nomina-card">
+               <div className="nomina-card-icon" style={{ background: '#d1fae5', color: '#059669' }}><i className="fa-solid fa-clock"></i></div>
+               <div>
+                 <p className="nomina-card-label">HORAS EXTRA</p>
+                 <p className="nomina-card-value">{reportSummary.totalHorasExtra}h</p>
+               </div>
+             </div>
+           )}
+           {reportSummary.valorHorasExtra > 0 && (
+             <div className="nomina-card">
+               <div className="nomina-card-icon" style={{ background: '#d1fae5', color: '#059669' }}><i className="fa-solid fa-coins"></i></div>
+               <div>
+                 <p className="nomina-card-label">VALOR HORAS EXTRA</p>
+                 <p className="nomina-card-value">{formatPesoColombiano(reportSummary.valorHorasExtra)}</p>
+               </div>
+             </div>
+           )}
+         </div>
 
         <div className="nomina-main-grid">
           <div className="nomina-chart-card">

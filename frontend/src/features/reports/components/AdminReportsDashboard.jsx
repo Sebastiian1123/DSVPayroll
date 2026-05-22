@@ -20,12 +20,14 @@ const AdminReportsDashboard = ({ onSelectPeriod }) => {
     const [selectedYear, setSelectedYear] = useState(currentYear);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [summary, setSummary] = useState({
-        totalNominas: 0,
-        totalDevengado: 0,
-        totalDeducciones: 0,
-        totalPagado: 0
-    });
+     const [summary, setSummary] = useState({
+         totalNominas: 0,
+         totalDevengado: 0,
+         totalDeducciones: 0,
+         totalPagado: 0,
+         totalHorasExtra: 0,
+         valorHorasExtra: 0
+     });
     const [yearRows, setYearRows] = useState([]);
 
     const years = useMemo(() => buildAdminYearOptions(currentYear), [currentYear]);
@@ -42,21 +44,25 @@ const AdminReportsDashboard = ({ onSelectPeriod }) => {
                 setLoading(true);
                 setError('');
                 const data = await reportsService.getPayrollReports({ anio: selectedYear });
-                setSummary({
-                    totalNominas: Number(data?.resumen?.totalNominas) || 0,
-                    totalDevengado: Number(data?.resumen?.totalDevengado) || 0,
-                    totalDeducciones: Number(data?.resumen?.totalDeducciones) || 0,
-                    totalPagado: Number(data?.resumen?.totalPagado) || 0
-                });
+                 setSummary({
+                     totalNominas: Number(data?.resumen?.totalNominas) || 0,
+                     totalDevengado: Number(data?.resumen?.totalDevengado) || 0,
+                     totalDeducciones: Number(data?.resumen?.totalDeducciones) || 0,
+                     totalPagado: Number(data?.resumen?.totalPagado) || 0,
+                     totalHorasExtra: Number(data?.resumen?.totalHorasExtra) || 0,
+                     valorHorasExtra: Number(data?.resumen?.valorHorasExtra) || 0
+                 });
                 setYearRows(Array.isArray(data?.nominas) ? data.nominas : []);
             } catch (fetchError) {
                 console.error('Error cargando dashboard administrativo:', fetchError);
-                setSummary({
-                    totalNominas: 0,
-                    totalDevengado: 0,
-                    totalDeducciones: 0,
-                    totalPagado: 0
-                });
+                 setSummary({
+                     totalNominas: 0,
+                     totalDevengado: 0,
+                     totalDeducciones: 0,
+                     totalPagado: 0,
+                     totalHorasExtra: 0,
+                     valorHorasExtra: 0
+                 });
                 setYearRows([]);
                 setError('No fue posible cargar la información de reportes administrativos.');
             } finally {
@@ -169,11 +175,27 @@ const AdminReportsDashboard = ({ onSelectPeriod }) => {
                             <div className="info-stat-value">{formatReportCurrency(summary.totalDeducciones)}</div>
                         </div>
 
-                        <div className="info-stat">
-                            <div className="info-stat-label">Total pagado</div>
-                            <div className="info-stat-value">{formatReportCurrency(summary.totalPagado)}</div>
-                        </div>
-                    </div>
+                         <div className="info-stat">
+                             <div className="info-stat-label">Total pagado</div>
+                             <div className="info-stat-value">{formatReportCurrency(summary.totalPagado)}</div>
+                         </div>
+
+                         {summary.totalHorasExtra > 0 && (
+                             <>
+                                 <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '12px 0' }} />
+                                 <div className="info-stat">
+                                     <div className="info-stat-label">
+                                         <span style={{ color: '#059669' }}><i className="fa-solid fa-clock"></i> Horas extra</span>
+                                     </div>
+                                     <div className="info-stat-value">{summary.totalHorasExtra}h</div>
+                                 </div>
+                                 <div className="info-stat">
+                                     <div className="info-stat-label">Valor horas extra</div>
+                                     <div className="info-stat-value">{formatReportCurrency(summary.valorHorasExtra)}</div>
+                                 </div>
+                             </>
+                         )}
+                     </div>
 
                     <div className="compliance-card">
                         <h3 style={{ fontSize: '14px', color: 'var(--text-dark)', marginBottom: '16px', fontWeight: 600 }}>Verificación de Cumplimiento</h3>
