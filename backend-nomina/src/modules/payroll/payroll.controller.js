@@ -1015,10 +1015,10 @@ const getPayrollReportRows = async ({ anio, mes, id_empleado }) => {
       n.total_devengado,
       n.total_deducciones,
       n.total_pagar,
-      COALESCE(he.heo, 0) AS heo,
-      COALESCE(he.hef, 0) AS hef,
-      COALESCE(he.hen, 0) AS hen,
-      COALESCE(he.hefn, 0) AS hefn,
+      COALESCE(he.heo, hd.heo_detalle, 0) AS heo,
+      COALESCE(he.hef, hd.hef_detalle, 0) AS hef,
+      COALESCE(he.hen, hd.hen_detalle, 0) AS hen,
+      COALESCE(he.hefn, hd.hefn_detalle, 0) AS hefn,
       CASE
         WHEN COALESCE(hd.extra_detail_count, 0) > 0 AND COALESCE(he.total_registros, 0) = 0 THEN 0
         ELSE 1
@@ -1044,7 +1044,55 @@ const getPayrollReportRows = async ({ anio, mes, id_empleado }) => {
     LEFT JOIN (
       SELECT
         id_nomina,
-        SUM(CASE WHEN UPPER(concepto) LIKE 'EXTRA_%' THEN 1 ELSE 0 END) AS extra_detail_count
+        SUM(CASE WHEN UPPER(concepto) LIKE 'EXTRA_%' OR LOWER(concepto) LIKE 'extra %' THEN 1 ELSE 0 END) AS extra_detail_count,
+        SUM(
+          CASE
+            WHEN REPLACE(LOWER(concepto), '_', ' ') LIKE '%extra diurna en domingo/festivo%'
+              OR REPLACE(LOWER(concepto), '_', ' ') LIKE '%extra diurna dominical festivo%'
+              OR REPLACE(LOWER(concepto), '_', ' ') LIKE '%extra diurna dominical/festivo%'
+            THEN CAST(
+              COALESCE(NULLIF(REPLACE(SUBSTRING_INDEX(SUBSTRING_INDEX(concepto, '(', -1), 'h', 1), ')', ''), ''), '0')
+              AS DECIMAL(10, 2)
+            )
+            ELSE 0
+          END
+        ) AS hef_detalle,
+        SUM(
+          CASE
+            WHEN REPLACE(LOWER(concepto), '_', ' ') LIKE '%extra nocturna en domingo/festivo%'
+              OR REPLACE(LOWER(concepto), '_', ' ') LIKE '%extra nocturna dominical festivo%'
+              OR REPLACE(LOWER(concepto), '_', ' ') LIKE '%extra nocturna dominical/festivo%'
+            THEN CAST(
+              COALESCE(NULLIF(REPLACE(SUBSTRING_INDEX(SUBSTRING_INDEX(concepto, '(', -1), 'h', 1), ')', ''), ''), '0')
+              AS DECIMAL(10, 2)
+            )
+            ELSE 0
+          END
+        ) AS hefn_detalle,
+        SUM(
+          CASE
+            WHEN REPLACE(LOWER(concepto), '_', ' ') LIKE '%extra nocturna%'
+              AND REPLACE(LOWER(concepto), '_', ' ') NOT LIKE '%domingo/festivo%'
+              AND REPLACE(LOWER(concepto), '_', ' ') NOT LIKE '%dominical%'
+            THEN CAST(
+              COALESCE(NULLIF(REPLACE(SUBSTRING_INDEX(SUBSTRING_INDEX(concepto, '(', -1), 'h', 1), ')', ''), ''), '0')
+              AS DECIMAL(10, 2)
+            )
+            ELSE 0
+          END
+        ) AS hen_detalle,
+        SUM(
+          CASE
+            WHEN REPLACE(LOWER(concepto), '_', ' ') LIKE '%extra diurna%'
+              AND REPLACE(LOWER(concepto), '_', ' ') NOT LIKE '%domingo/festivo%'
+              AND REPLACE(LOWER(concepto), '_', ' ') NOT LIKE '%dominical%'
+            THEN CAST(
+              COALESCE(NULLIF(REPLACE(SUBSTRING_INDEX(SUBSTRING_INDEX(concepto, '(', -1), 'h', 1), ')', ''), ''), '0')
+              AS DECIMAL(10, 2)
+            )
+            ELSE 0
+          END
+        ) AS heo_detalle
       FROM detalle_nomina
       GROUP BY id_nomina
     ) hd ON hd.id_nomina = n.id_nomina
