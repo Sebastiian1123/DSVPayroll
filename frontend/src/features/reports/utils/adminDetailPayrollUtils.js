@@ -18,14 +18,10 @@ export const calculateAdminPayrollTotals = (rows) => (
   rows.reduce(
     (acc, row) => {
       acc.salario += Number(row.salario_basico) || 0
-      acc.heo += Number(row.heo) || 0
-      acc.hef += Number(row.hef) || 0
-      acc.hen += Number(row.hen) || 0
-      acc.hefn += Number(row.hefn) || 0
-      acc.heoValor += Number(row.heo_valor) || 0
-      acc.hefValor += Number(row.hef_valor) || 0
-      acc.henValor += Number(row.hen_valor) || 0
-      acc.hefnValor += Number(row.hefn_valor) || 0
+      acc.heo += Number(row.heo_valor) || 0
+      acc.hef += Number(row.hef_valor) || 0
+      acc.hen += Number(row.hen_valor) || 0
+      acc.hefn += Number(row.hefn_valor) || 0
       acc.salud += Number(row.deduccion_salud) || 0
       acc.arl += Number(row.deduccion_arl) || 0
       acc.pension += Number(row.deduccion_pension) || 0
