@@ -192,13 +192,14 @@ const AdminDetailPayroll = ({ period, onBack }) => {
                                 <th className="is-danger">Deduc. ARL</th>
                                 <th className="is-danger">Deduc. pension</th>
                                 <th className="is-primary">Neto a pagar</th>
+                                <th>Estado HE</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredRows.length === 0 ? (
                                 <tr>
-                                    <td colSpan={11} style={{ textAlign: 'center', padding: '28px 24px', color: 'var(--text-light)' }}>
+                                    <td colSpan={12} style={{ textAlign: 'center', padding: '28px 24px', color: 'var(--text-light)' }}>
                                         No hay empleados para el filtro seleccionado.
                                     </td>
                                 </tr>
@@ -215,14 +216,17 @@ const AdminDetailPayroll = ({ period, onBack }) => {
                                             </div>
                                         </td>
                                         <td>{formatReportCurrency(row.salario_basico)}</td>
-                                        <td>{row.heo}</td>
-                                        <td>{row.hef}</td>
-                                        <td>{row.hen}</td>
-                                        <td>{row.hefn}</td>
+                                        <td>{formatReportCurrency(row.heo_valor)}</td>
+                                        <td>{formatReportCurrency(row.hef_valor)}</td>
+                                        <td>{formatReportCurrency(row.hen_valor)}</td>
+                                        <td>{formatReportCurrency(row.hefn_valor)}</td>
                                         <td className="is-danger">{formatReportCurrency(row.deduccion_salud)}</td>
                                         <td className="is-danger">{formatReportCurrency(row.deduccion_arl)}</td>
                                         <td className="is-danger">{formatReportCurrency(row.deduccion_pension)}</td>
                                         <td className="is-primary is-strong">{formatReportCurrency(row.total_pagar)}</td>
+                                        <td>
+                                            {Number(row.overtime_data_complete) === 1 ? 'Completo' : 'Inconsistente'}
+                                        </td>
                                         <td>
                                             <div className="admin-payroll-row-actions">
                                                 <button
@@ -253,10 +257,10 @@ const AdminDetailPayroll = ({ period, onBack }) => {
                             <tr>
                                 <td className="admin-payroll-table__totals-title">Totales del periodo</td>
                                 <td>{formatReportCurrency(totals.salario)}</td>
-                                <td>{totals.heo}</td>
-                                <td>{totals.hef}</td>
-                                <td>{totals.hen}</td>
-                                <td>{totals.hefn}</td>
+                                <td>{formatReportCurrency(totals.heo)}</td>
+                                <td>{formatReportCurrency(totals.hef)}</td>
+                                <td>{formatReportCurrency(totals.hen)}</td>
+                                <td>{formatReportCurrency(totals.hefn)}</td>
                                 <td className="is-danger">{formatReportCurrency(totals.salud)}</td>
                                 <td className="is-danger">{formatReportCurrency(totals.arl)}</td>
                                 <td className="is-danger">{formatReportCurrency(totals.pension)}</td>
