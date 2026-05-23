@@ -1,8 +1,34 @@
 import React, { useEffect, useMemo, useState } from 'react';
+
 import reportsService from '../../../services/reportsService';
 import { useAuth } from '../../../context/AuthContext';
 import { calculateAdminPayrollTotals, filterAdminPayrollRows } from '../utils/adminDetailPayrollUtils';
 import { formatReportCurrency } from '../utils/reportFormatters';
+
+
+const toNumber = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const normalizePayrollRow = (row = {}) => ({
+    ...row,
+    id_nomina: row.id_nomina || row.idNomina || row.id,
+    id_empleado: row.id_empleado || row.idEmpleado,
+    empleado: row.empleado || row.nombre_empleado || row.nombreEmpleado || 'Empleado sin nombre',
+    cargo: row.cargo || row.nombre_cargo || row.nombreCargo || '',
+    departamento: row.departamento || row.nombre_departamento || row.nombreDepartamento || '',
+    salario_basico: toNumber(row.salario_basico ?? row.sueldo ?? row.salario),
+    heo_valor: toNumber(row.heo_valor ?? row.valor_heo),
+    hef_valor: toNumber(row.hef_valor ?? row.valor_hef),
+    hen_valor: toNumber(row.hen_valor ?? row.valor_hen),
+    hefn_valor: toNumber(row.hefn_valor ?? row.valor_hefn),
+    deduccion_salud: toNumber(row.deduccion_salud),
+    deduccion_arl: toNumber(row.deduccion_arl),
+    deduccion_pension: toNumber(row.deduccion_pension),
+    total_pagar: toNumber(row.total_pagar ?? row.neto_pagar ?? row.neto),
+    overtime_data_complete: Number(row.overtime_data_complete) === 1 ? 1 : 0
+});
 
 const AdminDetailPayroll = ({ period, onBack }) => {
     const { isAdmin } = useAuth();
@@ -36,7 +62,7 @@ const AdminDetailPayroll = ({ period, onBack }) => {
                     anio: period.year,
                     mes: period.monthNumber
                 });
-                setRows(Array.isArray(data?.nominas) ? data.nominas : []);
+                setRows(Array.isArray(data?.nominas) ? data.nominas.map(normalizePayrollRow) : []);
             } catch (fetchError) {
                 console.error('Error cargando detalle administrativo de nomina:', fetchError);
                 setRows([]);
